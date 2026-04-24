@@ -16,7 +16,6 @@ export interface DispatchTurnInput {
 	readonly session: Session;
 	readonly participant: Participant;
 	readonly transcriptPrefix: readonly MessageView[];
-	readonly facilitatorMessage: MessageView | null;
 	readonly roundNumber: number;
 	readonly timeoutMs: number;
 	readonly cancellationSignal: AbortSignal;
@@ -131,16 +130,17 @@ export class DispatchTurnUseCase {
 	private buildPrompt(input: DispatchTurnInput): string {
 		const blocks: string[] = [];
 		blocks.push(`[meeting-round=${input.roundNumber} self=${input.participant.id}]`);
-		if (input.facilitatorMessage) {
-			blocks.push(
-				`[facilitator=${input.facilitatorMessage.authorId}]\n${input.facilitatorMessage.text}`,
-			);
-		}
 		for (const m of input.transcriptPrefix) {
 			const kind = m.kind ?? "speech";
-			blocks.push(
-				`[author=${m.authorId} role=${m.authorRole} round=${m.round} kind=${kind}]\n${m.text}`,
-			);
+			if (m.authorRole === "facilitator") {
+				blocks.push(`[facilitator=${m.authorId} round=${m.round}]\n${m.text}`);
+			} else if (m.authorRole === "system") {
+				blocks.push(`[system round=${m.round}]\n${m.text}`);
+			} else {
+				blocks.push(
+					`[author=${m.authorId} role=${m.authorRole} round=${m.round} kind=${kind}]\n${m.text}`,
+				);
+			}
 		}
 		return blocks.join("\n\n");
 	}

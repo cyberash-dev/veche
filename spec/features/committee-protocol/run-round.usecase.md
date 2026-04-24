@@ -34,13 +34,13 @@ Side effect: `round.started`, zero or more `message.posted`, zero or more `parti
 2. Increment `state.roundNumber`.
 3. `MeetingStorePort.appendSystemEvent('round.started', { roundNumber, activeParticipantIds: activeMembers })`.
 4. Build the `transcriptPrefix` for each Member:
-   - 4a. For each Member, the prefix is the ordered list of `message.posted` events from Round `previousRound..roundNumber-1` whose `author ≠ thisMember`. `previousRound` is the Round index of this Member's most recent prior Turn (or Round 0 on their first Turn).
-   - 4b. The prefix is emitted to the Adapter as part of the Turn prompt — formatting is defined in [dispatch-turn](../agent-integration/dispatch-turn.usecase.md).
+   - 4a. For each Member, the prefix is the ordered list of every `message.posted` Event whose `author` is not this Member AND whose `round` is greater than or equal to `lastRound[member]` — the round in which this Member most recently spoke (or `-1` on the very first Turn). On Round 1 this collapses to a single entry: the facilitator's opening Message (round 0). On Round N+1 it is every other Member's Message from Round N. The prefix is symmetric across Members within a Round — both the first and last dispatched Members see the same set of peer Messages from the prior round, irrespective of intra-round dispatch ordering.
+   - 4b. The prefix relies on the assumption that every Member's prior context (its own past responses + peer Messages it has already received in earlier rounds) is retained by the adapter's provider session. New stateless adapters MUST therefore opt in via a different code path, not by widening this prefix.
+   - 4c. The prefix is emitted to the Adapter as part of the Turn prompt — formatting is defined in [dispatch-turn](../agent-integration/dispatch-turn.usecase.md).
 5. Dispatch one Turn per Member in parallel:
    - 5a. `turnPromise[i] = dispatchTurn({ session, prompt, transcriptPrefix, roundNumber, timeoutMs, workdir })` — see [dispatch-turn](../agent-integration/dispatch-turn.usecase.md).
-   - 5b. `prompt` for Round 1 is empty (the entire relevant content lives in `transcriptPrefix`, which on Round 1 contains the Facilitator Message).
-   - 5c. `prompt` for Rounds ≥ 2 is empty; only the `transcriptPrefix` varies.
-   - 5d. The dispatch uses `Promise.allSettled` so that one failing Member does not abort the others.
+   - 5b. `prompt` is empty in every Round; the entire content for the Member lives in `transcriptPrefix`.
+   - 5c. The dispatch uses `Promise.allSettled` so that one failing Member does not abort the others.
 6. Check `cancellationSignal.aborted`. If set → return `state` with `terminationReason = 'cancelled'`.
 7. Process outcomes (order: Member id ascending, deterministic for Transcript stability):
    - 7a. **TurnOutcome.kind = 'speech'** → `appendMessage({ meetingId, message: { round, author: participantId, kind: 'speech', text } })`. Clear `pendingPass.delete(participantId)`. Clear any prior pass state from *other* Members too — because a new `speech` invalidates any prior passes for the *next* Round (documented in Rule below).

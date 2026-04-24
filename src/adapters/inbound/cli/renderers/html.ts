@@ -109,6 +109,21 @@ h3 { margin: 20px 0 12px; font-size: 15px; font-weight: 600; color: #4b5563; }
   text-align: center;
   font-size: 13px;
 }
+.msg.facilitator { flex-direction: column; align-items: stretch; }
+.msg.facilitator .col { align-items: stretch; }
+.msg.facilitator .bubble {
+  max-width: 100%;
+  background: #ededed;
+  border: 1px solid #d1d5db;
+  font-style: italic;
+}
+.msg.facilitator .author { color: #6b7280; }
+.peer-caption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
 .footer { color: #9ca3af; font-size: 12px; text-align: center; margin-top: 32px; }
 details[open] summary::marker { color: #9ca3af; }
 details { margin-top: 16px; border-top: 1px solid #f3f4f6; padding-top: 10px; }
@@ -127,16 +142,23 @@ const statusClass = (status: string): string => {
 	return known.has(status) ? status : "queued";
 };
 
-const bubbleSide = (participantIndex: number): "left" | "right" =>
-	participantIndex % 2 === 0 ? "left" : "right";
+/** Alternates members between left and right by their position among non-facilitator
+ * participants. The facilitator is rendered separately as a centered, full-width bubble. */
+const bubbleSide = (memberIndex: number): "left" | "right" =>
+	memberIndex % 2 === 0 ? "left" : "right";
 
 export const renderHtml: Renderer = (input) => {
 	const { meeting, participants, jobs, messages, events, generatedAt, version } = input;
 	const colorByParticipant = new Map<string, string>();
-	const indexByParticipant = new Map<string, number>();
-	participants.forEach((p: Participant, i) => {
+	const memberIndexByParticipant = new Map<string, number>();
+	let memberCounter = 0;
+	const memberCount = participants.filter((p) => p.role === "member").length;
+	participants.forEach((p: Participant) => {
 		colorByParticipant.set(p.id, participantColor(p));
-		indexByParticipant.set(p.id, i);
+		if (p.role === "member") {
+			memberIndexByParticipant.set(p.id, memberCounter);
+			memberCounter += 1;
+		}
 	});
 
 	const out: string[] = [];
@@ -166,6 +188,11 @@ export const renderHtml: Renderer = (input) => {
 			`</div>`,
 	);
 	out.push(`<h2 style="margin-top:16px">Participants</h2>`);
+	out.push(
+		`<div class="peer-caption">Symmetric peer deliberation — ${memberCount} member${
+			memberCount === 1 ? "" : "s"
+		} + 1 facilitator</div>`,
+	);
 	out.push('<div class="p-list">');
 	for (const p of participants) {
 		const swatch = colorByParticipant.get(p.id)!;
@@ -241,9 +268,11 @@ export const renderHtml: Renderer = (input) => {
 					continue;
 				}
 				const bg = colorByParticipant.get(String(m.author)) ?? "hsl(0,0%,93%)";
-				const side = bubbleSide(indexByParticipant.get(String(m.author)) ?? 0);
+				// `speech`/`pass` messages: facilitator id is not in the member index.
+				const memberIdx = memberIndexByParticipant.get(String(m.author));
+				const layoutClass = memberIdx === undefined ? "facilitator" : bubbleSide(memberIdx);
 				out.push(
-					`<div class="msg ${side}">` +
+					`<div class="msg ${layoutClass}">` +
 						`<div class="col">` +
 						`<div class="author">${escapeHtml(String(m.author))}` +
 						`<span class="time">${escapeHtml(m.createdAt)}</span></div>` +

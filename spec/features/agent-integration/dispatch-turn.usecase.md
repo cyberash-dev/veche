@@ -10,8 +10,7 @@ Internal — committee-protocol, called once per Member per Round by [run-round]
 |-------|------|------------|
 | `session` | `Session` | `status = open`. |
 | `participant` | `Participant` | Must correspond to `session.participantId`. |
-| `transcriptPrefix` | `MessageView[]` | 0..N entries. Other Members' Messages emitted since this Participant's previous Turn. |
-| `facilitatorMessage` | `MessageView` \| null | Non-null on Round 1 only — the raw Facilitator Message that kicked the Job. Bundled here so the Adapter can include it verbatim. |
+| `transcriptPrefix` | `MessageView[]` | 0..N entries. Messages from other Participants in rounds this Participant has not yet seen, in `seq` order. Specifically: every `speech`/`pass`/`system` Message with `round >= lastRound[participant]` authored by anyone else. On Round 1 it is exactly `[facilitator]`; on Round N+1 it is every other Member's Message from Round N (and any earlier round the Member missed). Excludes this Participant's own messages. The adapter relies on session resume for older context. |
 | `roundNumber` | integer ≥ 1 | — |
 | `timeoutMs` | integer ≥ 1000 | From the Job. |
 | `cancellationSignal` | `AbortSignal` | Propagated to the Adapter subprocess. |
@@ -29,10 +28,13 @@ A `TurnResult` (see [agent-integration](./agent-integration.md)):
 ## Flow
 
 1. **Build the prompt content.** The Adapter receives a single `prompt` string plus the native Session reference. Content is assembled as follows:
-   - 1a. **Preamble** (always): a short tag block identifying the Round and the Participant's own id, e.g. `[meeting-round=3 self=reviewer]`. This anchors context for the model.
-   - 1b. **Facilitator Message** (Round 1 only): `[facilitator=<id>] <facilitatorMessage.text>`.
-   - 1c. **Other Members' Messages since last Turn**: one block per `MessageView` in order, formatted as `[author=<id> role=<role> round=<n>] <text>`. `system` Messages (e.g. drop markers) are included verbatim so the Member can acknowledge dropouts.
-   - 1d. No raw JSON; plain text blocks separated by a blank line. This keeps the payload model-agnostic.
+   - 1a. **Preamble** (always): a short tag block identifying the Round and the Participant's own id, e.g. `[meeting-round=3 self=codex]`. This anchors context for the model.
+   - 1b. **The new Messages** from rounds this Member has not yet seen (`m.round >= lastRound[member]`, excluding own), in `seq` order. One block per `MessageView`. The block tag is chosen by `MessageView.authorRole`:
+     - `facilitator` → `[facilitator=<id> round=<n>] <text>` (only on Round 1; thereafter the facilitator Message is in session memory)
+     - `member` → `[author=<id> role=member round=<n>] <text>`
+     - `system` → `[system round=<n>] <text>` — included verbatim so the Member can acknowledge new dropouts and other incidents.
+   - 1c. No raw JSON; plain text blocks separated by a blank line. This keeps the payload model-agnostic.
+   - 1d. The prompt is incremental — older context (the Member's own past responses, prior peer messages it has already received) is retained by the adapter's provider session (Codex `thread_id`, Claude Code `--resume`). The protocol depends on session continuity to keep prompts compact.
 2. **Build the system prompt for the first Turn only.** On `session.providerRef === null`, the Adapter ships `systemPrompt = resolvedSystemPrompt + "\n\n" + PASS_PROTOCOL_SUFFIX`. The suffix is the literal block defined under *Rules* below. On subsequent Turns, the Adapter relies on the provider's session memory (Codex `thread`, Claude Code `--session-id`) and does not re-send the system prompt.
 3. **Invoke the Adapter** up to `MAX_ATTEMPTS_PER_TURN` times:
    - 3a. Call `AgentAdapterPort.sendTurn({ session, prompt, systemPrompt, workdir: participant.workdir, roundNumber, timeoutMs })`.

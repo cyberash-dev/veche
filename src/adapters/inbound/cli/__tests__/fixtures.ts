@@ -26,9 +26,9 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		defaultMaxRounds: 3,
 	};
 	const facilitator: Participant = {
-		id: asParticipantId("claude"),
+		id: asParticipantId("facilitator"),
 		role: "facilitator",
-		displayName: "claude",
+		displayName: "facilitator",
 		adapter: null,
 		profile: null,
 		systemPrompt: null,
@@ -42,19 +42,19 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		droppedAt: null,
 		droppedReason: null,
 	};
-	const coder: Participant = {
+	const codex: Participant = {
 		...facilitator,
-		id: asParticipantId("coder"),
+		id: asParticipantId("codex"),
 		role: "member",
-		displayName: "coder",
+		displayName: "codex",
 		adapter: "codex-cli",
 		sessionId: asSessionId("00000000-0000-4000-8000-000000000001"),
 	};
-	const reviewer: Participant = {
+	const claude: Participant = {
 		...facilitator,
-		id: asParticipantId("reviewer"),
+		id: asParticipantId("claude"),
 		role: "member",
-		displayName: "reviewer",
+		displayName: "claude",
 		adapter: "claude-code-cli",
 		sessionId: asSessionId("00000000-0000-4000-8000-000000000002"),
 	};
@@ -79,7 +79,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 			meetingId,
 			seq: 3,
 			round: 0,
-			author: asParticipantId("claude"),
+			author: asParticipantId("facilitator"),
 			kind: "speech",
 			text: "Should we use tabs or spaces? <one word>",
 			createdAt: INSTANT,
@@ -89,7 +89,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 			meetingId,
 			seq: 5,
 			round: 1,
-			author: asParticipantId("coder"),
+			author: asParticipantId("codex"),
 			kind: "speech",
 			text: "spaces",
 			createdAt: INSTANT,
@@ -99,7 +99,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 			meetingId,
 			seq: 6,
 			round: 1,
-			author: asParticipantId("reviewer"),
+			author: asParticipantId("claude"),
 			kind: "speech",
 			text: "spaces — it's the ecosystem default.",
 			createdAt: INSTANT,
@@ -109,7 +109,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 			meetingId,
 			seq: 7,
 			round: 2,
-			author: asParticipantId("coder"),
+			author: asParticipantId("codex"),
 			kind: "pass",
 			text: "<PASS/>",
 			createdAt: INSTANT,
@@ -119,7 +119,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 			meetingId,
 			seq: 8,
 			round: 2,
-			author: asParticipantId("reviewer"),
+			author: asParticipantId("claude"),
 			kind: "pass",
 			text: "<PASS/>",
 			createdAt: INSTANT,
@@ -127,7 +127,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 	];
 	return {
 		meeting,
-		participants: [facilitator, coder, reviewer],
+		participants: [facilitator, codex, claude],
 		jobs: [job],
 		messages,
 		events: null,

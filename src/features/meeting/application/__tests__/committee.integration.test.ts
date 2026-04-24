@@ -160,6 +160,35 @@ describe("committee integration", () => {
 		expect(speechOrPass).toHaveLength(5);
 		const facilitatorMsg = final.messages.find((m) => m.round === 0);
 		expect(facilitatorMsg?.text).toBe("Decide X vs Y");
+
+		// Bounded-delta invariant: in Round 2, each member's prompt prefix contains ONLY the
+		// other member's Round 1 speech — the facilitator's opening Message is already in the
+		// member's provider session from Round 1 and must not be re-sent. The member's own
+		// Round 1 speech is also excluded. Per
+		// spec/features/committee-protocol/run-round.usecase.md step 4a.
+		const coderRound2 = t.codex.turns.find(
+			(x) => x.turn.participantId === "coder" && x.turn.roundNumber === 2,
+		);
+		const reviewerRound2 = t.claude.turns.find(
+			(x) => x.turn.participantId === "reviewer" && x.turn.roundNumber === 2,
+		);
+		expect(coderRound2).toBeDefined();
+		expect(reviewerRound2).toBeDefined();
+		const coderPrefix = coderRound2?.turn.transcriptPrefix ?? [];
+		const reviewerPrefix = reviewerRound2?.turn.transcriptPrefix ?? [];
+		expect(coderPrefix).toHaveLength(1);
+		expect(reviewerPrefix).toHaveLength(1);
+		// The single prefix entry is the OTHER member's R1 speech.
+		expect(coderPrefix[0]?.authorId).toBe("reviewer");
+		expect(coderPrefix[0]?.round).toBe(1);
+		expect(reviewerPrefix[0]?.authorId).toBe("coder");
+		expect(reviewerPrefix[0]?.round).toBe(1);
+		// Round 1 prefix, by contrast, contained only the facilitator Message.
+		const coderRound1 = t.codex.turns.find(
+			(x) => x.turn.participantId === "coder" && x.turn.roundNumber === 1,
+		);
+		expect(coderRound1?.turn.transcriptPrefix).toHaveLength(1);
+		expect(coderRound1?.turn.transcriptPrefix[0]?.authorRole).toBe("facilitator");
 	});
 
 	it("drops a member that fails fatally and continues", async () => {

@@ -28,6 +28,14 @@ export const renderText: Renderer = (input) => {
 		const dropped = p.status === "dropped" ? c.red(" [dropped]") : "";
 		lines.push(`  ${p.id.padEnd(16)} ${p.role.padEnd(12)} ${c.dim(adapter)}${dropped}`);
 	}
+	const memberCount = input.participants.filter((p) => p.role === "member").length;
+	lines.push(
+		c.dim(
+			`  Symmetric peer deliberation — ${memberCount} member${
+				memberCount === 1 ? "" : "s"
+			} + 1 facilitator`,
+		),
+	);
 
 	// Jobs summary
 	if (input.jobs.length > 0) {

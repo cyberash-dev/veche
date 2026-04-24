@@ -29,7 +29,7 @@ Input to `AgentAdapterPort.sendTurn`.
 |-------|------|-------|
 | `session` | `Session` | Must be `open`. |
 | `prompt` | `string` | The Facilitator's Message for Round 1, or the round-prefix payload for Rounds ≥ 2 (see Flow rules below). |
-| `transcriptPrefix` | `MessageView[]` | Messages from *other* Participants emitted since this Participant's previous Turn. Injected into the Adapter's prompt — see [dispatch-turn](./dispatch-turn.usecase.md). Empty on Round 1. |
+| `transcriptPrefix` | `MessageView[]` | Messages from other Participants in rounds this Participant has not yet seen, in ascending `seq` order. Specifically, every `speech`/`pass`/`system` Message with `round >= lastRound[participant]` authored by anyone else. On Round 1 it is exactly `[facilitator]`; on Round N+1 it is every other Member's Message from Round N. Older context is retained by the adapter's provider session (Codex `thread_id`, Claude Code `--resume`) — the protocol relies on session continuity to keep prompts compact. Injected into the Adapter's prompt — see [dispatch-turn](./dispatch-turn.usecase.md). |
 | `systemPrompt` | `string` \| null | Applied on the *first* Turn only. Subsequent Turns inherit Adapter-native session memory. |
 | `workdir` | absolute path \| null | Forwarded to the Adapter if supported. |
 | `roundNumber` | integer ≥ 1 | For logging and for constructing the prefix preamble. |

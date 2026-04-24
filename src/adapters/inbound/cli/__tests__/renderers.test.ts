@@ -13,9 +13,10 @@ describe("text renderer", () => {
 		expect(out).toContain("── Opening");
 		expect(out).toContain("── Round 1");
 		expect(out).toContain("── Round 2");
-		expect(out).toContain("[r1 coder speech]");
-		expect(out).toContain("[r2 coder passed]");
+		expect(out).toContain("[r1 codex speech]");
+		expect(out).toContain("[r2 codex passed]");
 		expect(out).toContain("spaces — it's the ecosystem default.");
+		expect(out).toContain("Symmetric peer deliberation");
 	});
 
 	it("respects useColor flag", () => {
@@ -32,8 +33,9 @@ describe("markdown renderer", () => {
 		expect(out).toMatch(/^# tabs vs spaces/m);
 		expect(out).toContain("### Round 1");
 		expect(out).toContain("### Round 2");
-		expect(out).toContain("**coder**");
-		expect(out).toContain("_coder passed._");
+		expect(out).toContain("**codex**");
+		expect(out).toContain("_codex passed._");
+		expect(out).toContain("Symmetric peer deliberation");
 	});
 });
 
@@ -84,18 +86,30 @@ describe("html renderer", () => {
 		expect(html).toContain(">Opening</summary>");
 		expect(html).toContain(">Round 1</summary>");
 		expect(html).toContain(">Round 2</summary>");
-		expect(html).toContain("coder");
-		expect(html).toContain("reviewer");
+		expect(html).toContain("codex");
+		expect(html).toContain("claude");
 		// Pass pill appears, not raw token
 		expect(html).toContain("passed</span>");
 		expect(html).not.toContain("<PASS/>");
 	});
 
 	it("gives each non-facilitator participant a distinct colour", () => {
-		const coderBubble = html.match(/class="bubble" style="background:([^"]+)"/g);
-		expect(coderBubble).not.toBeNull();
+		const memberBubbles = html.match(/class="bubble" style="background:([^"]+)"/g);
+		expect(memberBubbles).not.toBeNull();
 		// at least two distinct colours among member bubbles
-		const uniq = new Set(coderBubble ?? []);
+		const uniq = new Set(memberBubbles ?? []);
 		expect(uniq.size).toBeGreaterThanOrEqual(2);
+	});
+
+	it("renders the facilitator's opening message as a centered, full-width bubble", () => {
+		expect(html).toContain('<div class="msg facilitator">');
+		// Members render as left/right alternates, never as facilitator class.
+		const facilitatorBubbles = html.match(/<div class="msg facilitator">/g) ?? [];
+		expect(facilitatorBubbles).toHaveLength(1); // only round-0 opening
+	});
+
+	it("includes the symmetric-peer caption in the header card", () => {
+		expect(html).toContain("Symmetric peer deliberation");
+		expect(html).toContain("2 members + 1 facilitator");
 	});
 });

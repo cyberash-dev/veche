@@ -28,9 +28,18 @@ export interface RunRoundInput {
 	readonly state: DiscussionState;
 	readonly participants: ReadonlyMap<ParticipantId, Participant>;
 	readonly sessions: ReadonlyMap<ParticipantId, Session>;
-	readonly facilitatorMessage: Message;
+	/**
+	 * The full prior transcript-so-far in `seq` order. `buildPrefixForParticipant` narrows it
+	 * per Member by `lastRound` + author-not-self.
+	 */
 	readonly priorMessages: readonly Message[];
-	readonly participantLastSeen: Map<ParticipantId, number>;
+	/**
+	 * Map from `ParticipantId` to the round in which that Member most recently spoke (or `-1`
+	 * before any). Used by `buildPrefixForParticipant` to send a Member every Message from
+	 * other Members emitted in rounds the Member has not yet seen. The runner mutates this
+	 * map as Turns are appended.
+	 */
+	readonly participantLastRound: Map<ParticipantId, number>;
 	readonly cancellationSignal: AbortSignal;
 }
 
@@ -56,29 +65,20 @@ export class RunRoundUseCase {
 			at: now,
 		});
 
-		const allMessages: Message[] = [input.facilitatorMessage, ...input.priorMessages];
-
 		const outcomes = await Promise.allSettled(
 			activeMembers.map(async (participantId) => {
 				const participant = input.participants.get(participantId)!;
 				const session = input.sessions.get(participantId)!;
-				const lastSeen = input.participantLastSeen.get(participantId) ?? -1;
-				const prefix = this.buildPrefixForParticipant(participantId, allMessages, lastSeen);
-				const facilitatorView: MessageView | null =
-					lastSeen < input.facilitatorMessage.seq
-						? {
-								authorId: String(input.facilitatorMessage.author),
-								authorRole: "facilitator",
-								round: input.facilitatorMessage.round,
-								text: input.facilitatorMessage.text,
-								kind: input.facilitatorMessage.kind,
-							}
-						: null;
+				const lastRound = input.participantLastRound.get(participantId) ?? -1;
+				const prefix = this.buildPrefixForParticipant(
+					participantId,
+					input.priorMessages,
+					lastRound,
+				);
 				const result = await dispatch.execute({
 					session,
 					participant,
 					transcriptPrefix: prefix,
-					facilitatorMessage: facilitatorView,
 					roundNumber: input.state.roundNumber,
 					timeoutMs: input.job.turnTimeoutMs,
 					cancellationSignal: input.cancellationSignal,
@@ -143,7 +143,7 @@ export class RunRoundUseCase {
 				},
 			});
 			input.state.lastSeq = appended.seq;
-			input.participantLastSeen.set(participantId, appended.seq);
+			input.participantLastRound.set(participantId, input.state.roundNumber);
 			if (kind === "pass") {
 				input.state.pendingPass.add(participantId);
 			} else {
@@ -183,14 +183,22 @@ export class RunRoundUseCase {
 		return ids;
 	}
 
+	/**
+	 * Bounded delta: every Message from other Members in rounds the Member has not yet seen.
+	 * A Member who last spoke in round R sees, on its next Turn, every Message with
+	 * `round >= R` authored by anyone else. On the first Turn (`lastRound = -1`) this is the
+	 * facilitator's opening Message (round 0). On Round N+1 this is every other Member's
+	 * reply from Round N. Older context is retained by the adapter's provider session — see
+	 * spec `spec/features/committee-protocol/run-round.usecase.md` step 4a.
+	 */
 	private buildPrefixForParticipant(
 		self: ParticipantId,
 		allMessages: readonly Message[],
-		lastSeen: number,
+		lastRound: number,
 	): MessageView[] {
 		const views: MessageView[] = [];
 		for (const m of allMessages) {
-			if (m.seq <= lastSeen) {
+			if (m.round < lastRound) {
 				continue;
 			}
 			if (m.author === self) {

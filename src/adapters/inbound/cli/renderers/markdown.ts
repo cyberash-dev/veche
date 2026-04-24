@@ -22,6 +22,13 @@ export const renderMarkdown: Renderer = (input) => {
 	for (const p of input.participants) {
 		lines.push(`| \`${p.id}\` | ${p.role} | ${p.adapter ?? "—"} | ${p.status} |`);
 	}
+	const memberCount = input.participants.filter((p) => p.role === "member").length;
+	lines.push("");
+	lines.push(
+		`_Symmetric peer deliberation — ${memberCount} member${
+			memberCount === 1 ? "" : "s"
+		} + 1 facilitator._`,
+	);
 
 	if (input.jobs.length > 0) {
 		lines.push("");

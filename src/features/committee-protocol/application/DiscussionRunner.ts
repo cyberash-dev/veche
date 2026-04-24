@@ -65,14 +65,18 @@ export class DiscussionRunner {
 			lastSeq: input.facilitatorMessage.seq,
 		};
 
-		const participantLastSeen = new Map<ParticipantId, number>();
-		for (const id of participants.keys()) {
-			participantLastSeen.set(id, -1);
-		}
+		// `priorMessages` is the full transcript-so-far (including the facilitator's opening
+		// Message). RunRoundUseCase narrows it per Member via `participantLastSeen` + drop-own
+		// — see spec `spec/features/committee-protocol/run-round.usecase.md` step 4a.
+		const priorMessages: Message[] = [input.facilitatorMessage];
 
-		// Seed prior messages (none yet — the only message visible at round start is the facilitator message,
-		// which is passed separately).
-		const priorMessages: Message[] = [];
+		// Tracks the round in which each Participant most recently spoke. -1 means "has never
+		// spoken". Mutated by RunRoundUseCase as it appends each Member's reply. Used to build
+		// the per-Member transcript prefix (round-based delta) on the next Turn.
+		const participantLastRound = new Map<ParticipantId, number>();
+		for (const id of participants.keys()) {
+			participantLastRound.set(id, -1);
+		}
 
 		while (!state.terminationReason) {
 			const activeMembers = this.collectActive(participants, state);
@@ -92,9 +96,8 @@ export class DiscussionRunner {
 					state,
 					participants,
 					sessions,
-					facilitatorMessage: input.facilitatorMessage,
 					priorMessages,
-					participantLastSeen,
+					participantLastRound,
 					cancellationSignal: input.cancellationSignal,
 				});
 			} catch (err) {
@@ -112,18 +115,13 @@ export class DiscussionRunner {
 				});
 				return;
 			}
-			// Pull newly-appended messages for the next round's priorMessages.
+			// Refresh `priorMessages` with the full transcript for the next round.
 			const delta = await store.readMessagesSince({
 				meetingId: input.meetingId,
 				limit: InitialFetchPageSize,
 			});
 			priorMessages.length = 0;
-			for (const m of delta.messages) {
-				if (m.seq === input.facilitatorMessage.seq) {
-					continue;
-				}
-				priorMessages.push(m);
-			}
+			priorMessages.push(...delta.messages);
 		}
 
 		if (!state.terminationReason) {
