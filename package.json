@@ -7,7 +7,8 @@
     "node": ">=20.11"
   },
   "bin": {
-    "ai-meeting-server": "./dist/bin/ai-meeting-server.js"
+    "ai-meeting-server": "./dist/bin/ai-meeting-server.js",
+    "ai-meeting": "./dist/bin/ai-meeting.js"
   },
   "exports": {
     ".": "./dist/index.js"

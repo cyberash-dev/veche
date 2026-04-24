@@ -29,11 +29,15 @@ ai-meeting/
 │   ├── containers/
 │   │   └── ai-meeting-server.md   L2 — stack, conventions, env vars, tool catalog
 │   └── features/
-│       ├── meeting/       7 MCP tools
+│       ├── meeting/       7 MCP tools + 2 CLI commands (list, show)
 │       ├── committee-protocol/   round algorithm, pass, terminate, drop
 │       ├── agent-integration/    AgentAdapterPort + Codex CLI + Claude Code CLI
 │       └── persistence/          MeetingStorePort + in-memory + file
 ├── src/                   ← implementation (mirrors spec/)
+│   ├── adapters/inbound/mcp/     ← MCP server (stdio)
+│   ├── adapters/inbound/cli/     ← human-operator CLI (list, show) + renderers
+│   ├── bin/ai-meeting-server.ts  ← stdio MCP entrypoint
+│   └── bin/ai-meeting.ts         ← CLI entrypoint
 ├── examples/              ← sample .mcp.json, config.json
 ├── dist/                  ← build output (committed in CI, not locally)
 └── node_modules/
@@ -110,6 +114,34 @@ AI_MEETING_E2E=1 npx vitest run src/e2e/committee.e2e.test.ts   # opt-in real CL
 ```
 
 Before declaring a change done: `npm run typecheck && npm test && npm run lint` must all pass.
+
+## CLI invariants (`src/adapters/inbound/cli/`)
+
+The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the event log via
+`FileMeetingStore`. Keep these invariants intact when touching anything under
+`src/adapters/inbound/cli/`:
+
+- **Read-only against the store.** The CLI MUST NOT call `createMeeting`, `appendMessage`,
+  `appendSystemEvent`, `markParticipantDropped`, `createJob`, `updateJob`, or `endMeeting`.
+  Safety of concurrent `ai-meeting` + `ai-meeting-server` processes depends on this.
+- **HTML output is self-contained.** `renderers/html.ts` must emit zero `<script>` tags, no
+  `<link rel="stylesheet">`, and no `src="http…"` / `href="http…"` references. All strings
+  originating from user / model content flow through `escapeHtml` from `renderers/helpers.ts`.
+  `src/adapters/inbound/cli/__tests__/renderers.test.ts` asserts this with regex probes — do
+  not weaken those assertions when editing the template.
+- **No new npm deps for the CLI.** `AiMeetingCli.ts` hand-rolls argv parsing (no `yargs`,
+  `commander`, `minimist`). Renderers are pure functions on Node built-ins only
+  (`node:crypto` for the SHA-1 HSL colour, `node:fs/promises` for atomic writes,
+  `node:child_process` for `--open`). If a dep feels needed, ask first.
+- **Atomic `--out` writes.** Always write `<path>.tmp-<pid>-<ts>` and `rename()` onto the
+  target. Never truncate the destination in place.
+- **Deterministic participant colours.** `participantColor` in `renderers/helpers.ts` is a
+  pure function of `participantId` (SHA-1 → HSL hue), facilitator always neutral. Tests snap
+  on determinism — do not introduce randomness or time-dependency.
+- **Exit codes are part of the contract.** `0` success · `1` unhandled · `2` store or
+  filesystem error · `3` meeting not found · `64` usage error. `cli.integration.test.ts`
+  exercises each. If you add a failure mode, pick one of these and document it in
+  `spec/features/meeting/show-meeting-cli.usecase.md` *first*.
 
 ## Recursion guard (Claude Code adapter)
 

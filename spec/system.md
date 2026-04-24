@@ -23,6 +23,7 @@ An MCP server that lets an orchestrator agent conduct multi-party committee meet
 | Actor | Auth method | Description |
 |-------|-------------|-------------|
 | Orchestrator Agent | None at the MCP boundary (stdio is the trust envelope) | The external agent process that connects to this MCP server, issues tool calls, and consumes transcripts. Always the Facilitator of every Meeting it creates. |
+| Human Operator | Filesystem permissions on `$AI_MEETING_HOME` | Person running the `ai-meeting` CLI from a terminal to read past transcripts. Never writes to the store; inspects event logs produced by prior MCP sessions. |
 
 ## Key Decisions
 
@@ -34,6 +35,7 @@ An MCP server that lets an orchestrator agent conduct multi-party committee meet
 - **Recursion guard for Claude Code.** When the Claude Code CLI is spawned as a Member, the adapter appends `--strict-mcp-config --mcp-config '{"mcpServers":{}}'` to every invocation. The child Claude Code accepts MCP servers only from the supplied config, which is empty, so it cannot re-enter this (or any) MCP server and spawn another committee. See [claude-code-cli-adapter](./features/agent-integration/claude-code-cli-adapter.usecase.md).
 - **Two storage adapters.** The `MeetingStore` port has an `InMemoryStore` (tests and ephemeral dev) and a `FileStore` (JSONL under `$AI_MEETING_HOME`). Both are fed by the same event log model.
 - **Resilient to Member failure.** An Adapter failure drops only the affected Participant; the remaining committee continues the discussion and the Transcript records the drop.
+- **Read-only CLI decoupled from the server.** The `ai-meeting` binary (CLI) and the `ai-meeting-server` binary (MCP stdio) are independent processes. The CLI reads `$AI_MEETING_HOME` directly via `FileMeetingStore` and never acquires the append lock, so both can run against the same data at the same time. The CLI is the Human Operator's path to every past Meeting, including as a self-contained single-file HTML report. See [show-meeting-cli](./features/meeting/show-meeting-cli.usecase.md).
 
 ## Feature Index
 

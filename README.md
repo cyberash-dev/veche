@@ -124,6 +124,37 @@ Full rules live in
 Exact schemas and behaviour live in
 [`spec/features/meeting/*.usecase.md`](spec/features/meeting/).
 
+## Reading past meetings with the `ai-meeting` CLI
+
+Every Meeting is persisted under `$AI_MEETING_HOME` (default `~/.ai-meeting`) as an append-only
+JSONL event log. The `ai-meeting` binary reads it directly — no MCP server required, read-only.
+
+```bash
+ai-meeting list                          # active meetings (default)
+ai-meeting list --status all --limit 20  # widen the filter
+ai-meeting list --format json | jq .     # pipe to tooling
+ai-meeting show <meetingId>              # text + ANSI colors on a TTY
+ai-meeting show <meetingId> --format markdown
+ai-meeting show <meetingId> --format json > transcript.json
+ai-meeting show <meetingId> --format html --out report.html
+ai-meeting show <meetingId> --format html --open   # tmp file + default browser
+ai-meeting show <meetingId> --raw                  # include round.* and job.* events
+ai-meeting show <meetingId> --home /alt/store      # override $AI_MEETING_HOME
+```
+
+The **HTML report** is a single self-contained file (no remote assets, no `<script>`) with a
+chat-bubble layout per round, colored participants (hue derived deterministically from
+`participantId`), and collapsible round sections. It opens equally well in a browser or
+inside a code editor's preview.
+
+Exit codes: `0` ok · `2` store unavailable or write failed · `3` meeting not found · `64`
+usage error · `1` unhandled internal error.
+
+Behaviour is fully specified in
+[`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md)
+and
+[`spec/features/meeting/list-meetings-cli.usecase.md`](spec/features/meeting/list-meetings-cli.usecase.md).
+
 ## Configuration
 
 ### Environment
@@ -203,14 +234,18 @@ Hexagonal + Vertical Slices. Every feature lives under `src/features/<feature>/`
 ```
 src/
 ├── features/
-│   ├── meeting/              # 7 MCP tools, domain entities, JobRunner
-│   ├── committee-protocol/   # round algorithm, pass signal, terminate/drop
-│   ├── agent-integration/    # AgentAdapterPort + codex-cli, claude-code-cli, fake
-│   └── persistence/          # MeetingStorePort + in-memory, file (JSONL)
-├── adapters/inbound/mcp/     # MCP server (stdio), tool registration, zod schemas
-├── infra/                    # DI composition root, StructuredLogger, SystemClock, UuidIdGen
-├── shared/                   # branded ids, DomainError, Clock/IdGen/Logger ports
-└── bin/ai-meeting-server.ts  # stdio entrypoint
+│   ├── meeting/                 # 7 MCP tools + 2 CLI commands, domain entities, JobRunner
+│   ├── committee-protocol/      # round algorithm, pass signal, terminate/drop
+│   ├── agent-integration/       # AgentAdapterPort + codex-cli, claude-code-cli, fake
+│   └── persistence/             # MeetingStorePort + in-memory, file (JSONL)
+├── adapters/inbound/
+│   ├── mcp/                     # MCP server (stdio), tool registration, zod schemas
+│   └── cli/                     # ai-meeting CLI (list, show) + text/json/markdown/html renderers
+├── infra/                       # DI composition root, StructuredLogger, SystemClock, UuidIdGen
+├── shared/                      # branded ids, DomainError, Clock/IdGen/Logger ports
+└── bin/
+    ├── ai-meeting-server.ts     # stdio MCP entrypoint
+    └── ai-meeting.ts            # human-operator CLI entrypoint
 ```
 
 Full specification: [`spec/system.md`](spec/system.md) → containers/features/use cases.
@@ -224,6 +259,10 @@ Full specification: [`spec/system.md`](spec/system.md) → containers/features/u
   `cancel_job` to abort.
 - **`Session ID <uuid> is already in use`** (direct `claude -p` test) — don't hand-craft a
   stable UUID across runs; the adapter generates a fresh one per session.
+- **`ai-meeting show` prints `meeting <id> not found`** — the meeting lives under a different
+  `$AI_MEETING_HOME`. Pass `--home <path>` or export the env var. Exit code `3` signals this.
+- **`ai-meeting show --format html --open` does not open a browser on Linux** — `xdg-open`
+  must be on `PATH`. The file is still written to `$TMPDIR`; the path is printed to stderr.
 - **Empty transcript on `get_response`** — make sure you're passing `cursor` back unchanged
   each poll; advancing it is the server's job.
 

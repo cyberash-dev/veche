@@ -6,6 +6,8 @@ Canonical definitions for every domain term used in this specification. All spec
 |------|-----------|---------|
 | AI Meeting Server | This project — an MCP server that hosts multi-party committee meetings between an orchestrator agent and one or more external LLM agents. | system.md, c4-model.md |
 | Orchestrator | The external agent process that drives the meeting through MCP tool calls. Always a Participant inside the meeting (role `facilitator`). | system.md, meeting, committee-protocol |
+| Human Operator | The actor who runs the `ai-meeting` CLI from a terminal. Distinct from Orchestrator Agent: interacts with the store read-only, after the fact. | system.md, meeting (CLI use cases) |
+| HTML Report | A self-contained single-file HTML rendering of a Meeting transcript produced by `ai-meeting show --format html`. All CSS inlined, no external resources, safe to share offline. | show-meeting-cli |
 | MCP | Model Context Protocol. The transport used by the inbound adapter; this server speaks MCP over stdio. | containers/ai-meeting-server.md, meeting |
 | Meeting | A persistent committee session with a stable `meetingId`, a fixed roster of Participants, a shared Transcript, and a linear history of Jobs. | meeting, persistence |
 | Participant | A named actor in a Meeting. Has an `id`, a `role` (`facilitator` or `member`), an `adapter` reference, and optional per-participant configuration (profile, system prompt, workdir, model). | meeting, agent-integration |

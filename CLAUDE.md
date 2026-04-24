@@ -23,7 +23,10 @@ context.
 | Find the MCP tool schema for `send_message` | [`spec/features/meeting/send-message.usecase.md`](spec/features/meeting/send-message.usecase.md) |
 | See how a round is actually executed | [`spec/features/committee-protocol/run-round.usecase.md`](spec/features/committee-protocol/run-round.usecase.md) |
 | Add a new LLM adapter | [`spec/features/agent-integration/agent-integration.md`](spec/features/agent-integration/agent-integration.md) |
-| See the DI wiring | `src/infra/bootstrap.ts` |
+| Change the CLI output format / add a renderer | [`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md) |
+| Touch `list` or `show` command logic | `src/adapters/inbound/cli/commands/{list,show}.ts` |
+| Touch HTML / text / markdown / json rendering | `src/adapters/inbound/cli/renderers/*.ts` (pure functions) |
+| See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/ai-meeting.ts` (CLI) |
 | Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `AI_MEETING_E2E=1`) |
 
 ## Claude-Code-specific conventions
@@ -79,3 +82,11 @@ them by trial and error:
 - `InMemoryMeetingStore` is for tests and ephemeral dev; `FileMeetingStore` is the default.
 - The Job runner is fire-and-forget: `send_message` returns immediately with a `jobId`; the
   discussion runs in the background until terminal.
+- The `ai-meeting` CLI (`src/adapters/inbound/cli/`) is **read-only** and decoupled from the
+  MCP server — both processes can safely run against the same `$AI_MEETING_HOME`. Never call
+  a write method on the store from CLI code.
+- The HTML renderer MUST stay self-contained: no `<script>`, no remote `href`/`src`, all
+  user text through `escapeHtml`. Tests in
+  `src/adapters/inbound/cli/__tests__/renderers.test.ts` enforce this with regex probes.
+- The CLI hand-rolls argv parsing (no `yargs` / `commander` / `minimist`). If you think you
+  need one of those, you probably don't.

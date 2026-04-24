@@ -112,6 +112,8 @@ Documented in [agent-integration](../agent-integration/agent-integration.md). Co
 
 ## Use Cases
 
+### MCP tools (Orchestrator Agent)
+
 - [start-meeting](./start-meeting.usecase.md) — Create a Meeting with a fixed roster.
 - [send-message](./send-message.usecase.md) — Add a Facilitator Message and launch a Job that runs the committee discussion.
 - [get-response](./get-response.usecase.md) — Poll a Job's status and consume Transcript deltas since a Cursor.
@@ -119,6 +121,13 @@ Documented in [agent-integration](../agent-integration/agent-integration.md). Co
 - [get-transcript](./get-transcript.usecase.md) — Read Transcript deltas outside the Job-polling flow.
 - [end-meeting](./end-meeting.usecase.md) — Close a Meeting and release Adapter resources.
 - [cancel-job](./cancel-job.usecase.md) — Abort an in-flight Job and finalise the Transcript up to the interruption point.
+
+### CLI commands (Human Operator)
+
+Read-only inspection via the `ai-meeting` binary, decoupled from any running MCP server.
+
+- [list-meetings-cli](./list-meetings-cli.usecase.md) — Enumerate Meetings as an aligned table or JSON.
+- [show-meeting-cli](./show-meeting-cli.usecase.md) — Render a full Transcript as `text`, `html`, `markdown`, or `json`. HTML output is a self-contained single-file report with chat-bubble layout.
 
 ## Dependencies
 

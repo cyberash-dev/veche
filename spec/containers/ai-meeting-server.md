@@ -14,7 +14,8 @@
 | Testing | `vitest` (unit), `vitest` + filesystem tmpdir (adapter integration) |
 | Lint / format | `biome` (lint + format) |
 | Build | `tsc` emitting ESM `dist/` |
-| Binary entry | `bin/ai-meeting-server.js` — stdio MCP server |
+| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI for reading transcripts; read-only; reads `$AI_MEETING_HOME` directly via `FileMeetingStore`; does not open a network socket. |
+| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`). No new npm dependencies beyond those listed above. |
 
 External binaries (resolved via `PATH`):
 
@@ -65,6 +66,16 @@ src/
   adapters/
     inbound/
       mcp/                          MCP server, tool registration, zod schemas
+      cli/                          human-operator CLI (read-only transcript viewer)
+        AiMeetingCli.ts             argv parser + command dispatcher
+        commands/
+          list.ts                   `ai-meeting list` — renders MeetingSummary[]
+          show.ts                   `ai-meeting show <id>` — renders a Transcript
+        renderers/
+          text.ts                   TTY-oriented, optional ANSI colors
+          html.ts                   self-contained HTML report (inline CSS, no remote refs)
+          markdown.ts               GitHub-Flavored Markdown
+          json.ts                   stable-order JSON snapshot
   infra/
     config.ts                       config loader (env + user config file)
     logger.ts                       structured logger (pino-compatible interface)
@@ -73,6 +84,7 @@ src/
     bootstrap.ts                    wires DI graph and returns an MCP server
   bin/
     ai-meeting-server.ts            stdio entrypoint → bootstrap() → listen
+    ai-meeting.ts                   CLI entrypoint → loadConfig() + FileMeetingStore + AiMeetingCli
 ```
 
 ## Shared Code
