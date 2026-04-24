@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "profiles": [
+    {
+      "name": "codex-default",
+      "adapter": "codex-cli",
+      "model": null,
+      "systemPrompt": "You are a pragmatic senior engineer. Prefer concise, concrete answers.",
+      "workdir": null,
+      "extraFlags": [],
+      "env": {}
+    },
+    {
+      "name": "claude-code-reviewer",
+      "adapter": "claude-code-cli",
+      "model": null,
+      "systemPrompt": "You are a careful reviewer. Surface risks and counter-examples before agreeing.",
+      "workdir": null,
+      "extraFlags": [],
+      "env": {}
+    }
+  ]
+}

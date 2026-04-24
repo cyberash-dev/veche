@@ -1,0 +1,10 @@
+export const InitialFetchPageSize = 500;
+export const DefaultTurnTimeoutMs = 300_000;
+export const DefaultMaxRounds = 8;
+export const MaxTextLengthBytes = 32 * 1024;
+export const MaxSystemPromptLengthBytes = 8 * 1024;
+export const MaxExtraFlags = 16;
+export const MaxEnvEntries = 32;
+export const GetResponseDefaultLimit = 200;
+export const ListMeetingsDefaultLimit = 50;
+export const CancelAckTimeoutMs = 30_000;
