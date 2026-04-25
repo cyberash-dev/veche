@@ -1,4 +1,4 @@
-# Container: ai-meeting-server
+# Container: veche-server
 
 ## Stack
 
@@ -14,8 +14,8 @@
 | Testing | `vitest` (unit), `vitest` + filesystem tmpdir (adapter integration) |
 | Lint / format | `biome` (lint + format) |
 | Build | `tsc` emitting ESM `dist/` |
-| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$AI_MEETING_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation; subcommand `install` copies the canonical `skills/ai-meeting/SKILL.md` into Claude Code's / Codex's skills directory and registers the MCP server with each host (see [install-cli](../features/install/install-cli.usecase.md)). The `list` / `show` / `watch` subcommands are read-only against the store; `install` does not touch the store at all. |
-| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for `watch`). The `install` subcommand additionally spawns the `claude` and `codex` host CLIs (already required by [agent-integration](../features/agent-integration/agent-integration.md)). No new npm dependencies beyond those listed above. |
+| Binary entries | `bin/veche-server.js` — stdio MCP server. `bin/veche.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$VECHE_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation; subcommand `install` copies the canonical `skills/veche/SKILL.md` into Claude Code's / Codex's skills directory and registers the MCP server with each host (see [install-cli](../features/install/install-cli.usecase.md)). The `list` / `show` / `watch` subcommands are read-only against the store; `install` does not touch the store at all. |
+| CLI dependencies | The `veche` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for `watch`). The `install` subcommand additionally spawns the `claude` and `codex` host CLIs (already required by [agent-integration](../features/agent-integration/agent-integration.md)). No new npm dependencies beyond those listed above. |
 | Package contents (npm `files`) | `dist/` — compiled JS. `spec/` — full specification tree. `skills/` — canonical `SKILL.md` artefacts shipped alongside the binary; the `install` subcommand reads from this directory. |
 
 External binaries (resolved via `PATH`):
@@ -68,15 +68,15 @@ src/
     inbound/
       mcp/                          MCP server, tool registration, zod schemas
       cli/                          human-operator CLI (read-only transcript viewer + install)
-        AiMeetingCli.ts             argv parser + command dispatcher
+        VecheCli.ts             argv parser + command dispatcher
         lib/
           opener.ts                 platform browser opener (shared by show --open and watch)
           packageRoot.ts            resolves the package root from import.meta.url (used by install)
         commands/
-          list.ts                   `ai-meeting list` — renders MeetingSummary[]
-          show.ts                   `ai-meeting show <id>` — renders a Transcript
-          watch.ts                  `ai-meeting watch` — starts WatchServer; SIGINT/SIGTERM handlers
-          install.ts                `ai-meeting install` — places SKILL.md and registers MCP server
+          list.ts                   `veche list` — renders MeetingSummary[]
+          show.ts                   `veche show <id>` — renders a Transcript
+          watch.ts                  `veche watch` — starts WatchServer; SIGINT/SIGTERM handlers
+          install.ts                `veche install` — places SKILL.md and registers MCP server
         renderers/
           text.ts                   TTY-oriented, optional ANSI colors
           html.ts                   self-contained HTML report (inline CSS, no remote refs)
@@ -98,16 +98,16 @@ src/
     id-gen.ts                       UuidIdGen adapter
     bootstrap.ts                    wires DI graph and returns an MCP server
   bin/
-    ai-meeting-server.ts            stdio entrypoint → bootstrap() → listen
-    ai-meeting.ts                   CLI entrypoint → loadConfig() + FileMeetingStore + AiMeetingCli
+    veche-server.ts            stdio entrypoint → bootstrap() → listen
+    veche.ts                   CLI entrypoint → loadConfig() + FileMeetingStore + VecheCli
 ```
 
 Plus a top-level `skills/` directory shipped via npm `files`:
 
 ```
 skills/
-  ai-meeting/
-    SKILL.md                        canonical skill artefact placed by `ai-meeting install`
+  veche/
+    SKILL.md                        canonical skill artefact placed by `veche install`
 ```
 
 ## Shared Code
@@ -139,15 +139,15 @@ src/shared/
 
 | Env variable | Type | Required | Default | Description |
 |--------------|------|----------|---------|-------------|
-| `AI_MEETING_HOME` | absolute path | No | `${HOME}/.ai-meeting` | Root directory for `FileStore` data and the user config file. |
-| `AI_MEETING_LOG_LEVEL` | `trace` \| `debug` \| `info` \| `warn` \| `error` | No | `info` | Log level for structured logs to stderr. |
-| `AI_MEETING_STORE` | `memory` \| `file` | No | `file` | Which `MeetingStore` adapter to mount. |
-| `AI_MEETING_MAX_ROUNDS_CAP` | integer ≥ 1 | No | `16` | Hard cap enforced on `send_message.max_rounds`; a larger request is clamped. |
+| `VECHE_HOME` | absolute path | No | `${HOME}/.veche` | Root directory for `FileStore` data and the user config file. |
+| `VECHE_LOG_LEVEL` | `trace` \| `debug` \| `info` \| `warn` \| `error` | No | `info` | Log level for structured logs to stderr. |
+| `VECHE_STORE` | `memory` \| `file` | No | `file` | Which `MeetingStore` adapter to mount. |
+| `VECHE_MAX_ROUNDS_CAP` | integer ≥ 1 | No | `16` | Hard cap enforced on `send_message.max_rounds`; a larger request is clamped. |
 | `CODEX_API_KEY` | string | No | — | Forwarded to `codex exec` via its environment. Codex also accepts credentials from a prior `codex login` (i.e. `~/.codex/auth.json`); either path is sufficient. The adapter does not probe for credentials at startup — missing auth surfaces as a non-zero `codex exec` exit at Turn dispatch, which the committee protocol converts into a participant drop. |
 | `CODEX_BIN` | path or bare command | No | `codex` | Overrides the Codex CLI binary used by `CodexCliAgentAdapter`. |
 | `CLAUDE_BIN` | path or bare command | No | `claude` | Overrides the Claude Code CLI binary used by `ClaudeCodeCliAgentAdapter`. |
 
-**User config file** — JSON at `${AI_MEETING_HOME}/config.json`. Schema and override rules live in [agent-integration](../features/agent-integration/agent-integration.md) under *Profile*.
+**User config file** — JSON at `${VECHE_HOME}/config.json`. Schema and override rules live in [agent-integration](../features/agent-integration/agent-integration.md) under *Profile*.
 
 ## MCP Tool Catalogue
 

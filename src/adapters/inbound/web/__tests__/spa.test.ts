@@ -30,6 +30,6 @@ describe("renderSpa", () => {
 	});
 
 	it("embeds the version into a meta tag", () => {
-		expect(html).toContain('name="ai-meeting-version" content="0.0.1-test"');
+		expect(html).toContain('name="veche-version" content="0.0.1-test"');
 	});
 });

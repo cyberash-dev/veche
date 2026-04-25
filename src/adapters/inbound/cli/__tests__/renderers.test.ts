@@ -47,7 +47,7 @@ describe("json renderer", () => {
 		expect(parsed.participants).toHaveLength(3);
 		expect(parsed.jobs).toHaveLength(1);
 		expect(parsed.messages).toHaveLength(5);
-		expect(parsed.generator.name).toBe("ai-meeting");
+		expect(parsed.generator.name).toBe("veche");
 	});
 });
 

@@ -56,15 +56,15 @@ const fakeSpawner = (defaults?: Partial<SpawnResult>): FakeSpawnerSetup => {
 const buildDeps = async (
 	overrides: Partial<InstallDeps> = {},
 ): Promise<{ deps: InstallDeps; root: string; home: string; stderr: () => string }> => {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), "ai-meeting-pkg-"));
-	const home = await fs.mkdtemp(path.join(os.tmpdir(), "ai-meeting-home-"));
-	await fs.mkdir(path.join(root, "skills", "ai-meeting"), { recursive: true });
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), "veche-pkg-"));
+	const home = await fs.mkdtemp(path.join(os.tmpdir(), "veche-home-"));
+	await fs.mkdir(path.join(root, "skills", "veche"), { recursive: true });
 	await fs.writeFile(
-		path.join(root, "skills", "ai-meeting", "SKILL.md"),
-		"---\nname: ai-meeting\n---\nbody\n",
+		path.join(root, "skills", "veche", "SKILL.md"),
+		"---\nname: veche\n---\nbody\n",
 	);
 	await fs.mkdir(path.join(root, "dist", "bin"), { recursive: true });
-	await fs.writeFile(path.join(root, "dist", "bin", "ai-meeting-server.js"), "// stub");
+	await fs.writeFile(path.join(root, "dist", "bin", "veche-server.js"), "// stub");
 	let stderrBuffer = "";
 	const deps: InstallDeps = {
 		stderr: (s: string) => {
@@ -81,7 +81,7 @@ const buildDeps = async (
 
 const baseCommand = (): InstallCommand => ({
 	target: "both",
-	mcpName: "ai-meeting",
+	mcpName: "veche",
 	serverBin: null,
 	skillsOnly: false,
 	mcpOnly: false,
@@ -115,16 +115,10 @@ describe("runInstall", () => {
 		const code = await runInstall(baseCommand(), depsHandle.deps);
 		expect(code).toBe(0);
 
-		const claudeSkill = path.join(
-			depsHandle.home,
-			".claude",
-			"skills",
-			"ai-meeting",
-			"SKILL.md",
-		);
-		const codexSkill = path.join(depsHandle.home, ".codex", "skills", "ai-meeting", "SKILL.md");
-		expect(await fs.readFile(claudeSkill, "utf8")).toContain("name: ai-meeting");
-		expect(await fs.readFile(codexSkill, "utf8")).toContain("name: ai-meeting");
+		const claudeSkill = path.join(depsHandle.home, ".claude", "skills", "veche", "SKILL.md");
+		const codexSkill = path.join(depsHandle.home, ".codex", "skills", "veche", "SKILL.md");
+		expect(await fs.readFile(claudeSkill, "utf8")).toContain("name: veche");
+		expect(await fs.readFile(codexSkill, "utf8")).toContain("name: veche");
 
 		const claudeAdd = spawn.calls.find(
 			(c) => c.command === "claude" && c.args[0] === "mcp" && c.args[1] === "add",
@@ -132,7 +126,7 @@ describe("runInstall", () => {
 		expect(claudeAdd).toBeDefined();
 		expect(claudeAdd?.args).toContain("--scope");
 		expect(claudeAdd?.args[claudeAdd.args.length - 1]).toBe(
-			path.join(depsHandle.root, "dist", "bin", "ai-meeting-server.js"),
+			path.join(depsHandle.root, "dist", "bin", "veche-server.js"),
 		);
 
 		const codexAdd = spawn.calls.find(
@@ -144,7 +138,7 @@ describe("runInstall", () => {
 	it("removes existing claude entry before re-adding (idempotency)", async () => {
 		spawn.respond(
 			(c) => c.command === "claude" && c.args[0] === "mcp" && c.args[1] === "list",
-			{ stdout: "ai-meeting: node /old/path.js\nfoo: bar\n" },
+			{ stdout: "veche: node /old/path.js\nfoo: bar\n" },
 		);
 		const code = await runInstall({ ...baseCommand(), target: "claude-code" }, depsHandle.deps);
 		expect(code).toBe(0);
@@ -218,13 +212,7 @@ describe("runInstall", () => {
 			depsHandle.deps,
 		);
 		expect(code).toBe(0);
-		const claudeSkill = path.join(
-			depsHandle.home,
-			".claude",
-			"skills",
-			"ai-meeting",
-			"SKILL.md",
-		);
+		const claudeSkill = path.join(depsHandle.home, ".claude", "skills", "veche", "SKILL.md");
 		await expect(fs.access(claudeSkill)).rejects.toBeTruthy();
 	});
 
@@ -232,13 +220,7 @@ describe("runInstall", () => {
 		const code = await runInstall({ ...baseCommand(), dryRun: true }, depsHandle.deps);
 		expect(code).toBe(0);
 		expect(spawn.calls).toHaveLength(0);
-		const claudeSkill = path.join(
-			depsHandle.home,
-			".claude",
-			"skills",
-			"ai-meeting",
-			"SKILL.md",
-		);
+		const claudeSkill = path.join(depsHandle.home, ".claude", "skills", "veche", "SKILL.md");
 		await expect(fs.access(claudeSkill)).rejects.toBeTruthy();
 		expect(depsHandle.stderr()).toContain("(dry-run)");
 	});
@@ -303,8 +285,8 @@ describe("runInstall", () => {
 		};
 		const written = await findFiles(depsHandle.home);
 		for (const file of written) {
-			const claudeRoot = path.join(depsHandle.home, ".claude", "skills", "ai-meeting");
-			const codexRoot = path.join(depsHandle.home, ".codex", "skills", "ai-meeting");
+			const claudeRoot = path.join(depsHandle.home, ".claude", "skills", "veche");
+			const codexRoot = path.join(depsHandle.home, ".codex", "skills", "veche");
 			expect(file.startsWith(claudeRoot) || file.startsWith(codexRoot)).toBe(true);
 		}
 	});

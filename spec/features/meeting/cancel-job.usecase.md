@@ -33,7 +33,7 @@ Orchestrator Agent calling MCP tool `cancel_job`. Also invoked internally by [en
    - 2a. If absent → `JobNotFound`.
    - 2b. If `status ∈ { completed, failed, cancelled }` → `JobAlreadyTerminal`.
 3. Set an in-memory cancellation signal for the Job's discussion loop. The committee-protocol feature observes this signal between Turns and at Round boundaries (see [terminate-discussion](../committee-protocol/terminate-discussion.usecase.md)).
-4. Wait for the discussion loop to acknowledge termination (bounded by `AI_MEETING_CANCEL_TIMEOUT_MS = 30_000`). Acknowledgement is the discussion loop's own call to `MeetingStorePort.updateJob({ status: cancelled, ... })` and `appendSystemEvent('job.cancelled', ...)`.
+4. Wait for the discussion loop to acknowledge termination (bounded by `VECHE_CANCEL_TIMEOUT_MS = 30_000`). Acknowledgement is the discussion loop's own call to `MeetingStorePort.updateJob({ status: cancelled, ... })` and `appendSystemEvent('job.cancelled', ...)`.
    - 4a. If the loop does not acknowledge within the budget, the use case forcibly transitions the Job via `updateJob({ status: cancelled, cancelReason: reason, finishedAt: Clock.now })` and appends `job.cancelled` itself. In-flight Adapter subprocesses are signalled via `AgentAdapterPort.closeSession` on every Member Session associated with the Job; each Adapter's cancellation semantics are defined in its use case.
 5. Return the snapshot.
 

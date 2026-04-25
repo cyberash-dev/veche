@@ -14,7 +14,7 @@ describe("FileMeetingStore", () => {
 	let root: string;
 
 	beforeEach(async () => {
-		root = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-test-"));
+		root = await mkdtemp(path.join(os.tmpdir(), "veche-test-"));
 	});
 	afterEach(async () => {
 		await rm(root, { recursive: true, force: true });

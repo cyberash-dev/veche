@@ -25,11 +25,11 @@ context.
 | Add a new LLM adapter | [`spec/features/agent-integration/agent-integration.md`](spec/features/agent-integration/agent-integration.md) |
 | Change the CLI output format / add a renderer | [`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md) |
 | Touch `list` or `show` command logic | `src/adapters/inbound/cli/commands/{list,show}.ts` |
-| Touch the live web viewer (`ai-meeting watch`) | [`spec/features/web-viewer/watch-server.usecase.md`](spec/features/web-viewer/watch-server.usecase.md) and `src/adapters/inbound/web/*` |
-| Touch the install / setup command (`ai-meeting install`) | [`spec/features/install/install-cli.usecase.md`](spec/features/install/install-cli.usecase.md), `src/adapters/inbound/cli/commands/install.ts`, canonical skill at `skills/ai-meeting/SKILL.md` |
+| Touch the live web viewer (`veche watch`) | [`spec/features/web-viewer/watch-server.usecase.md`](spec/features/web-viewer/watch-server.usecase.md) and `src/adapters/inbound/web/*` |
+| Touch the install / setup command (`veche install`) | [`spec/features/install/install-cli.usecase.md`](spec/features/install/install-cli.usecase.md), `src/adapters/inbound/cli/commands/install.ts`, canonical skill at `skills/veche/SKILL.md` |
 | Touch HTML / text / markdown / json rendering | `src/adapters/inbound/cli/renderers/*.ts` (pure functions) |
-| See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/ai-meeting.ts` (CLI) |
-| Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `AI_MEETING_E2E=1`) |
+| See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/veche.ts` (CLI) |
+| Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `VECHE_E2E=1`) |
 
 ## Claude-Code-specific conventions
 
@@ -59,7 +59,7 @@ Because the spec is substantial, prefer semantic navigation:
 ```bash
 npm run typecheck && npm test && npm run lint      # must pass before finishing
 npm run build                                       # emit dist/
-AI_MEETING_E2E=1 npx vitest run src/e2e             # real CLIs (uses tokens)
+VECHE_E2E=1 npx vitest run src/e2e             # real CLIs (uses tokens)
 ```
 
 ## Handoff etiquette
@@ -84,8 +84,8 @@ them by trial and error:
 - `InMemoryMeetingStore` is for tests and ephemeral dev; `FileMeetingStore` is the default.
 - The Job runner is fire-and-forget: `send_message` returns immediately with a `jobId`; the
   discussion runs in the background until terminal.
-- The `ai-meeting` CLI (`src/adapters/inbound/cli/`) is **read-only** and decoupled from the
-  MCP server — both processes can safely run against the same `$AI_MEETING_HOME`. Never call
+- The `veche` CLI (`src/adapters/inbound/cli/`) is **read-only** and decoupled from the
+  MCP server — both processes can safely run against the same `$VECHE_HOME`. Never call
   a write method on the store from CLI code. This applies to the `watch` subcommand too —
   `WatchServer` is just another inbound adapter, never a writer.
 - The HTML renderer MUST stay self-contained: no `<script>`, no remote `href`/`src`, all

@@ -8,7 +8,7 @@ export const renderJson: Renderer = (input) => {
 		messages: input.messages,
 		events: input.events,
 		generatedAt: input.generatedAt,
-		generator: { name: "ai-meeting", version: input.version },
+		generator: { name: "veche", version: input.version },
 	};
 	return `${JSON.stringify(payload, null, 2)}\n`;
 };

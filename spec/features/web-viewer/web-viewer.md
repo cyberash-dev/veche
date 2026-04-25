@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Give the Human Operator a live, browser-based view of every Meeting under `$AI_MEETING_HOME`: a sidebar of all Meetings that updates as new ones are created or change status, and a transcript pane that updates as Messages are appended. The Operator can switch between Meetings without restarting anything. The viewer is a second read-only inbound adapter (alongside the existing `list` and `show` CLI commands) and runs as its own process — independent of any `ai-meeting-server` (MCP) process writing to the same store.
+Give the Human Operator a live, browser-based view of every Meeting under `$VECHE_HOME`: a sidebar of all Meetings that updates as new ones are created or change status, and a transcript pane that updates as Messages are appended. The Operator can switch between Meetings without restarting anything. The viewer is a second read-only inbound adapter (alongside the existing `list` and `show` CLI commands) and runs as its own process — independent of any `veche-server` (MCP) process writing to the same store.
 
 This slice does NOT add a new MCP tool, does NOT introduce a new transport for the Orchestrator Agent, and does NOT modify the event log model. It is purely a new surface over the existing `MeetingStorePort` queries.
 
@@ -49,7 +49,7 @@ The slice has a single use case in v1. Additional surfaces (e.g. a live filter /
 ## Dependencies
 
 - [meeting](../meeting/meeting.md) — consumed via `MeetingStorePort.loadMeeting` for the transcript header.
-- [persistence](../persistence/persistence.md) — owns `MeetingStorePort`. The viewer is bound to the same `FileMeetingStore` instance type the CLI uses (`bin/ai-meeting.ts`).
+- [persistence](../persistence/persistence.md) — owns `MeetingStorePort`. The viewer is bound to the same `FileMeetingStore` instance type the CLI uses (`bin/veche.ts`).
 
 ## Invariants
 
@@ -57,6 +57,6 @@ The slice has a single use case in v1. Additional surfaces (e.g. a live filter /
 - **Loopback-only by default.** The HTTP server binds to `127.0.0.1`. Exposing it on another interface requires an explicit `--host` flag and is out of scope for v1's threat model (no auth).
 - **No new npm dependencies.** The viewer uses only Node built-ins (`node:http`, `node:crypto`, `node:url`) on the server side and only browser built-ins (`EventSource`, `fetch`, the DOM) on the client side. The SPA is a single self-contained HTML document with one inline `<script>` and one inline `<style>` block.
 - **No remote network references in the SPA.** No `<script src="http…">`, no `<link rel="stylesheet">`, no `<img src="http…">`, no web fonts. The same regex probe used by the static HTML report (`renderers/html.ts`) applies, with one allowance: exactly one inline `<script>` block is permitted (the SPA needs JS to consume SSE).
-- **Cross-process safe.** Multiple `ai-meeting watch` processes against the same `$AI_MEETING_HOME` are safe because the store is read-only. A concurrent `ai-meeting-server` writing to the store is safe because reads use only `readMessagesSince` / `loadMeeting` / `listMeetings`, none of which acquire the append lock.
+- **Cross-process safe.** Multiple `veche watch` processes against the same `$VECHE_HOME` are safe because the store is read-only. A concurrent `veche-server` writing to the store is safe because reads use only `readMessagesSince` / `loadMeeting` / `listMeetings`, none of which acquire the append lock.
 - **Cross-process change detection uses polling, never `watchNewEvents`.** See [watch-server](./watch-server.usecase.md) → *Cross-process change detection*.
 - **HTML escaping is mandatory.** All strings originating from messages, participant ids, titles, error text MUST pass through an HTML escaper before reaching the DOM. Server-side: when the SPA is rendered, and when speech-message `htmlBody` is built via the shared escape-then-transform Markdown converter (`src/shared/markdown.ts`). Client-side: SSE payloads are interpolated into nodes via `textContent` / attribute setters, with one explicit exception — `Message.htmlBody` of `speech` messages is assigned via `innerHTML` because the server already converted the raw `text` through the safe pipeline. See [watch-server](./watch-server.usecase.md) → *Markdown rendering*.

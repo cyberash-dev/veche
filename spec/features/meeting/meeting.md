@@ -16,7 +16,7 @@ Expose the public MCP surface for creating a Meeting, driving it forward with Fa
 | `createdAt` | `Instant` | Supplied by `Clock` at creation. Immutable. |
 | `endedAt` | `Instant` \| `null` | Set when `status` becomes `ended`. |
 | `participants` | `Participant[]` | Non-empty. Exactly one Participant has `role = facilitator`. |
-| `defaultMaxRounds` | integer 1–`AI_MEETING_MAX_ROUNDS_CAP` | Default for `send_message.max_rounds` when the caller omits it. |
+| `defaultMaxRounds` | integer 1–`VECHE_MAX_ROUNDS_CAP` | Default for `send_message.max_rounds` when the caller omits it. |
 
 ### Participant
 
@@ -61,7 +61,7 @@ Ephemeral aggregate used inside committee-protocol; not stored separately from M
 | `createdAt` | `Instant` | Supplied by `Clock`. |
 | `startedAt` | `Instant` \| `null` | Set when `status` becomes `running`. |
 | `finishedAt` | `Instant` \| `null` | Set when `status` is any terminal value. |
-| `maxRounds` | integer 1–`AI_MEETING_MAX_ROUNDS_CAP` | Effective cap for this Job. |
+| `maxRounds` | integer 1–`VECHE_MAX_ROUNDS_CAP` | Effective cap for this Job. |
 | `lastSeq` | integer ≥ -1 | Highest Message `seq` appended by this Job. `-1` before the Facilitator Message lands. Reflects log position, NOT discussion progress. |
 | `rounds` | integer ≥ 0 | Number of Rounds executed by this Job. `0` while the Job is still in Round 0 (facilitator Message just appended); incremented at the end of each Round. Frozen on terminal status. |
 | `error` | `{ code: string, message: string }` \| `null` | Set when `status = failed`. |
@@ -125,7 +125,7 @@ Documented in [agent-integration](../agent-integration/agent-integration.md). Co
 
 ### CLI commands (Human Operator)
 
-Read-only inspection via the `ai-meeting` binary, decoupled from any running MCP server.
+Read-only inspection via the `veche` binary, decoupled from any running MCP server.
 
 - [list-meetings-cli](./list-meetings-cli.usecase.md) — Enumerate Meetings as an aligned table or JSON.
 - [show-meeting-cli](./show-meeting-cli.usecase.md) — Render a full Transcript as `text`, `html`, `markdown`, or `json`. HTML output is a self-contained single-file report with chat-bubble layout.

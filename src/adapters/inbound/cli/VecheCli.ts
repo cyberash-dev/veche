@@ -22,7 +22,7 @@ export interface CliDeps {
 	readonly stderr: (s: string) => void;
 }
 
-const USAGE = `usage: ai-meeting <command> [flags]
+const USAGE = `usage: veche <command> [flags]
 
 commands:
   list                         enumerate meetings
@@ -44,10 +44,10 @@ commands:
     --no-open                  do not auto-open the browser
     --no-color
 
-  install                      install the ai-meeting skill + register MCP server
+  install                      install the veche skill + register MCP server
     --for=claude-code|codex|both  (default: both)
-    --mcp-name=NAME            MCP server + skill directory name (default: ai-meeting)
-    --server-bin=<abs path>    override path to ai-meeting-server.js
+    --mcp-name=NAME            MCP server + skill directory name (default: veche)
+    --server-bin=<abs path>    override path to veche-server.js
     --skills-only              only copy SKILL.md, skip MCP register
     --mcp-only                 only register MCP, skip SKILL.md copy
     --force                    proceed past missing host CLIs instead of aborting
@@ -55,7 +55,7 @@ commands:
     --no-color
 
   global:
-    --home=<path>              override $AI_MEETING_HOME
+    --home=<path>              override $VECHE_HOME
     --help, -h                 show this help
 `;
 
@@ -268,7 +268,7 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 				stderr(`invalid --for: ${target}\n`);
 				return EXIT_USAGE;
 			}
-			const mcpName = readStringFlag(parsed.flags, "mcp-name", "ai-meeting");
+			const mcpName = readStringFlag(parsed.flags, "mcp-name", "veche");
 			if (!MCP_NAME_RE.test(mcpName)) {
 				stderr(`invalid --mcp-name: ${mcpName}\n`);
 				return EXIT_USAGE;

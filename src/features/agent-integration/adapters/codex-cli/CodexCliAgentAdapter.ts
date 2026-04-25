@@ -96,7 +96,7 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 				`session ${turn.session.id} is not open`,
 			);
 		}
-		const tmpdir = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-codex-"));
+		const tmpdir = await mkdtemp(path.join(os.tmpdir(), "veche-codex-"));
 		const tmpPath = path.join(tmpdir, "last.txt");
 		const isResume = entry.session.providerRef !== null;
 		const args: string[] = ["exec"];

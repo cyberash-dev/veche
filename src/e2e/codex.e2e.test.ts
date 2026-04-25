@@ -5,10 +5,10 @@ import { asMeetingId, asParticipantId, asSessionId } from "../shared/types/ids.j
 import { FakeClock } from "../test-utils/FakeClock.js";
 import { SilentLogger } from "../test-utils/SilentLogger.js";
 
-const runE2e = process.env.AI_MEETING_E2E === "1";
+const runE2e = process.env.VECHE_E2E === "1";
 const d = runE2e ? describe : describe.skip;
 
-d("codex e2e (opt-in AI_MEETING_E2E=1)", () => {
+d("codex e2e (opt-in VECHE_E2E=1)", () => {
 	it("openSession + sendTurn returns speech and captures thread_id", async () => {
 		const clock = new FakeClock();
 		const adapter = new CodexCliAgentAdapter({ clock, logger: new SilentLogger() });

@@ -36,7 +36,7 @@ export interface InstallDeps {
 }
 
 export const MCP_NAME_RE = /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/;
-const ENV_SETTING = "AI_MEETING_LOG_LEVEL=info";
+const ENV_SETTING = "VECHE_LOG_LEVEL=info";
 
 interface HostPlan {
 	readonly target: InstallTarget;
@@ -249,7 +249,7 @@ export const runInstall = async (cmd: InstallCommand, deps: InstallDeps): Promis
 	}
 
 	const serverBin =
-		cmd.serverBin ?? path.join(deps.packageRoot, "dist", "bin", "ai-meeting-server.js");
+		cmd.serverBin ?? path.join(deps.packageRoot, "dist", "bin", "veche-server.js");
 	if (!path.isAbsolute(serverBin)) {
 		deps.stderr(`--server-bin must be an absolute path\n`);
 		return 64;

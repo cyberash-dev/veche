@@ -1,4 +1,4 @@
-import { AiMeetingMcpServer } from "../adapters/inbound/mcp/AiMeetingMcpServer.js";
+import { VecheMcpServer } from "../adapters/inbound/mcp/VecheMcpServer.js";
 import { ClaudeCodeCliAgentAdapter } from "../features/agent-integration/adapters/claude-code-cli/ClaudeCodeCliAgentAdapter.js";
 import { CodexCliAgentAdapter } from "../features/agent-integration/adapters/codex-cli/CodexCliAgentAdapter.js";
 import { ProfileResolver } from "../features/agent-integration/application/ProfileResolver.js";
@@ -30,13 +30,13 @@ import { SystemClock } from "./SystemClock.js";
 import { UuidIdGen } from "./UuidIdGen.js";
 
 export interface BootstrapResult {
-	readonly mcp: AiMeetingMcpServer;
+	readonly mcp: VecheMcpServer;
 	readonly shutdown: () => Promise<void>;
 }
 
 export const bootstrap = async (): Promise<BootstrapResult> => {
 	const config = await loadConfig();
-	const logger = new StructuredLogger(config.logLevel, { svc: "ai-meeting-server" });
+	const logger = new StructuredLogger(config.logLevel, { svc: "veche-server" });
 	logger.info("bootstrap.start", {
 		home: config.home,
 		storeKind: config.storeKind,
@@ -145,7 +145,7 @@ export const bootstrap = async (): Promise<BootstrapResult> => {
 	// (No-op here; participants come from meeting loads.)
 	void ({} as Participant);
 
-	const mcp = new AiMeetingMcpServer({
+	const mcp = new VecheMcpServer({
 		logger,
 		startMeeting,
 		sendMessage,

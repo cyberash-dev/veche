@@ -2,7 +2,7 @@
 
 ## Actor
 
-Human Operator invoking the `ai-meeting list` CLI command from a terminal.
+Human Operator invoking the `veche list` CLI command from a terminal.
 
 ## Input
 
@@ -14,7 +14,7 @@ Positional: none. Flags:
 | `--limit` | integer | Optional. 1–100. Default `50`. |
 | `--format` | `text` \| `json` | Optional. Default `text`. |
 | `--no-color` | boolean | Optional. Suppresses ANSI colors in `text` format. Implicit when stdout is not a TTY. |
-| `--home` | absolute path | Optional. Override for `$AI_MEETING_HOME`. Useful for inspecting a copy of the event log. |
+| `--home` | absolute path | Optional. Override for `$VECHE_HOME`. Useful for inspecting a copy of the event log. |
 
 ## Output
 
@@ -39,7 +39,7 @@ Exit code `0`.
 ## Flow
 
 1. Parse argv. Reject unknown flags with exit code `64` (EX_USAGE) and a one-line usage summary on stderr.
-2. Call `loadConfig()` to resolve `$AI_MEETING_HOME` (override honoured if `--home` is set).
+2. Call `loadConfig()` to resolve `$VECHE_HOME` (override honoured if `--home` is set).
 3. Instantiate `FileMeetingStore` pointed at that root. Do not write anything.
 4. Normalise `status`: `all` maps to no filter at the port level; otherwise passes through.
 5. Call `MeetingStorePort.listMeetings({ status, limit, cursor: undefined })`.
@@ -52,19 +52,19 @@ Exit code `0`.
 | Error | When | Exit code | Stream |
 |-------|------|-----------|--------|
 | `UsageError` | Unknown flag, bad value (`--limit 0`, `--status foo`). | `64` | stderr |
-| `StoreUnavailable` | `$AI_MEETING_HOME` missing, unreadable, or contains a corrupt event log. | `2` | stderr |
-| `InternalError` | Any other unhandled exception; the CLI prints `error: <message>` and the stack only when `AI_MEETING_LOG_LEVEL=debug`. | `1` | stderr |
+| `StoreUnavailable` | `$VECHE_HOME` missing, unreadable, or contains a corrupt event log. | `2` | stderr |
+| `InternalError` | Any other unhandled exception; the CLI prints `error: <message>` and the stack only when `VECHE_LOG_LEVEL=debug`. | `1` | stderr |
 
 Errors never emit partial or malformed stdout — on failure, stdout is empty.
 
 ## Side Effects
 
-- Reads from `$AI_MEETING_HOME`. Never writes, never holds a lock.
+- Reads from `$VECHE_HOME`. Never writes, never holds a lock.
 - May write an advisory note to stderr (see step 6).
 
 ## Rules
 
-- **Read-only.** The CLI never takes the append lock; it is safe to run alongside a live `ai-meeting-server`.
+- **Read-only.** The CLI never takes the append lock; it is safe to run alongside a live `veche-server`.
 - **Deterministic sort.** Summaries sorted by `createdAt` descending, ties broken by `meetingId` ascending (matches the port contract).
 - **No secrets.** `env` fields on Participants are never printed — neither in `text` nor `json` output. The `listMeetings` port result already omits `env` from `MeetingSummary`, so this is enforced by the port shape; the CLI MUST NOT widen it.
 - **No pagination in v1.** `--limit` caps the single-page fetch; pagination via cursor is not exposed in the CLI. Operators needing more than 100 meetings use `--format json | jq` on repeated invocations with shifted `createdBefore` — documented in README, not in the CLI itself.

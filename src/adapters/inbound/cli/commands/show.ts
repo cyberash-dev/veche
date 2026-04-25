@@ -169,7 +169,7 @@ export const runShow = async (cmd: ShowCommand, deps: ShowDeps): Promise<number>
 
 	// Dispatch the output.
 	if (cmd.open) {
-		const tmpPath = path.join(os.tmpdir(), `ai-meeting-${cmd.meetingId}.html`);
+		const tmpPath = path.join(os.tmpdir(), `veche-${cmd.meetingId}.html`);
 		try {
 			await writeFileAtomic(tmpPath, output);
 		} catch (err) {

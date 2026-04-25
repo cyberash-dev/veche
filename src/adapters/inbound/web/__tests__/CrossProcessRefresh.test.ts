@@ -102,7 +102,7 @@ describe("watch server picks up cross-process meeting changes", () => {
 	let root: string;
 
 	beforeEach(async () => {
-		root = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-watch-cp-"));
+		root = await mkdtemp(path.join(os.tmpdir(), "veche-watch-cp-"));
 	});
 	afterEach(async () => {
 		await rm(root, { recursive: true, force: true });

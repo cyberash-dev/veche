@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
-const binPath = path.resolve(dirname, "../../../../../dist/bin/ai-meeting-server.js");
+const binPath = path.resolve(dirname, "../../../../../dist/bin/veche-server.js");
 
 interface RpcResponse {
 	id?: number;
@@ -14,7 +14,7 @@ interface RpcResponse {
 
 const sendAndReceive = async (messages: readonly object[]): Promise<RpcResponse[]> => {
 	const child = spawn(process.execPath, [binPath], {
-		env: { ...process.env, AI_MEETING_STORE: "memory", AI_MEETING_LOG_LEVEL: "error" },
+		env: { ...process.env, VECHE_STORE: "memory", VECHE_LOG_LEVEL: "error" },
 		stdio: ["pipe", "pipe", "pipe"],
 	});
 	let stdout = "";

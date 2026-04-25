@@ -60,7 +60,7 @@ Output of `AgentAdapterPort.sendTurn`.
 
 ### Profile
 
-Named configuration stored in `${AI_MEETING_HOME}/config.json`. Resolved at `start_meeting` by merging the Profile record with the caller-supplied overrides.
+Named configuration stored in `${VECHE_HOME}/config.json`. Resolved at `start_meeting` by merging the Profile record with the caller-supplied overrides.
 
 | Field | Type | Rules |
 |-------|------|-------|
@@ -107,7 +107,7 @@ Error classes are defined at the port level:
 
 ### ClockPort, IdGenPort
 
-Re-used from [shared](../../containers/ai-meeting-server.md).
+Re-used from [shared](../../containers/veche-server.md).
 
 ## Use Cases
 

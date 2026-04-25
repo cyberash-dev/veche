@@ -106,7 +106,7 @@ export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {
 		args.push("--output-format", "json");
 		args.push("--input-format", "text");
 		// Recursion guard: lock the child to an empty MCP config so it cannot reconnect
-		// to this (or any) ai-meeting server and spawn more children.
+		// to this (or any) veche server and spawn more children.
 		args.push("--strict-mcp-config");
 		args.push("--mcp-config", '{"mcpServers":{}}');
 		args.push("--permission-mode", "default");

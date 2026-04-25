@@ -2,7 +2,7 @@
 
 ## Actor
 
-Human Operator invoking the `ai-meeting watch` CLI command from a terminal. The command starts a long-lived local HTTP server that serves a self-contained SPA and two Server-Sent Events (SSE) channels. The Operator interacts with the server through a web browser (auto-opened on start) until the process is interrupted (Ctrl-C / SIGTERM).
+Human Operator invoking the `veche watch` CLI command from a terminal. The command starts a long-lived local HTTP server that serves a self-contained SPA and two Server-Sent Events (SSE) channels. The Operator interacts with the server through a web browser (auto-opened on start) until the process is interrupted (Ctrl-C / SIGTERM).
 
 ## Input
 
@@ -16,7 +16,7 @@ Flags:
 | `--host` | host string | Optional. Default `127.0.0.1`. Accepts any value `node:http`'s `server.listen({ host })` accepts. Binding to a non-loopback address requires the operator to set this explicitly — a warning is printed to stderr (see *Rules*). |
 | `--no-open` | boolean | Optional. Suppresses the auto-open browser step. The URL is still printed to stderr. Implicit when stdout is not a TTY or when the platform opener is unavailable. |
 | `--no-color` | boolean | Optional. Disables ANSI colors in the stderr log lines (URL banner, lifecycle messages). Implicit when stderr is not a TTY or when `NO_COLOR` is set. |
-| `--home` | absolute path | Optional. Override for `$AI_MEETING_HOME`. Same semantics as in [show-meeting-cli](../meeting/show-meeting-cli.usecase.md). |
+| `--home` | absolute path | Optional. Override for `$VECHE_HOME`. Same semantics as in [show-meeting-cli](../meeting/show-meeting-cli.usecase.md). |
 
 ## Output
 
@@ -136,7 +136,7 @@ Anything outside the table above produces `404 application/json { "error": "not 
    - `--port` outside `0..65535` → `64`.
    - `--port` non-integer → `64`.
    - `--host` empty → `64`.
-2. Call `loadConfig()` to resolve `$AI_MEETING_HOME` (override from `--home` honoured).
+2. Call `loadConfig()` to resolve `$VECHE_HOME` (override from `--home` honoured).
 3. Instantiate `FileMeetingStore` pointed at that root.
 4. Instantiate `WatchServer({ store, clock, logger, host, port })` and call `start()`.
    - 4a. `EADDRINUSE` / any other `listen` error → stderr `failed to bind <host>:<port>: <message>`, exit code `2`.
@@ -154,11 +154,11 @@ The HTTP request lifecycle inside `WatchServer`:
 
 ## Cross-process change detection
 
-The watch server is a separate process from the `ai-meeting-server` (MCP) process that writes to the store. `MeetingStorePort.watchNewEvents` is implemented as an in-process, in-memory watcher set; it does NOT observe writes performed by another process. Therefore the watch server MUST NOT call `watchNewEvents`. Instead, every active SSE channel runs a polling loop:
+The watch server is a separate process from the `veche-server` (MCP) process that writes to the store. `MeetingStorePort.watchNewEvents` is implemented as an in-process, in-memory watcher set; it does NOT observe writes performed by another process. Therefore the watch server MUST NOT call `watchNewEvents`. Instead, every active SSE channel runs a polling loop:
 
 - **Cadence**: 750 ms between successive polls per channel. This is the smallest interval that comfortably outperforms typical agent turn pacing without saturating the filesystem on macOS / Linux when many channels are open.
 - **What is polled**:
-  - **Before every poll iteration on every channel**, the server calls `MeetingStorePort.refresh()` (when present). For the `FileStore` adapter this re-scans `<root>/meetings/` for new Meeting directories and re-folds the event log of each known Meeting so that `listMeetings`, `loadMeeting`, and `readMessagesSince` all return up-to-date state on the very next call. Without this step, `FileStore` only sees what was on disk when the watch process started — new meetings created by an `ai-meeting-server` writer process would be invisible until the watch server is restarted. Adapters that omit `refresh` (e.g. `InMemoryStore`) are same-process by definition and need no rescan; the watch server treats absence as a no-op.
+  - **Before every poll iteration on every channel**, the server calls `MeetingStorePort.refresh()` (when present). For the `FileStore` adapter this re-scans `<root>/meetings/` for new Meeting directories and re-folds the event log of each known Meeting so that `listMeetings`, `loadMeeting`, and `readMessagesSince` all return up-to-date state on the very next call. Without this step, `FileStore` only sees what was on disk when the watch process started — new meetings created by an `veche-server` writer process would be invisible until the watch server is restarted. Adapters that omit `refresh` (e.g. `InMemoryStore`) are same-process by definition and need no rescan; the watch server treats absence as a no-op.
   - List channel: after `refresh()`, call `listMeetings({ status: undefined, limit: 200 })`. The server diffs the result against the previous snapshot using `meetingId` as the key and emits `meeting.added` / `meeting.updated` per *Diff rules* below.
   - Transcript channel: after `refresh()`, call `readMessagesSince({ meetingId, cursor: <last>, limit: 200 })` in a drain loop until `hasMore === false`, advancing `cursor` between calls. After the drain, also fetch a refreshed `MeetingSummary` from `listMeetings({ status: undefined, limit: 1, … })` keyed by id (or via a cheap secondary read of `loadMeeting`) and emit `meeting.updated` if it changed.
 - **Backoff**: on any thrown error from the store, the next sleep is doubled up to a cap of 8 s. The next successful poll resets the backoff to 750 ms.
@@ -212,7 +212,7 @@ Conversion happens **server-side**, not in the browser, so the same converter th
 - `pass` bodies remain a non-Markdown grey pill `<author> passed`. `system` bodies remain plain `⚠ <text>` set via `textContent` (Markdown is NOT applied to system events).
 - The bubble container uses `white-space: normal`; block-level Markdown elements (`<p>`, `<pre>`, `<ul>`, etc.) handle their own whitespace, matching the HTML report.
 
-This ties the watch viewer to the static HTML report as a single rendering contract: a user can open `ai-meeting show <id> --format=html` while a meeting is live in the watch viewer and see byte-identical bubble bodies (modulo color rounding).
+This ties the watch viewer to the static HTML report as a single rendering contract: a user can open `veche show <id> --format=html` while a meeting is live in the watch viewer and see byte-identical bubble bodies (modulo color rounding).
 
 ## Errors
 
@@ -220,7 +220,7 @@ This ties the watch viewer to the static HTML report as a single rendering contr
 |-------|------|-----------|--------|
 | `UsageError` | Unknown flag, invalid `--port`, empty `--host`, contradictory flag combo. | `64` | stderr |
 | `BindFailed` | `server.listen` rejected (`EADDRINUSE`, `EACCES`, `EADDRNOTAVAIL`, …). | `2` | stderr (`failed to bind <host>:<port>: <message>`) |
-| `StoreUnavailable` | `loadConfig` failed, `$AI_MEETING_HOME` unreadable, or the first store call after `start()` threw. | `2` | stderr |
+| `StoreUnavailable` | `loadConfig` failed, `$VECHE_HOME` unreadable, or the first store call after `start()` threw. | `2` | stderr |
 | `OpenerUnavailable` | `--no-open` absent, no platform opener available. | `0` (warn only) | stderr (`opener failed; URL is …`) |
 | `InternalError` | Any unhandled exception in a request handler. | `0` (continues serving) | 500 to client; stderr log |
 
@@ -228,7 +228,7 @@ Per-channel SSE errors do NOT affect the exit code. They close the affected stre
 
 ## Side Effects
 
-- Reads `$AI_MEETING_HOME/meetings/<meetingId>/events.jsonl` and per-meeting `manifest.json` files via `MeetingStorePort`. No writes.
+- Reads `$VECHE_HOME/meetings/<meetingId>/events.jsonl` and per-meeting `manifest.json` files via `MeetingStorePort`. No writes.
 - Binds a TCP listener on `<host>:<port>` until shutdown.
 - With opener spawn enabled and a platform opener available, spawns a detached child process: `open <url>` (macOS), `xdg-open <url>` (Linux), `cmd.exe /c start "" <url>` (Windows). The child is detached and not awaited.
 - Logs JSON lines to stderr (using the same `StructuredLogger` instance as the rest of the CLI). No log goes to stdout.
@@ -242,8 +242,8 @@ Per-channel SSE errors do NOT affect the exit code. They close the affected stre
 - **No CORS.** The server emits no `Access-Control-Allow-*` headers. The SPA is served from the same origin it queries — cross-origin browsers cannot read the responses.
 - **No new npm dependencies.** The server uses `node:http`, `node:url`, `node:crypto`, `node:child_process` (for the opener only). The SPA uses `EventSource`, the DOM, and built-in CSS — no bundler, no framework. Extending the SPA with a JS framework requires its own spec PR.
 - **Atomic SPA emission.** The SPA HTML is built once at server startup (or lazily on first `GET /`) and reused for every request. Its content is a pure function of the build version + a fixed CSS palette; no per-request interpolation that could allow header / cookie injection.
-- **Deterministic participant colours.** Same SHA-1→HSL function as `renderers/html.ts` (`hue = sha1(participantId)[0..3] % 360`, saturation 60%, lightness 86%, facilitator neutral). The SPA implements it client-side so colors line up with the static HTML report a user might open via `ai-meeting show --format=html`.
+- **Deterministic participant colours.** Same SHA-1→HSL function as `renderers/html.ts` (`hue = sha1(participantId)[0..3] % 360`, saturation 60%, lightness 86%, facilitator neutral). The SPA implements it client-side so colors line up with the static HTML report a user might open via `veche show --format=html`.
 - **Exit codes are part of the contract.** `0` graceful · `2` bind / store error · `64` usage error. (`1` and `3` are not used by `watch` because it does not look up a single meeting at startup.) `cli.integration.test.ts` exercises `0` (SIGINT path) and `64` (bad `--port`); a unit test asserts `2` on synthetic `EADDRINUSE`.
 - **Polling cadence is not user-tunable.** `WATCH_POLL_MS = 750` is a constant in the implementation. If a future ticket needs per-deployment tuning, that ticket adds a flag *and* updates this spec.
 - **Backpressure.** SSE writes go through `res.write(...)`. If the client TCP buffer is full, the loop awaits the `drain` event before issuing the next write. Server poll continues (state is buffered as a single "pending event" pointer per channel — only the latest snapshot per type is delivered after a long pause; intermediate `meeting.updated` ticks may coalesce). `message.posted` events are NOT coalesced — each message is delivered exactly once.
-- **Headers contain no secrets.** No env-derived values, no auth tokens, no `$AI_MEETING_HOME` path. The SPA itself contains the build version and nothing else.
+- **Headers contain no secrets.** No env-derived values, no auth tokens, no `$VECHE_HOME` path. The SPA itself contains the build version and nothing else.

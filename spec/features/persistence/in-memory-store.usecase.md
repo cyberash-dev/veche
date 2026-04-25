@@ -97,7 +97,7 @@ As per [persistence](./persistence.md). All store errors are domain errors; no i
 
 ## Rules
 
-- **Ephemeral.** Data does not survive process exit. `AI_MEETING_STORE=memory` selects this adapter.
+- **Ephemeral.** Data does not survive process exit. `VECHE_STORE=memory` selects this adapter.
 - **Thread-safety** is guaranteed by the single-threaded Node event loop. The store assumes the application layer serialises writes within a Meeting.
 - **Memory bound.** No automatic eviction. Operators running long sessions should prefer `FileStore`. The adapter logs a `warn` when any Meeting exceeds `10 000` events.
 - **Determinism.** With a fixed `Clock` and `IdGen`, operations yield identical `seq` / payload sequences across runs.

@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Give an operator (or a fresh machine bootstrapping `ai-meeting`) a single command that wires the `ai-meeting` MCP server and its companion skill into the two supported MCP hosts: Claude Code and Codex. The command is the canonical setup path — no manual JSON / TOML editing, no copy-pasting `claude mcp add` invocations from a README.
+Give an operator (or a fresh machine bootstrapping `veche`) a single command that wires the `veche` MCP server and its companion skill into the two supported MCP hosts: Claude Code and Codex. The command is the canonical setup path — no manual JSON / TOML editing, no copy-pasting `claude mcp add` invocations from a README.
 
 The slice owns three artefacts:
 
-1. The canonical skill file `skills/ai-meeting/SKILL.md`, versioned with the rest of the package and shipped via npm `files`.
-2. The `ai-meeting install` CLI subcommand that places the skill file under each host's `skills/` directory and registers the MCP server with each host.
+1. The canonical skill file `skills/veche/SKILL.md`, versioned with the rest of the package and shipped via npm `files`.
+2. The `veche install` CLI subcommand that places the skill file under each host's `skills/` directory and registers the MCP server with each host.
 3. A small allowlist of host-CLI invocations (`claude mcp …`, `codex mcp …`) the install command is permitted to spawn.
 
-This slice does NOT extend the MCP tool surface, does NOT modify the event log, and does NOT touch `$AI_MEETING_HOME`. It is purely a deployment helper.
+This slice does NOT extend the MCP tool surface, does NOT modify the event log, and does NOT touch `$VECHE_HOME`. It is purely a deployment helper.
 
 ## Domain Entities
 
@@ -25,16 +25,16 @@ This slice introduces no new domain entities. It manipulates two host-side confi
 
 ## Invariants
 
-- **No store side effects.** The install command MUST NOT open `MeetingStorePort`, MUST NOT write under `$AI_MEETING_HOME`, MUST NOT read or modify any meeting data. The CLI invariants from the existing `list` / `show` / `watch` commands continue to hold; install is read-only against the meeting store. The integration test injects a mock `MeetingStorePort` whose every method throws and asserts the install command never trips it.
+- **No store side effects.** The install command MUST NOT open `MeetingStorePort`, MUST NOT write under `$VECHE_HOME`, MUST NOT read or modify any meeting data. The CLI invariants from the existing `list` / `show` / `watch` commands continue to hold; install is read-only against the meeting store. The integration test injects a mock `MeetingStorePort` whose every method throws and asserts the install command never trips it.
 - **Bounded write surface.** The only filesystem locations the install command writes to are:
   - `<host-skills-root>/<mcp-name>/SKILL.md` for each requested host.
   - The host's own MCP config file, but only via the host CLI (`claude mcp add/remove`, `codex mcp add`). Never edited directly.
   No other path is created or modified. Atomic write (`<path>.tmp-<pid>-<ts>` → `rename`) is mandatory for the skill file, mirroring `show --out`.
 - **Bounded subprocess surface.** The install command may spawn ONLY `claude` and `codex` (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH). It does not spawn any other binary, including no `bash`, no `sh`, no `npm`. Subprocess args are constructed in code; no user-supplied string is interpolated unquoted.
-- **Idempotent.** Re-running `ai-meeting install` against an already-configured host produces the same end state. Concretely: the skill file is overwritten in place; for Claude Code (whose `mcp add` is not idempotent) the command first probes via `claude mcp list`, removes the existing entry if present, then adds; for Codex (whose `mcp add` overwrites natively) the command issues a single `mcp add`.
-- **Single source of truth for the skill.** Both hosts receive byte-identical copies of `skills/ai-meeting/SKILL.md` from the package. There is no per-host variant of the skill file; if Claude Code and Codex ever need divergent skill content, that requires a spec change to introduce a per-host template.
+- **Idempotent.** Re-running `veche install` against an already-configured host produces the same end state. Concretely: the skill file is overwritten in place; for Claude Code (whose `mcp add` is not idempotent) the command first probes via `claude mcp list`, removes the existing entry if present, then adds; for Codex (whose `mcp add` overwrites natively) the command issues a single `mcp add`.
+- **Single source of truth for the skill.** Both hosts receive byte-identical copies of `skills/veche/SKILL.md` from the package. There is no per-host variant of the skill file; if Claude Code and Codex ever need divergent skill content, that requires a spec change to introduce a per-host template.
 
 ## Dependencies
 
-- [meeting](../meeting/meeting.md) — the install command pins the `mcp-name` (default `ai-meeting`) which must match the `mcp__ai-meeting__*` tool prefix served by the MCP server. Renaming requires a coordinated change across both slices.
+- [meeting](../meeting/meeting.md) — the install command pins the `mcp-name` (default `veche`) which must match the `mcp__veche__*` tool prefix served by the MCP server. Renaming requires a coordinated change across both slices.
 - External binaries: `claude` (Claude Code CLI) and `codex` (Codex CLI). The same binaries are already required by [agent-integration](../agent-integration/agent-integration.md) for committee membership, so the dependency does not widen.

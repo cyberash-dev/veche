@@ -26,11 +26,11 @@ const parseLogLevel = (raw: string | undefined): LogLevel => {
 };
 
 export const loadConfig = async (): Promise<ServerConfig> => {
-	const home = process.env.AI_MEETING_HOME ?? path.join(os.homedir(), ".ai-meeting");
-	const logLevel = parseLogLevel(process.env.AI_MEETING_LOG_LEVEL);
-	const storeEnv = process.env.AI_MEETING_STORE ?? "file";
+	const home = process.env.VECHE_HOME ?? path.join(os.homedir(), ".veche");
+	const logLevel = parseLogLevel(process.env.VECHE_LOG_LEVEL);
+	const storeEnv = process.env.VECHE_STORE ?? "file";
 	const storeKind: "memory" | "file" = storeEnv === "memory" ? "memory" : "file";
-	const capRaw = process.env.AI_MEETING_MAX_ROUNDS_CAP;
+	const capRaw = process.env.VECHE_MAX_ROUNDS_CAP;
 	const maxRoundsCap = capRaw ? Math.max(1, Number.parseInt(capRaw, 10) || 16) : 16;
 
 	let userConfig: UserConfigFile | null = null;

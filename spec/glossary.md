@@ -4,19 +4,19 @@ Canonical definitions for every domain term used in this specification. All spec
 
 | Term | Definition | Used in |
 |------|-----------|---------|
-| AI Meeting Server | This project — an MCP server that hosts multi-party committee meetings between an orchestrator agent and one or more external LLM agents. | system.md, c4-model.md |
+| Veche Server | This project — an MCP server that hosts multi-party committee meetings between an orchestrator agent and one or more external LLM agents. | system.md, c4-model.md |
 | Orchestrator | The external agent process that drives the meeting through MCP tool calls. Always a Participant inside the meeting (role `facilitator`). | system.md, meeting, committee-protocol |
-| Human Operator | The actor who runs the `ai-meeting` CLI from a terminal. Distinct from Orchestrator Agent: interacts with the store read-only, after the fact. | system.md, meeting (CLI use cases) |
-| HTML Report | A self-contained single-file HTML rendering of a Meeting transcript produced by `ai-meeting show --format html`. All CSS inlined, no external resources, safe to share offline. | show-meeting-cli |
-| Web Viewer | The local HTTP server started by `ai-meeting watch`. Serves a single-page application and two SSE channels for live observation of every Meeting under `$AI_MEETING_HOME`. Read-only; loopback-only by default; runs in a separate process from the MCP server. | web-viewer, watch-server |
+| Human Operator | The actor who runs the `veche` CLI from a terminal. Distinct from Orchestrator Agent: interacts with the store read-only, after the fact. | system.md, meeting (CLI use cases) |
+| HTML Report | A self-contained single-file HTML rendering of a Meeting transcript produced by `veche show --format html`. All CSS inlined, no external resources, safe to share offline. | show-meeting-cli |
+| Web Viewer | The local HTTP server started by `veche watch`. Serves a single-page application and two SSE channels for live observation of every Meeting under `$VECHE_HOME`. Read-only; loopback-only by default; runs in a separate process from the MCP server. | web-viewer, watch-server |
 | SPA | The single-page HTML5 document served at `GET /` by the Web Viewer. Self-contained: one inline `<script>`, one inline `<style>`, no remote resources. | watch-server |
 | SSE | Server-Sent Events. The unidirectional streaming protocol layered on HTTP/1.1 used by the Web Viewer to push `meeting.added` / `meeting.updated` / `message.posted` events to the SPA. Consumed by the browser's built-in `EventSource` API. | watch-server |
-| MCP | Model Context Protocol. The transport used by the inbound adapter; this server speaks MCP over stdio. | containers/ai-meeting-server.md, meeting |
+| MCP | Model Context Protocol. The transport used by the inbound adapter; this server speaks MCP over stdio. | containers/veche-server.md, meeting |
 | Meeting | A persistent committee session with a stable `meetingId`, a fixed roster of Participants, a shared Transcript, and a linear history of Jobs. | meeting, persistence |
 | Participant | A named actor in a Meeting. Has an `id`, a `role` (`facilitator` or `member`), an `adapter` reference, and optional per-participant configuration (profile, system prompt, workdir, model). | meeting, agent-integration |
 | Facilitator | The Participant that issues top-level messages through the MCP tools. Exactly one per Meeting. | meeting, committee-protocol |
 | Member | Any non-facilitator Participant. All Members are backed by an Adapter. | meeting, agent-integration |
-| Profile | A named Participant configuration stored in the user config file, referenced by name at `start_meeting` and optionally overridden. | agent-integration, containers/ai-meeting-server.md |
+| Profile | A named Participant configuration stored in the user config file, referenced by name at `start_meeting` and optionally overridden. | agent-integration, containers/veche-server.md |
 | Adapter | An outbound implementation of the `AgentAdapter` port. v1 ships with `codex-cli` and `claude-code-cli`. | agent-integration |
 | Session | Per-Participant, per-Meeting state owned by an Adapter. Holds the external provider's conversation id (Codex `thread_id`, Claude Code `session_id`) and any adapter-local bookkeeping. | agent-integration, committee-protocol |
 | Turn | One invocation of an Adapter that produces at most one Message. The Orchestrator's direct `send_message` call is not a Turn — only Adapter dispatches are. | agent-integration, committee-protocol |
@@ -33,6 +33,6 @@ Canonical definitions for every domain term used in this specification. All spec
 | MeetingStore | Outbound port for persisting Meetings, Transcripts, and Jobs. Event-append + snapshot-read model. | persistence |
 | Event | A persisted record appended to the Meeting's event log. Types: `meeting.created`, `participant.joined`, `job.started`, `round.started`, `message.posted`, `participant.dropped`, `job.completed`, `job.failed`, `job.cancelled`, `meeting.ended`. | persistence |
 | InMemoryStore | A `MeetingStore` adapter that keeps state only in process memory. Intended for tests and ephemeral dev use. | persistence |
-| FileStore | A `MeetingStore` adapter that persists events to `$AI_MEETING_HOME` as JSONL. Survives process restarts. | persistence |
-| Clock | Outbound port returning the current `Instant`. Injected into domain code to keep it time-deterministic for tests. | containers/ai-meeting-server.md |
-| IdGen | Outbound port returning new `meetingId`, `jobId`, `messageId`, and UUID values. Injected to keep domain deterministic for tests. | containers/ai-meeting-server.md |
+| FileStore | A `MeetingStore` adapter that persists events to `$VECHE_HOME` as JSONL. Survives process restarts. | persistence |
+| Clock | Outbound port returning the current `Instant`. Injected into domain code to keep it time-deterministic for tests. | containers/veche-server.md |
+| IdGen | Outbound port returning new `meetingId`, `jobId`, `messageId`, and UUID values. Injected to keep domain deterministic for tests. | containers/veche-server.md |

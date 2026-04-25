@@ -21,7 +21,7 @@ Orchestrator Agent calling MCP tool `start_meeting`.
 | `members[].workdir` | string | Optional. Must be an absolute existing directory readable by the server process. |
 | `members[].extraFlags` | string[] | Optional. Each flag must be in the adapter's allow-list ([codex-cli-adapter](../agent-integration/codex-cli-adapter.usecase.md), [claude-code-cli-adapter](../agent-integration/claude-code-cli-adapter.usecase.md)). Max 16 entries. |
 | `members[].env` | `Record<string,string>` | Optional. Keys match `^[A-Z_][A-Z0-9_]*$`. Forbidden keys: `CODEX_API_KEY`, `HOME`, `PATH`, `CLAUDE_BIN`, `CODEX_BIN`. Max 32 entries. |
-| `defaultMaxRounds` | integer | Optional. 1–`AI_MEETING_MAX_ROUNDS_CAP`. Default `8`. |
+| `defaultMaxRounds` | integer | Optional. 1–`VECHE_MAX_ROUNDS_CAP`. Default `8`. |
 
 ## Output
 
@@ -84,7 +84,7 @@ Orchestrator Agent calling MCP tool `start_meeting`.
 
 - A Meeting has exactly one Facilitator and at least one Member.
 - A Participant's resolved `adapter` must belong to the v1 set (`codex-cli` | `claude-code-cli`).
-- `defaultMaxRounds` is clamped to `[1, AI_MEETING_MAX_ROUNDS_CAP]`; a value outside the range is treated as `InvalidInput`, never silently clamped.
+- `defaultMaxRounds` is clamped to `[1, VECHE_MAX_ROUNDS_CAP]`; a value outside the range is treated as `InvalidInput`, never silently clamped.
 - `systemPrompt` is the *user* portion; the Pass Signal instruction (`<PASS/>` protocol) is appended by [dispatch-turn](../agent-integration/dispatch-turn.usecase.md). Callers do not need to include it.
 - The Facilitator's `displayName` defaults to its `id` when omitted.
 - `start_meeting` is synchronous — it completes before returning control to the Orchestrator. No Job is started.

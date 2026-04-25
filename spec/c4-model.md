@@ -1,4 +1,4 @@
-# C4 Model — AI Meeting Server
+# C4 Model — Veche Server
 
 Three diagrams describe the system at the Context, Container, and Component levels.
 
@@ -6,12 +6,12 @@ Three diagrams describe the system at the Context, Container, and Component leve
 
 ```mermaid
 C4Context
-    title AI Meeting Server — System Context
+    title Veche Server — System Context
     Person(orch, "Orchestrator Agent", "External agent that drives meetings via MCP tool calls (Claude Code, IDE extension, custom agent)")
-    System(ams, "AI Meeting Server", "Hosts multi-party committee meetings between LLM agents")
+    System(ams, "Veche Server", "Hosts multi-party committee meetings between LLM agents")
     System_Ext(codex, "Codex CLI", "OpenAI Codex CLI binary ('codex exec')")
     System_Ext(claude, "Claude Code CLI", "Anthropic Claude Code CLI binary ('claude -p')")
-    System_Ext(fs, "Local Filesystem", "Hosts event log and user config under $AI_MEETING_HOME")
+    System_Ext(fs, "Local Filesystem", "Hosts event log and user config under $VECHE_HOME")
     Rel(orch, ams, "Invokes MCP tools", "MCP over stdio")
     Rel(ams, codex, "Spawns subprocess per Turn", "exec resume --json")
     Rel(ams, claude, "Spawns subprocess per Turn", "-p --session-id --output-format json")
@@ -22,10 +22,10 @@ C4Context
 
 ```mermaid
 C4Container
-    title AI Meeting Server — Containers
+    title Veche Server — Containers
     Person(orch, "Orchestrator Agent")
-    System_Boundary(ams_boundary, "AI Meeting Server") {
-        Container(ams, "ai-meeting-server", "Node.js 20 + TypeScript", "MCP over stdio. Hosts meetings, runs committee protocol, spawns adapter subprocesses, persists events.")
+    System_Boundary(ams_boundary, "Veche Server") {
+        Container(ams, "veche-server", "Node.js 20 + TypeScript", "MCP over stdio. Hosts meetings, runs committee protocol, spawns adapter subprocesses, persists events.")
     }
     System_Ext(codex, "Codex CLI")
     System_Ext(claude, "Claude Code CLI")
@@ -36,12 +36,12 @@ C4Container
     Rel(ams, fs, "Config + event log", "read/append")
 ```
 
-## Level 3 — Component (ai-meeting-server)
+## Level 3 — Component (veche-server)
 
 ```mermaid
 C4Component
-    title ai-meeting-server — Components (Vertical Slices)
-    Container_Boundary(server, "ai-meeting-server") {
+    title veche-server — Components (Vertical Slices)
+    Container_Boundary(server, "veche-server") {
         Component(mcp_inbound, "MCP Inbound Adapter", "TypeScript", "Registers MCP tools, validates input with zod, dispatches to feature use cases")
         Component(meeting, "meeting (slice)", "Domain + application", "Meeting aggregate, 7 MCP-facing use cases (start/send/get/list/transcript/end/cancel)")
         Component(committee, "committee-protocol (slice)", "Application", "Round-based discussion loop, pass signal parsing, drop handling, termination")

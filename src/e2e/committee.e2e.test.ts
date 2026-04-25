@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AiMeetingMcpServer } from "../adapters/inbound/mcp/AiMeetingMcpServer.js";
+import { VecheMcpServer } from "../adapters/inbound/mcp/VecheMcpServer.js";
 import { ClaudeCodeCliAgentAdapter } from "../features/agent-integration/adapters/claude-code-cli/ClaudeCodeCliAgentAdapter.js";
 import { CodexCliAgentAdapter } from "../features/agent-integration/adapters/codex-cli/CodexCliAgentAdapter.js";
 import { ProfileResolver } from "../features/agent-integration/application/ProfileResolver.js";
@@ -26,7 +26,7 @@ import { UuidIdGen } from "../infra/UuidIdGen.js";
 import type { ParticipantId } from "../shared/types/ids.js";
 import { SilentLogger } from "../test-utils/SilentLogger.js";
 
-const runE2e = process.env.AI_MEETING_E2E === "1";
+const runE2e = process.env.VECHE_E2E === "1";
 const d = runE2e ? describe : describe.skip;
 
 const setup = () => {
@@ -119,7 +119,7 @@ const setup = () => {
 		cancelJob,
 	});
 
-	const mcp = new AiMeetingMcpServer({
+	const mcp = new VecheMcpServer({
 		logger,
 		startMeeting,
 		sendMessage,
@@ -133,7 +133,7 @@ const setup = () => {
 	return { startMeeting, sendMessage, getResponse, endMeeting, jobRunner, mcp };
 };
 
-d("committee e2e (opt-in AI_MEETING_E2E=1)", () => {
+d("committee e2e (opt-in VECHE_E2E=1)", () => {
 	it("Claude + Codex reach consensus via <PASS/>", async () => {
 		const t = setup();
 

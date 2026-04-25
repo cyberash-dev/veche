@@ -10,7 +10,7 @@ Orchestrator Agent calling MCP tool `send_message`.
 |-------|------|------------|
 | `meetingId` | `MeetingId` | Required. Must reference an `active` Meeting. |
 | `text` | string | Required. 1–32 KiB after trim. UTF-8. |
-| `maxRounds` | integer | Optional. 1–`AI_MEETING_MAX_ROUNDS_CAP`. Default is the Meeting's `defaultMaxRounds`. |
+| `maxRounds` | integer | Optional. 1–`VECHE_MAX_ROUNDS_CAP`. Default is the Meeting's `defaultMaxRounds`. |
 | `turnTimeoutMs` | integer | Optional. 10 000–3 600 000. Default `300000` (5 min). Applies per Member Turn. |
 | `addressees` | `ParticipantId[]` | Optional. Subset of non-dropped Members. Default = all non-dropped Members. |
 

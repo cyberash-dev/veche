@@ -22,7 +22,7 @@ import {
 	startMeetingSchema,
 } from "./schemas.js";
 
-interface AiMeetingDeps {
+interface VecheDeps {
 	readonly logger: LoggerPort;
 	readonly startMeeting: StartMeetingUseCase;
 	readonly sendMessage: SendMessageUseCase;
@@ -54,12 +54,12 @@ const errorResult = (
 	};
 };
 
-export class AiMeetingMcpServer {
+export class VecheMcpServer {
 	private readonly server: McpServer;
 
-	constructor(private readonly deps: AiMeetingDeps) {
+	constructor(private readonly deps: VecheDeps) {
 		this.server = new McpServer(
-			{ name: "ai-meeting-server", version: "0.1.0" },
+			{ name: "veche-server", version: "0.1.0" },
 			{ capabilities: { tools: {} } },
 		);
 		this.registerTools();

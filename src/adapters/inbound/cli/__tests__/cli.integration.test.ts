@@ -18,7 +18,7 @@ import { FakeClock } from "../../../../test-utils/FakeClock.js";
 import { SilentLogger } from "../../../../test-utils/SilentLogger.js";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
-const binPath = path.resolve(dirname, "../../../../../dist/bin/ai-meeting.js");
+const binPath = path.resolve(dirname, "../../../../../dist/bin/veche.js");
 
 interface CliResult {
 	readonly code: number;
@@ -105,18 +105,18 @@ const seedMeeting = async (root: string): Promise<string> => {
 			round: 1,
 			author: asParticipantId("coder"),
 			kind: "speech",
-			text: "ai-meeting",
+			text: "veche",
 			createdAt: asInstant("2026-04-24T10:00:01.000Z"),
 		},
 	});
 	return id;
 };
 
-describe("ai-meeting CLI (integration)", () => {
+describe("veche CLI (integration)", () => {
 	let root: string;
 
 	beforeEach(async () => {
-		root = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-cli-"));
+		root = await mkdtemp(path.join(os.tmpdir(), "veche-cli-"));
 	});
 	afterEach(async () => {
 		await rm(root, { recursive: true, force: true });
@@ -127,7 +127,7 @@ describe("ai-meeting CLI (integration)", () => {
 		const res = await runCliBin(["list", "--format", "json", "--home", root], {
 			...process.env,
 			NO_COLOR: "1",
-			AI_MEETING_STORE: "file",
+			VECHE_STORE: "file",
 		});
 		expect(res.code).toBe(0);
 		const parsed = JSON.parse(res.stdout);
@@ -177,7 +177,7 @@ describe("ai-meeting CLI (integration)", () => {
 		const res = await runCliBin(["show"], {
 			...process.env,
 			NO_COLOR: "1",
-			AI_MEETING_HOME: root,
+			VECHE_HOME: root,
 		});
 		expect(res.code).toBe(64);
 	});
@@ -186,7 +186,7 @@ describe("ai-meeting CLI (integration)", () => {
 		const res = await runCliBin(["watch", "--help"], {
 			...process.env,
 			NO_COLOR: "1",
-			AI_MEETING_HOME: root,
+			VECHE_HOME: root,
 		});
 		expect(res.code).toBe(0);
 		expect(res.stderr).toContain("watch");
@@ -206,7 +206,7 @@ describe("ai-meeting CLI (integration)", () => {
 		const res = await runCliBin(["install", "--help"], {
 			...process.env,
 			NO_COLOR: "1",
-			AI_MEETING_HOME: root,
+			VECHE_HOME: root,
 		});
 		expect(res.code).toBe(0);
 		expect(res.stderr).toContain("install");
@@ -214,7 +214,7 @@ describe("ai-meeting CLI (integration)", () => {
 	});
 
 	it("install --dry-run does not write files or spawn host CLIs", async () => {
-		const home = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-install-"));
+		const home = await mkdtemp(path.join(os.tmpdir(), "veche-install-"));
 		try {
 			const res = await runCliBin(["install", "--dry-run", "--home", root], {
 				...process.env,
@@ -229,7 +229,7 @@ describe("ai-meeting CLI (integration)", () => {
 			expect(res.stderr).toContain("[codex]");
 			await expect(
 				(await import("node:fs/promises")).access(
-					path.join(home, ".claude", "skills", "ai-meeting", "SKILL.md"),
+					path.join(home, ".claude", "skills", "veche", "SKILL.md"),
 				),
 			).rejects.toBeTruthy();
 		} finally {

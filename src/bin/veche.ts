@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from "../adapters/inbound/cli/AiMeetingCli.js";
+import { runCli } from "../adapters/inbound/cli/VecheCli.js";
 import { FileMeetingStore } from "../features/persistence/adapters/file/FileMeetingStore.js";
 import { loadConfig } from "../infra/config.js";
 import { StructuredLogger } from "../infra/StructuredLogger.js";
@@ -25,7 +25,7 @@ const main = async (): Promise<void> => {
 	const config = await loadConfig();
 	const override = extractHomeOverride(argv);
 	const rootDir = override ?? config.home;
-	const logger = new StructuredLogger("error", { svc: "ai-meeting-cli" });
+	const logger = new StructuredLogger("error", { svc: "veche-cli" });
 	const clock = new SystemClock();
 	const store = new FileMeetingStore({ clock, logger }, { rootDir });
 

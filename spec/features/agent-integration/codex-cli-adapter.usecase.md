@@ -33,7 +33,7 @@ Returns:
 ### `sendTurn`
 
 1. Resolve the `Session` from the adapter-local registry; fail with `AdapterNotAvailable { code: 'codex-session-closed' }` if it is `closed`.
-2. Prepare a temporary file path for `--output-last-message`: `os.tmpdir() + '/ai-meeting-codex-<randomSuffix>/last.txt'`.
+2. Prepare a temporary file path for `--output-last-message`: `os.tmpdir() + '/veche-codex-<randomSuffix>/last.txt'`.
 3. Decide between **initial invocation** and **resume** based on `session.providerRef`:
    - **Turn 1** (`providerRef === null`):
      `codex exec --json -o <tmpPath> [--model <model>] --sandbox <sandbox> [--cd <workdir>] [-c instructions=<systemPromptJson>] <extraFlags…> <promptText>`

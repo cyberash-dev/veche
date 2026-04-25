@@ -1,4 +1,4 @@
-export { AiMeetingMcpServer } from "./adapters/inbound/mcp/AiMeetingMcpServer.js";
+export { VecheMcpServer } from "./adapters/inbound/mcp/VecheMcpServer.js";
 export { ClaudeCodeCliAgentAdapter } from "./features/agent-integration/adapters/claude-code-cli/ClaudeCodeCliAgentAdapter.js";
 export { CodexCliAgentAdapter } from "./features/agent-integration/adapters/codex-cli/CodexCliAgentAdapter.js";
 export * from "./features/agent-integration/index.js";

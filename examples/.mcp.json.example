@@ -1,13 +1,13 @@
 {
   "mcpServers": {
-    "ai-meeting": {
+    "veche": {
       "command": "node",
-      "args": ["/absolute/path/to/ai-meeting-server/dist/bin/ai-meeting-server.js"],
+      "args": ["/absolute/path/to/dist/bin/veche-server.js"],
       "env": {
-        "AI_MEETING_STORE": "file",
-        "AI_MEETING_HOME": "/Users/you/.ai-meeting",
-        "AI_MEETING_LOG_LEVEL": "info",
-        "AI_MEETING_MAX_ROUNDS_CAP": "12",
+        "VECHE_STORE": "file",
+        "VECHE_HOME": "/Users/you/.veche",
+        "VECHE_LOG_LEVEL": "info",
+        "VECHE_MAX_ROUNDS_CAP": "12",
         "CODEX_API_KEY": "sk-..."
       }
     }

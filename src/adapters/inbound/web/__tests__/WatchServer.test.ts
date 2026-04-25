@@ -64,7 +64,7 @@ describe("WatchServer routes", () => {
 		expect(res.headers.get("content-type")).toMatch(/^text\/html/);
 		const body = await res.text();
 		expect(body.startsWith("<!DOCTYPE html>")).toBe(true);
-		expect(body).toContain("ai-meeting · live");
+		expect(body).toContain("veche · live");
 	});
 
 	it("GET /api/meetings returns the seeded summary", async () => {

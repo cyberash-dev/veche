@@ -2,7 +2,7 @@
 
 ## Actor
 
-Internal — `FileMeetingStore` implements `MeetingStorePort` against the local filesystem. Default adapter when `AI_MEETING_STORE=file`.
+Internal — `FileMeetingStore` implements `MeetingStorePort` against the local filesystem. Default adapter when `VECHE_STORE=file`.
 
 ## Input
 
@@ -16,10 +16,10 @@ Port-conformant responses backed by JSONL files on disk.
 
 ### On-disk layout
 
-Root directory is `${AI_MEETING_HOME}` (default `${HOME}/.ai-meeting`). The adapter creates it on first use with mode `0700`.
+Root directory is `${VECHE_HOME}` (default `${HOME}/.veche`). The adapter creates it on first use with mode `0700`.
 
 ```
-${AI_MEETING_HOME}/
+${VECHE_HOME}/
 ├── config.json                                   # user config (Profiles). Read-only to the adapter.
 ├── meetings/
 │   └── <meetingId>/
@@ -111,7 +111,7 @@ As per [persistence](./persistence.md), plus file-system mappings:
 
 ## Side Effects
 
-- Creates and appends to files under `${AI_MEETING_HOME}`.
+- Creates and appends to files under `${VECHE_HOME}`.
 - Creates `meetings/<id>/` directories with mode `0700`.
 - Never deletes anything. Operators prune manually.
 
@@ -119,7 +119,7 @@ As per [persistence](./persistence.md), plus file-system mappings:
 
 - **Append-only events file.** Rewriting or truncating `events.jsonl` outside of this store is unsupported; the store detects a shrinking file on re-read and raises `StoreUnavailable { code: 'fs-log-regressed' }`.
 - **Crash recovery.** On startup, each Meeting's `manifest.json` is regenerated from `events.jsonl` if missing, corrupt, or older than the last event timestamp.
-- **Single-writer per process.** The application guarantees one running Job per Meeting, and the in-process Mutex guarantees one append at a time. Running two MCP servers against the same `${AI_MEETING_HOME}` is explicitly unsupported; a file lockfile is NOT provided in v1.
+- **Single-writer per process.** The application guarantees one running Job per Meeting, and the in-process Mutex guarantees one append at a time. Running two MCP servers against the same `${VECHE_HOME}` is explicitly unsupported; a file lockfile is NOT provided in v1.
 - **`fsync` on every append.** Durability matters more than throughput — Meetings are small and slow by nature.
 - **No event log rotation in v1.** A Meeting's `events.jsonl` grows unbounded. Operators pruning old Meetings delete the whole `meetings/<id>/` directory.
 - **Atomic manifest updates.** Always tmp-then-rename. A reader that observes `manifest.json` always sees a complete snapshot.

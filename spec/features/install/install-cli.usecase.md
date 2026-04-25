@@ -2,7 +2,7 @@
 
 ## Actor
 
-Human Operator (or an automated provisioning script) running `ai-meeting install` from a terminal — typically once after `npm i -g ai-meeting-server`, or any time the canonical skill text has been updated and needs to land in the host config.
+Human Operator (or an automated provisioning script) running `veche install` from a terminal — typically once after `npm i -g veche`, or any time the canonical skill text has been updated and needs to land in the host config.
 
 ## Input
 
@@ -13,14 +13,14 @@ Flags:
 | Flag | Type | Validation |
 |------|------|------------|
 | `--for` | `claude-code` \| `codex` \| `both` | Optional. Default `both`. Selects which host(s) to install into. |
-| `--mcp-name` | string | Optional. Default `ai-meeting`. Must match `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`. The MCP server name registered with the host **and** the directory name under `skills/`. Renaming is supported but unusual. |
-| `--server-bin` | absolute path | Optional. Default: the absolute path to `dist/bin/ai-meeting-server.js` resolved from `import.meta.url` of the install module. Override required only when the package is being installed from a non-standard location (e.g. from a tarball before extraction). |
+| `--mcp-name` | string | Optional. Default `veche`. Must match `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`. The MCP server name registered with the host **and** the directory name under `skills/`. Renaming is supported but unusual. |
+| `--server-bin` | absolute path | Optional. Default: the absolute path to `dist/bin/veche-server.js` resolved from `import.meta.url` of the install module. Override required only when the package is being installed from a non-standard location (e.g. from a tarball before extraction). |
 | `--skills-only` | boolean | Optional. Skip MCP registration. Only copy the skill file. Mutually exclusive with `--mcp-only`. |
 | `--mcp-only` | boolean | Optional. Skip skill copy. Only register the MCP server. Mutually exclusive with `--skills-only`. |
 | `--force` | boolean | Optional. When the host CLI is missing, log an error and proceed with the other host instead of aborting. Without `--force`, a missing host CLI returns exit 2. |
 | `--dry-run` | boolean | Optional. Print every action that would be taken on stderr without performing it. Always exits 0 (or 64 on usage errors). |
 | `--no-color` | boolean | Optional. Disables ANSI color in stderr output. Same semantics as the other CLI commands. |
-| `--home` | absolute path | Optional. Override for `$AI_MEETING_HOME`. Accepted for parity with the other CLI commands; the install command itself never reads or writes `$AI_MEETING_HOME`. |
+| `--home` | absolute path | Optional. Override for `$VECHE_HOME`. Accepted for parity with the other CLI commands; the install command itself never reads or writes `$VECHE_HOME`. |
 
 `--skills-only` and `--mcp-only` together are a usage error (exit 64).
 
@@ -31,11 +31,11 @@ All operator-visible output is on stderr. Stdout is reserved for future machine-
 The command emits one line per high-level step in this order, prefixed by the host (`[claude-code]` / `[codex]`):
 
 ```
-[claude-code] writing skill file → /Users/<u>/.claude/skills/ai-meeting/SKILL.md
-[claude-code] mcp register: claude mcp add ai-meeting --scope user -e AI_MEETING_LOG_LEVEL=info -- node /abs/path/to/dist/bin/ai-meeting-server.js
+[claude-code] writing skill file → /Users/<u>/.claude/skills/veche/SKILL.md
+[claude-code] mcp register: claude mcp add veche --scope user -e VECHE_LOG_LEVEL=info -- node /abs/path/to/dist/bin/veche-server.js
 [claude-code] ok
-[codex] writing skill file → /Users/<u>/.codex/skills/ai-meeting/SKILL.md
-[codex] mcp register: codex mcp add ai-meeting --env AI_MEETING_LOG_LEVEL=info -- node /abs/path/to/dist/bin/ai-meeting-server.js
+[codex] writing skill file → /Users/<u>/.codex/skills/veche/SKILL.md
+[codex] mcp register: codex mcp add veche --env VECHE_LOG_LEVEL=info -- node /abs/path/to/dist/bin/veche-server.js
 [codex] ok
 done.
 ```
@@ -50,7 +50,7 @@ When a step is skipped (`--skills-only` / `--mcp-only` / `--dry-run`), the line 
    - `--server-bin` provided but not absolute / not pointing at an existing `*.js` file → `64`.
    - `--skills-only` and `--mcp-only` both set → `64`.
 2. Resolve the **canonical skill source**: `<package-root>/skills/<mcp-name>/SKILL.md`. The package root is derived from `import.meta.url` of the install module. If the file is missing, exit `2` with `skill source not found at <path>` (this should never happen in a correct package).
-3. Resolve the **server bin**: `--server-bin` if given, else `<package-root>/dist/bin/ai-meeting-server.js`. Exit `2` if the resolved path does not exist.
+3. Resolve the **server bin**: `--server-bin` if given, else `<package-root>/dist/bin/veche-server.js`. Exit `2` if the resolved path does not exist.
 4. Build the host plan from `--for`: a list of one or two `HostTarget` records (`claude-code`, `codex`). Each target carries the host name, the skills root (`~/.claude/skills` for claude-code, `~/.codex/skills` for codex), the host CLI command (`claude` / `codex`), the `mcp add` argv template, and the `mcp list` / `mcp remove` argv (claude only).
 5. For each target, in declaration order, do:
    - 5a. **Skill file** (skipped if `--mcp-only`):
@@ -61,9 +61,9 @@ When a step is skipped (`--skills-only` / `--mcp-only` / `--dry-run`), the line 
      - Probe the host CLI: spawn `<cli> --version`. If it fails with `ENOENT`, this counts as "host CLI missing" — see step 6.
      - Claude Code path:
        - Spawn `claude mcp list --scope user`. Parse stdout line-by-line. If a row begins with `<mcp-name>:`, spawn `claude mcp remove <mcp-name> --scope user`. Ignore non-zero exits from remove only when stderr says "not found"; otherwise propagate.
-       - Spawn `claude mcp add <mcp-name> --scope user -e AI_MEETING_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6.
+       - Spawn `claude mcp add <mcp-name> --scope user -e VECHE_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6.
      - Codex path:
-       - Spawn `codex mcp add <mcp-name> --env AI_MEETING_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6. (Codex `mcp add` overwrites; no probe needed.)
+       - Spawn `codex mcp add <mcp-name> --env VECHE_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6. (Codex `mcp add` overwrites; no probe needed.)
      - Log `[<host>] mcp register: <argv joined by space>` before spawning, and `[<host>] ok` after both 5a and 5b finished successfully (or whichever was requested).
 6. Error handling:
    - **Host CLI missing (`ENOENT` on probe).** Without `--force`: log `[<host>] error: <cli> not found on PATH; install <cli> first or pass --force to skip this host`, exit `2` after recording any earlier successful targets. With `--force`: log the same line plus `[<host>] skipped` and continue.
@@ -92,15 +92,15 @@ In `--dry-run` mode, every step that would touch the filesystem or spawn a proce
   - `claude --version`
   - `claude mcp list --scope user`
   - `claude mcp remove <mcp-name> --scope user`
-  - `claude mcp add <mcp-name> --scope user -e AI_MEETING_LOG_LEVEL=info -- node <server-bin>`
+  - `claude mcp add <mcp-name> --scope user -e VECHE_LOG_LEVEL=info -- node <server-bin>`
   - `codex --version`
-  - `codex mcp add <mcp-name> --env AI_MEETING_LOG_LEVEL=info -- node <server-bin>`
+  - `codex mcp add <mcp-name> --env VECHE_LOG_LEVEL=info -- node <server-bin>`
 - Each host CLI in turn writes to its own user-config file. The install command does NOT touch `~/.claude.json` or `~/.codex/config.toml` directly.
 - Logs JSON / structured lines to stderr via the same `StructuredLogger` the rest of the CLI uses. Stdout is unused.
 
 ## Rules
 
-- **No store access.** The install command never instantiates `MeetingStorePort` and never reads `$AI_MEETING_HOME`. Tests inject a throwing mock store and assert no method is invoked.
+- **No store access.** The install command never instantiates `MeetingStorePort` and never reads `$VECHE_HOME`. Tests inject a throwing mock store and assert no method is invoked.
 - **Bounded subprocess surface.** Only `claude` and `codex` are spawned. The argv for each invocation is fixed by this spec — no user input is interpolated into the argv unquoted. The `mcp-name` is validated against the regex above before any subprocess uses it.
 - **Bounded write surface.** Skill writes go ONLY to `<host-skills-root>/<mcp-name>/SKILL.md`. A test verifies that no `fs.writeFile` / `fs.rename` happens outside those paths.
 - **Atomic skill writes.** `<path>.tmp-<pid>-<ts>` then `rename`. Mirrors the existing `show --out` pattern. Readers (Claude Code / Codex) never see a half-written `SKILL.md`.

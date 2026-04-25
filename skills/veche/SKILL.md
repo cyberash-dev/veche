@@ -1,16 +1,16 @@
 ---
-name: ai-meeting
+name: veche
 description: Convene a symmetric committee meeting between Codex and a fresh Claude Code instance on a single question, then report each participant's stance and the consensus. Use when the user wants a second opinion, wants to stress-test a decision against a different model, or asks to "hold a meeting" / "convene a committee" / "get codex + claude to discuss X".
-trigger: /ai-meeting
+trigger: /veche
 ---
 
-# /ai-meeting
+# /veche
 
-Stands up a short committee meeting via the `ai-meeting` MCP server:
+Stands up a short committee meeting via the `veche` MCP server:
 
 - **Facilitator:** `facilitator` (this session — you are the orchestrator).
 - **Members:** `codex` (Codex CLI) + `claude` (Claude Code CLI, isolated child) — symmetric peers; the skill does not assign coder/reviewer roles. Both members are independent agents of equal standing.
-- **Rounds:** 3 by default (bounded by `AI_MEETING_MAX_ROUNDS_CAP` = 16).
+- **Rounds:** 3 by default (bounded by `VECHE_MAX_ROUNDS_CAP` = 16).
 - **Per-turn timeout:** 120 seconds.
 
 Drives the discussion to termination, reports the transcript grouped by member, and closes the meeting. Does NOT write files or run other commands — this is a reasoning tool.
@@ -18,19 +18,19 @@ Drives the discussion to termination, reports the transcript grouped by member, 
 ## Arguments
 
 ```
-/ai-meeting                              # you must ask the user for the question
-/ai-meeting <question>                   # runs on the supplied question
-/ai-meeting --rounds N <question>        # override maxRounds (1..16)
-/ai-meeting --title "<title>" <question> # override meeting title
+/veche                              # you must ask the user for the question
+/veche <question>                   # runs on the supplied question
+/veche --rounds N <question>        # override maxRounds (1..16)
+/veche --title "<title>" <question> # override meeting title
 ```
 
-Everything after flags is the question. If the user wrote `/ai-meeting` with no prompt, ask them one concise question ("What do you want the committee to decide?") via `AskUserQuestion`, then proceed.
+Everything after flags is the question. If the user wrote `/veche` with no prompt, ask them one concise question ("What do you want the committee to decide?") via `AskUserQuestion`, then proceed.
 
 ## Preflight
 
-Before calling any MCP tool, check that `mcp__ai-meeting__start_meeting` is available in this session. If not:
+Before calling any MCP tool, check that `mcp__veche__start_meeting` is available in this session. If not:
 
-> The `ai-meeting` MCP server is not connected. Make sure `ai-meeting` is present in `~/.claude.json` under `mcpServers` and that the Claude Code session was restarted after adding it.
+> The `veche` MCP server is not connected. Make sure `veche` is present in `~/.claude.json` under `mcpServers` and that the Claude Code session was restarted after adding it.
 
 Do not fall back to asking Codex or another Claude instance directly — the whole point of this skill is the committee protocol. Stop and report.
 
@@ -46,7 +46,7 @@ Execute in order. Do not skip steps.
 
 ### 2. Start the meeting
 
-Call `mcp__ai-meeting__start_meeting` with:
+Call `mcp__veche__start_meeting` with:
 
 ```json
 {
@@ -75,7 +75,7 @@ On error: stop and report the error code + message verbatim. Do not retry silent
 
 ### 3. Send the question
 
-Call `mcp__ai-meeting__send_message` with:
+Call `mcp__veche__send_message` with:
 
 ```json
 {
@@ -90,7 +90,7 @@ Capture `jobId` and the updated `cursor`.
 
 ### 4. Poll until terminal
 
-Repeatedly call `mcp__ai-meeting__get_response` with:
+Repeatedly call `mcp__veche__get_response` with:
 
 ```json
 {
@@ -108,11 +108,11 @@ After each response:
 - Stop when `status` is `completed`, `failed`, or `cancelled`.
 - After stop, drain: call `get_response` one more time with `waitMs: 0`; if `messages[].length > 0` append them and repeat until empty.
 
-**Budget:** do not poll for more than 10 minutes wall-clock. If it drags, call `mcp__ai-meeting__cancel_job` with `reason: "skill-budget-exceeded"` and report a partial result.
+**Budget:** do not poll for more than 10 minutes wall-clock. If it drags, call `mcp__veche__cancel_job` with `reason: "skill-budget-exceeded"` and report a partial result.
 
 ### 5. Close the meeting
 
-Call `mcp__ai-meeting__end_meeting` with:
+Call `mcp__veche__end_meeting` with:
 
 ```json
 { "meetingId": "<meetingId>", "cancelRunningJob": false }
@@ -145,7 +145,7 @@ Render **exactly** this structure (markdown). Keep it tight.
 End the report with one line pointing at the persisted transcript:
 
 ```
-> Full transcript: `ai-meeting show <meetingId>` (text) · `ai-meeting show <meetingId> --format html --open` (HTML in browser)
+> Full transcript: `veche show <meetingId>` (text) · `veche show <meetingId> --format html --open` (HTML in browser)
 ```
 
 - The participant headings must match the actual member ids the meeting used. With the defaults above they are `### codex` and `### claude`. If the user previously customised the skill to add or rename participants, match that exactly.
@@ -159,12 +159,12 @@ End the report with one line pointing at the persisted transcript:
 
 - `claude-runtime` with `"Not logged in"` → tell the user to run `claude login` on the host. The `claude` member will have been dropped; the meeting may still have completed with just `codex`.
 - `codex-generic` repeated → `codex` member is dropped; suggest `codex login` or setting `CODEX_API_KEY`.
-- `MeetingBusy` on `send_message` → another meeting's job is still running. Offer to cancel the other job by its id (shown in the error) via `mcp__ai-meeting__cancel_job`.
+- `MeetingBusy` on `send_message` → another meeting's job is still running. Offer to cancel the other job by its id (shown in the error) via `mcp__veche__cancel_job`.
 - `terminationReason: max-rounds` → the members genuinely disagreed. Include this in the Synthesis — don't pretend there was consensus.
 
 ## Do not
 
 - Do not spawn more than one meeting per invocation.
-- Do not chain `/ai-meeting` back-to-back on the same question hoping for a different answer; if the committee hit max-rounds, that is the answer.
+- Do not chain `/veche` back-to-back on the same question hoping for a different answer; if the committee hit max-rounds, that is the answer.
 - Do not edit the skill's member roster, flags, or timeouts on the fly. If the user asks for a different roster (e.g. "only codex"), tell them to adjust the skill file — this skill is deliberately fixed for reproducibility.
-- Do not write any files. The transcript is persisted by the MCP server under `~/.ai-meeting/`; point the user at `ai-meeting show <meetingId>` for a rendered view if they want the full record.
+- Do not write any files. The transcript is persisted by the MCP server under `~/.veche/`; point the user at `veche show <meetingId>` for a rendered view if they want the full record.

@@ -21,13 +21,13 @@ change the spec first.
 ## Project layout
 
 ```
-ai-meeting/
+veche/
 ├── spec/                  ← authoritative contract (C4-inspired 4 levels)
 │   ├── system.md          L1 — system overview, key decisions
 │   ├── glossary.md        domain terms (every term used anywhere else must be here)
 │   ├── c4-model.md        mermaid C4 diagrams (Context/Container/Component)
 │   ├── containers/
-│   │   └── ai-meeting-server.md   L2 — stack, conventions, env vars, tool catalog
+│   │   └── veche-server.md   L2 — stack, conventions, env vars, tool catalog
 │   └── features/
 │       ├── meeting/       7 MCP tools + 2 CLI commands (list, show)
 │       ├── committee-protocol/   round algorithm, pass, terminate, drop
@@ -36,8 +36,8 @@ ai-meeting/
 ├── src/                   ← implementation (mirrors spec/)
 │   ├── adapters/inbound/mcp/     ← MCP server (stdio)
 │   ├── adapters/inbound/cli/     ← human-operator CLI (list, show) + renderers
-│   ├── bin/ai-meeting-server.ts  ← stdio MCP entrypoint
-│   └── bin/ai-meeting.ts         ← CLI entrypoint
+│   ├── bin/veche-server.ts  ← stdio MCP entrypoint
+│   └── bin/veche.ts         ← CLI entrypoint
 ├── examples/              ← sample .mcp.json, config.json
 ├── dist/                  ← build output (committed in CI, not locally)
 └── node_modules/
@@ -57,7 +57,7 @@ Navigation: from `system.md` any use case is reachable in ≤ 3 file reads.
 - Adapters implement a port. They never import another adapter.
 - `infra/` is the composition root; it may import anything.
 
-Dependency table lives in `spec/containers/ai-meeting-server.md` → *Dependency Rules*.
+Dependency table lives in `spec/containers/veche-server.md` → *Dependency Rules*.
 
 ## Naming conventions
 
@@ -97,7 +97,7 @@ One file = one public class/type. Private helpers may share a file only if used 
 - Unit tests live next to the code: `Foo.test.ts` next to `Foo.ts`.
 - Integration tests for a slice live under `src/features/<slice>/.../__tests__/`.
 - E2E tests that spawn real CLI subprocesses live under `src/e2e/` and MUST be gated on
-  `process.env.AI_MEETING_E2E === '1'` (use `const d = runE2e ? describe : describe.skip;`).
+  `process.env.VECHE_E2E === '1'` (use `const d = runE2e ? describe : describe.skip;`).
   They are skipped by default because they consume tokens.
 - Prefer `InMemoryMeetingStore` + `FakeAgentAdapter` for unit/integration tests.
 - Use the fixed `FakeClock` + `FakeIdGen` from `src/test-utils/` so tests are deterministic.
@@ -110,20 +110,20 @@ npm test               # vitest run — default suite excludes gated e2e
 npm run lint           # biome check
 npm run lint:fix       # biome check --write --unsafe
 npm run build          # emit dist/
-AI_MEETING_E2E=1 npx vitest run src/e2e/committee.e2e.test.ts   # opt-in real CLI run
+VECHE_E2E=1 npx vitest run src/e2e/committee.e2e.test.ts   # opt-in real CLI run
 ```
 
 Before declaring a change done: `npm run typecheck && npm test && npm run lint` must all pass.
 
 ## CLI invariants (`src/adapters/inbound/cli/`)
 
-The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the event log via
+The `veche` CLI is a second inbound adapter (alongside MCP) that reads the event log via
 `FileMeetingStore`. Keep these invariants intact when touching anything under
 `src/adapters/inbound/cli/`:
 
 - **Read-only against the store.** The CLI MUST NOT call `createMeeting`, `appendMessage`,
   `appendSystemEvent`, `markParticipantDropped`, `createJob`, `updateJob`, or `endMeeting`.
-  Safety of concurrent `ai-meeting` + `ai-meeting-server` processes depends on this. The
+  Safety of concurrent `veche` + `veche-server` processes depends on this. The
   `install` subcommand goes a step further: it never instantiates `MeetingStorePort` at all,
   so even read-only methods (`loadMeeting`, `listMeetings`, `readMessagesSince`) are off the
   table for it.
@@ -132,7 +132,7 @@ The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the 
   originating from user / model content flow through `escapeHtml` from `renderers/helpers.ts`.
   `src/adapters/inbound/cli/__tests__/renderers.test.ts` asserts this with regex probes — do
   not weaken those assertions when editing the template.
-- **No new npm deps for the CLI.** `AiMeetingCli.ts` hand-rolls argv parsing (no `yargs`,
+- **No new npm deps for the CLI.** `VecheCli.ts` hand-rolls argv parsing (no `yargs`,
   `commander`, `minimist`). Renderers are pure functions on Node built-ins only
   (`node:crypto` for the SHA-1 HSL colour, `node:fs/promises` for atomic writes,
   `node:child_process` for `--open`). If a dep feels needed, ask first.
@@ -148,9 +148,9 @@ The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the 
 
 ## WatchServer invariants (`src/adapters/inbound/web/`)
 
-The `ai-meeting watch` subcommand is a third inbound adapter (alongside MCP and the static
+The `veche watch` subcommand is a third inbound adapter (alongside MCP and the static
 CLI commands) that exposes the event log via a local HTTP server with SSE. It runs in a
-different process from `ai-meeting-server`. The CLI invariants above apply in full. Plus:
+different process from `veche-server`. The CLI invariants above apply in full. Plus:
 
 - **Read-only against the store.** Same as the rest of the CLI. The integration test injects
   a mock store that throws on every write method and asserts no SSE channel or JSON handler
@@ -184,8 +184,8 @@ different process from `ai-meeting-server`. The CLI invariants above apply in fu
 ## `install` subcommand invariants (`src/adapters/inbound/cli/commands/install.ts`)
 
 The `install` subcommand is the canonical setup path for a fresh machine: it places
-`skills/ai-meeting/SKILL.md` under `~/.claude/skills/ai-meeting/` and/or
-`~/.codex/skills/ai-meeting/`, then delegates to `claude mcp add` / `codex mcp add` to
+`skills/veche/SKILL.md` under `~/.claude/skills/veche/` and/or
+`~/.codex/skills/veche/`, then delegates to `claude mcp add` / `codex mcp add` to
 register the stdio MCP server. Keep these invariants intact:
 
 - **Bounded write surface.** The only paths the install command writes to are
@@ -203,7 +203,7 @@ register the stdio MCP server. Keep these invariants intact:
 - **`--dry-run` is a contract.** Never spawn a subprocess and never touch the filesystem
   in dry-run; only print the plan.
 - **No new npm deps.** Node built-ins only.
-- **Skill text is single-source-of-truth.** The byte content of `skills/ai-meeting/SKILL.md`
+- **Skill text is single-source-of-truth.** The byte content of `skills/veche/SKILL.md`
   is authoritative; both hosts get byte-identical copies. If Claude Code and Codex ever
   need divergent skill content, that requires a spec change.
 
@@ -248,7 +248,7 @@ Walkthrough lives in
    `AgentAdapterPort`.
 3. Add it to the registry in `src/infra/bootstrap.ts`.
 4. Add a `capabilities()` entry + allow-listed `extraFlags` in `ProfileResolver`.
-5. Write an opt-in e2e test under `src/e2e/<new>.e2e.test.ts` gated on `AI_MEETING_E2E`.
+5. Write an opt-in e2e test under `src/e2e/<new>.e2e.test.ts` gated on `VECHE_E2E`.
 6. Update `spec/features/agent-integration/agent-integration.md` and write a dedicated
    `spec/features/agent-integration/<new>-adapter.usecase.md`.
 

@@ -1,14 +1,39 @@
 {
-  "name": "ai-meeting-server",
+  "name": "veche",
   "version": "0.1.0",
-  "description": "MCP server for multi-party committee meetings between LLM agents",
+  "description": "MCP server for bounded multi-agent committee meetings — Codex + Claude Code deliberate in rounds and self-extinguish on <PASS/>",
   "type": "module",
+  "license": "MIT",
+  "author": "cyberash <mail@cyberash.dev>",
+  "homepage": "https://github.com/cyberash/veche#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberash/veche.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cyberash/veche/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "llm",
+    "agents",
+    "multi-agent",
+    "committee",
+    "deliberation",
+    "claude-code",
+    "codex",
+    "anthropic",
+    "openai",
+    "stdio",
+    "veche"
+  ],
   "engines": {
     "node": ">=20.11"
   },
   "bin": {
-    "ai-meeting-server": "./dist/bin/ai-meeting-server.js",
-    "ai-meeting": "./dist/bin/ai-meeting.js"
+    "veche-server": "./dist/bin/veche-server.js",
+    "veche": "./dist/bin/veche.js"
   },
   "exports": {
     ".": "./dist/index.js"
@@ -16,18 +41,25 @@
   "files": [
     "dist",
     "spec",
-    "skills"
+    "skills",
+    "examples",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "start": "node dist/bin/ai-meeting-server.js",
+    "start": "node dist/bin/veche-server.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
-    "format": "biome format --write src"
+    "format": "biome format --write src",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
