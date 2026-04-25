@@ -25,6 +25,7 @@ context.
 | Add a new LLM adapter | [`spec/features/agent-integration/agent-integration.md`](spec/features/agent-integration/agent-integration.md) |
 | Change the CLI output format / add a renderer | [`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md) |
 | Touch `list` or `show` command logic | `src/adapters/inbound/cli/commands/{list,show}.ts` |
+| Touch the live web viewer (`ai-meeting watch`) | [`spec/features/web-viewer/watch-server.usecase.md`](spec/features/web-viewer/watch-server.usecase.md) and `src/adapters/inbound/web/*` |
 | Touch HTML / text / markdown / json rendering | `src/adapters/inbound/cli/renderers/*.ts` (pure functions) |
 | See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/ai-meeting.ts` (CLI) |
 | Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `AI_MEETING_E2E=1`) |
@@ -84,9 +85,19 @@ them by trial and error:
   discussion runs in the background until terminal.
 - The `ai-meeting` CLI (`src/adapters/inbound/cli/`) is **read-only** and decoupled from the
   MCP server — both processes can safely run against the same `$AI_MEETING_HOME`. Never call
-  a write method on the store from CLI code.
+  a write method on the store from CLI code. This applies to the `watch` subcommand too —
+  `WatchServer` is just another inbound adapter, never a writer.
 - The HTML renderer MUST stay self-contained: no `<script>`, no remote `href`/`src`, all
   user text through `escapeHtml`. Tests in
   `src/adapters/inbound/cli/__tests__/renderers.test.ts` enforce this with regex probes.
+  The `watch` SPA at `src/adapters/inbound/web/spa/index.html.ts` allows exactly **one** inline
+  `<script>` block (it needs JS to consume SSE) and exactly one inline `<style>`; everything
+  else (`<script src=…>`, `<link rel="stylesheet">`, remote `href`/`src`) stays banned.
+- `WatchServer` runs in a **different process** from the MCP server, so it MUST NOT call
+  `MeetingStorePort.watchNewEvents` (an in-process notification primitive). Cross-process
+  change detection in the watch path is via 750 ms polling of `listMeetings` and
+  `readMessagesSince`. See `spec/features/web-viewer/watch-server.usecase.md` →
+  *Cross-process change detection*.
 - The CLI hand-rolls argv parsing (no `yargs` / `commander` / `minimist`). If you think you
-  need one of those, you probably don't.
+  need one of those, you probably don't. Same applies to the watch path — `node:http` and
+  `EventSource` are the whole stack, no Express / Fastify / framework.

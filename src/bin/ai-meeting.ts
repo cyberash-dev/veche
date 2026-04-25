@@ -32,6 +32,7 @@ const main = async (): Promise<void> => {
 	const exit = await runCli({
 		store,
 		clock,
+		logger,
 		version: VERSION,
 		argv,
 		stdout: (s) => process.stdout.write(s),

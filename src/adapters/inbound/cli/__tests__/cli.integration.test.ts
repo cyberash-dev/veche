@@ -181,4 +181,67 @@ describe("ai-meeting CLI (integration)", () => {
 		});
 		expect(res.code).toBe(64);
 	});
+
+	it("watch --help prints usage and exits 0", async () => {
+		const res = await runCliBin(["watch", "--help"], {
+			...process.env,
+			NO_COLOR: "1",
+			AI_MEETING_HOME: root,
+		});
+		expect(res.code).toBe(0);
+		expect(res.stderr).toContain("watch");
+		expect(res.stderr).toContain("--port");
+	});
+
+	it("watch with bad --port returns 64", async () => {
+		const res = await runCliBin(["watch", "--port", "999999", "--no-open", "--home", root], {
+			...process.env,
+			NO_COLOR: "1",
+		});
+		expect(res.code).toBe(64);
+		expect(res.stderr).toContain("--port");
+	});
+
+	it("watch starts a server, accepts SIGINT, and exits 0", async () => {
+		await seedMeeting(root);
+		const child = spawn(
+			process.execPath,
+			[binPath, "watch", "--port", "0", "--no-open", "--home", root],
+			{
+				env: { ...process.env, NO_COLOR: "1" },
+				stdio: ["ignore", "pipe", "pipe"],
+			},
+		);
+		let stderr = "";
+		child.stderr.setEncoding("utf8");
+		child.stderr.on("data", (chunk: string) => {
+			stderr += chunk;
+		});
+		const listening = await new Promise<{ url: string }>((resolve, reject) => {
+			const timer = setTimeout(
+				() => reject(new Error("timed out waiting for listener")),
+				5000,
+			);
+			const onData = (chunk: string): void => {
+				const match = chunk.match(/listening on (http:\/\/[^\s]+)/);
+				if (match) {
+					clearTimeout(timer);
+					child.stderr.off("data", onData);
+					resolve({ url: match[1]! });
+				}
+			};
+			child.stderr.on("data", onData);
+		});
+
+		const res = await fetch(`${listening.url}api/meetings`);
+		expect(res.status).toBe(200);
+
+		child.kill("SIGINT");
+		const code = await new Promise<number>((resolve) => {
+			child.on("close", (c) => resolve(c ?? 1));
+		});
+		expect(code).toBe(0);
+		expect(stderr).toContain("listening on");
+		expect(stderr).toContain("bye");
+	});
 });

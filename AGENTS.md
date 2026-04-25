@@ -143,6 +143,41 @@ The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the 
   exercises each. If you add a failure mode, pick one of these and document it in
   `spec/features/meeting/show-meeting-cli.usecase.md` *first*.
 
+## WatchServer invariants (`src/adapters/inbound/web/`)
+
+The `ai-meeting watch` subcommand is a third inbound adapter (alongside MCP and the static
+CLI commands) that exposes the event log via a local HTTP server with SSE. It runs in a
+different process from `ai-meeting-server`. The CLI invariants above apply in full. Plus:
+
+- **Read-only against the store.** Same as the rest of the CLI. The integration test injects
+  a mock store that throws on every write method and asserts no SSE channel or JSON handler
+  trips them.
+- **Never call `MeetingStorePort.watchNewEvents` from the watch path.** `watchNewEvents` is
+  an in-process notification primitive — it does NOT observe writes performed by another
+  process (e.g. the MCP server appending events). Cross-process change detection uses
+  polling (`750 ms`) of `listMeetings` and `readMessagesSince` instead. Reviewers must reject
+  any PR that wires `watchNewEvents` into the watch path.
+- **Loopback-only by default.** Bind to `127.0.0.1`. `--host` for any non-loopback address
+  prints a stderr warning. There is no auth in v1; exposing the port wider is the operator's
+  explicit choice.
+- **DNS rebind guard.** When bound to loopback, every HTTP request whose `Host:` header is
+  not `localhost(:port)` / `127.0.0.1(:port)` / `[::1](:port)` is rejected with `421`.
+- **No CORS headers.** The viewer is single-origin loopback; cross-origin browsers cannot
+  read its responses.
+- **No new npm deps.** `node:http`, `node:url`, `node:crypto`, `node:child_process`. The SPA
+  uses `EventSource`, the DOM, and inline CSS only — no framework, no bundler.
+- **SPA hygiene.** Exactly one inline `<script>` block (SSE consumer) and one inline
+  `<style>` block. No `<script src=…>`, no `<link rel="stylesheet">`, no remote `href` / `src`,
+  no web fonts. Store-derived strings reach the DOM via `textContent` / attribute setters,
+  **except** for `Message.htmlBody` of `speech` messages — those are assigned via `innerHTML`
+  because the server-side escape-then-transform Markdown converter
+  (`src/shared/markdown.ts`) is the same pipeline backing `show --format=html` and makes
+  raw-HTML injection impossible. No other field uses `innerHTML`.
+- **Exit codes.** `0` graceful (SIGINT / SIGTERM) · `2` bind / store error · `64` usage
+  error. (`1` and `3` are not used by `watch`.)
+- **Polling cadence is not user-tunable.** `WATCH_POLL_MS = 750` is a constant. Change
+  requires a spec PR.
+
 ## Recursion guard (Claude Code adapter)
 
 Every `claude -p` invocation from the adapter MUST include

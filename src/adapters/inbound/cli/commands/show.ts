@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,6 +8,7 @@ import type { AnyEvent } from "../../../../features/persistence/domain/Event.js"
 import type { MeetingStorePort } from "../../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../../shared/ports/ClockPort.js";
 import { asMeetingId } from "../../../../shared/types/ids.js";
+import { openInBrowser } from "../lib/opener.js";
 import { renderHtml } from "../renderers/html.js";
 import { renderJson } from "../renderers/json.js";
 import { renderMarkdown } from "../renderers/markdown.js";
@@ -104,16 +104,6 @@ const reduceJobs = (events: readonly AnyEvent[]): Job[] => {
 	return Array.from(byId.values()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 };
 
-const resolveOpener = (): { bin: string; args: string[] } | null => {
-	if (process.platform === "darwin") {
-		return { bin: "open", args: [] };
-	}
-	if (process.platform === "win32") {
-		return { bin: "cmd.exe", args: ["/c", "start", ""] };
-	}
-	return { bin: "xdg-open", args: [] };
-};
-
 const writeFileAtomic = async (filePath: string, content: string): Promise<void> => {
 	const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
 	await fs.writeFile(tmp, content, { mode: 0o600 });
@@ -186,21 +176,16 @@ export const runShow = async (cmd: ShowCommand, deps: ShowDeps): Promise<number>
 			stderr(`failed to write ${tmpPath}: ${(err as Error).message}\n`);
 			return 2;
 		}
-		const opener = resolveOpener();
-		if (!opener) {
+		const result = openInBrowser(tmpPath);
+		if (result === "no-opener") {
 			stderr(`no browser opener available on ${process.platform}; wrote ${tmpPath}\n`);
 			return 0;
 		}
-		try {
-			const child = spawn(opener.bin, [...opener.args, tmpPath], {
-				detached: true,
-				stdio: "ignore",
-			});
-			child.unref();
-			stderr(`opened ${tmpPath}\n`);
-		} catch {
+		if (result === "spawn-failed") {
 			stderr(`opener failed; wrote ${tmpPath}\n`);
+			return 0;
 		}
+		stderr(`opened ${tmpPath}\n`);
 		return 0;
 	}
 

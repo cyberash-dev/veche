@@ -14,8 +14,8 @@
 | Testing | `vitest` (unit), `vitest` + filesystem tmpdir (adapter integration) |
 | Lint / format | `biome` (lint + format) |
 | Build | `tsc` emitting ESM `dist/` |
-| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI for reading transcripts; read-only; reads `$AI_MEETING_HOME` directly via `FileMeetingStore`; does not open a network socket. |
-| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`). No new npm dependencies beyond those listed above. |
+| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$AI_MEETING_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation. All subcommands are read-only against the store. |
+| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for the `watch` subcommand). No new npm dependencies beyond those listed above. |
 
 External binaries (resolved via `PATH`):
 
@@ -68,14 +68,26 @@ src/
       mcp/                          MCP server, tool registration, zod schemas
       cli/                          human-operator CLI (read-only transcript viewer)
         AiMeetingCli.ts             argv parser + command dispatcher
+        lib/
+          opener.ts                 platform browser opener (shared by show --open and watch)
         commands/
           list.ts                   `ai-meeting list` — renders MeetingSummary[]
           show.ts                   `ai-meeting show <id>` — renders a Transcript
+          watch.ts                  `ai-meeting watch` — starts WatchServer; SIGINT/SIGTERM handlers
         renderers/
           text.ts                   TTY-oriented, optional ANSI colors
           html.ts                   self-contained HTML report (inline CSS, no remote refs)
           markdown.ts               GitHub-Flavored Markdown
           json.ts                   stable-order JSON snapshot
+      web/                          local HTTP server for the watch subcommand
+        WatchServer.ts              http.Server lifecycle, routing, graceful shutdown
+        MeetingsApi.ts              JSON handlers (/api/meetings, /api/meetings/:id, …)
+        StreamApi.ts                SSE handlers (/api/stream, /api/stream/:id)
+        SseChannel.ts               SSE write helper (headers, event/id/data, keepalive)
+        MeetingPoller.ts            cross-process diff loop over listMeetings + readMessagesSince
+        dto.ts                      DTO mappers for branded ids and Instant in JSON / SSE payloads
+        spa/
+          index.html.ts             renderSpa(version) → single self-contained HTML5 document
   infra/
     config.ts                       config loader (env + user config file)
     logger.ts                       structured logger (pino-compatible interface)

@@ -1,11 +1,14 @@
 import type { MeetingStorePort } from "../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../shared/ports/ClockPort.js";
+import type { LoggerPort } from "../../../shared/ports/LoggerPort.js";
 import { type ListCommand, runList } from "./commands/list.js";
 import { runShow, type ShowCommand } from "./commands/show.js";
+import { runWatch, type WatchCommand } from "./commands/watch.js";
 
 export interface CliDeps {
 	readonly store: MeetingStorePort;
 	readonly clock: ClockPort;
+	readonly logger: LoggerPort;
 	readonly version: string;
 	readonly argv: readonly string[];
 	readonly stdout: (s: string) => void;
@@ -26,6 +29,12 @@ commands:
     --out=<path|->             write to file (atomic); "-" or absent → stdout
     --open                     (html only) write to tmp and open in browser
     --raw                      include every event type, not just speech/pass/system
+    --no-color
+
+  watch                        start a local web viewer (live SPA + SSE)
+    --port=N                   0..65535 (default: 0 — kernel-assigned ephemeral)
+    --host=HOST                bind address (default: 127.0.0.1)
+    --no-open                  do not auto-open the browser
     --no-color
 
   global:
@@ -199,6 +208,36 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 				clock: deps.clock,
 				version: deps.version,
 				stdout: deps.stdout,
+				stderr: deps.stderr,
+			});
+		}
+		case "watch": {
+			if (parsed.positional.length !== 0) {
+				stderr(`watch: takes no positional arguments\n`);
+				return EXIT_USAGE;
+			}
+			const port = readIntFlag(parsed.flags, "port", 0);
+			if (!Number.isInteger(port) || port < 0 || port > 65535) {
+				stderr(`--port must be 0..65535\n`);
+				return EXIT_USAGE;
+			}
+			const host = readStringFlag(parsed.flags, "host", "127.0.0.1");
+			if (host === "") {
+				stderr(`--host must not be empty\n`);
+				return EXIT_USAGE;
+			}
+			const noOpen = parsed.flags.get("no-open") === true;
+			const cmd: WatchCommand = {
+				host,
+				port,
+				noOpen,
+				useColor: useColorFrom(parsed.flags),
+			};
+			return runWatch(cmd, {
+				store: deps.store,
+				clock: deps.clock,
+				logger: deps.logger,
+				version: deps.version,
 				stderr: deps.stderr,
 			});
 		}
