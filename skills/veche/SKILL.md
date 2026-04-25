@@ -10,7 +10,7 @@ Stands up a short committee meeting via the `veche` MCP server:
 
 - **Facilitator:** `facilitator` (this session — you are the orchestrator).
 - **Members:** `codex` (Codex CLI) + `claude` (Claude Code CLI, isolated child) — symmetric peers; the skill does not assign coder/reviewer roles. Both members are independent agents of equal standing.
-- **Rounds:** 3 by default (bounded by `VECHE_MAX_ROUNDS_CAP` = 16).
+- **Rounds:** inherited from the server default unless the caller passes `--rounds N`. The server enforces the upper bound (`VECHE_MAX_ROUNDS_CAP`).
 - **Per-turn timeout:** 120 seconds.
 
 Drives the discussion to termination, reports the transcript grouped by member, and closes the meeting. Does NOT write files or run other commands — this is a reasoning tool.
@@ -20,7 +20,7 @@ Drives the discussion to termination, reports the transcript grouped by member, 
 ```
 /veche                              # you must ask the user for the question
 /veche <question>                   # runs on the supplied question
-/veche --rounds N <question>        # override maxRounds (1..16)
+/veche --rounds N <question>        # override maxRounds; the server validates against VECHE_MAX_ROUNDS_CAP
 /veche --title "<title>" <question> # override meeting title
 ```
 
@@ -40,8 +40,8 @@ Execute in order. Do not skip steps.
 
 ### 1. Parse args
 
-- If no args: use `AskUserQuestion` to collect `question` (single free-form field). Keep `title` = first 60 chars of the question, `rounds` = 3.
-- If `--rounds N`: parse integer 1..16. If out of range, refuse and tell the user.
+- If no args: use `AskUserQuestion` to collect `question` (single free-form field). Keep `title` = first 60 chars of the question and leave `rounds` unset.
+- If `--rounds N`: parse a positive integer. Pass it through verbatim — the server validates against `VECHE_MAX_ROUNDS_CAP` and returns an error if it is out of range; surface that error to the user as-is rather than pre-filtering here.
 - If `--title "..."`: use as meeting title. Otherwise derive from the question.
 
 ### 2. Start the meeting
@@ -64,10 +64,11 @@ Call `mcp__veche__start_meeting` with:
       "adapter": "claude-code-cli",
       "systemPrompt": "You are an independent agent in a multi-party deliberation. On each turn you will see every prior message from every other agent. Respond in 1-3 sentences with your honest, substantive perspective. If — and only if — you genuinely have nothing meaningful to add or contest, respond with exactly <PASS/> and nothing else."
     }
-  ],
-  "defaultMaxRounds": <rounds>
+  ]
 }
 ```
+
+If the user supplied `--rounds N`, add `"defaultMaxRounds": <N>` to the call. Otherwise omit the field — the server applies its own default.
 
 Capture `meetingId` and the initial `cursor` from the response.
 
@@ -81,10 +82,11 @@ Call `mcp__veche__send_message` with:
 {
   "meetingId": "<meetingId>",
   "text": "<question>",
-  "maxRounds": <rounds>,
   "turnTimeoutMs": 120000
 }
 ```
+
+If the user supplied `--rounds N`, add `"maxRounds": <N>` to the call. Otherwise omit the field — the server inherits the meeting's default.
 
 Capture `jobId` and the updated `cursor`.
 
