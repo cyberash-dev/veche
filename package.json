@@ -1,6 +1,6 @@
 {
   "name": "veche",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for bounded multi-agent committee meetings — Codex + Claude Code deliberate in rounds and self-extinguish on <PASS/>",
   "type": "module",
   "license": "MIT",
