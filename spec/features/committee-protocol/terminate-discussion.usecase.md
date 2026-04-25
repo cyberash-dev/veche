@@ -37,8 +37,9 @@ Evaluation order matters — conditions are checked top-down and the first match
 
 1. Derive the final `cancelReason` (when `terminationReason === 'cancelled'`) from the cancellation source. For the `cancel_job` path it is the user-supplied `reason`; for the `end_meeting` path it is `"meeting-ended"`.
 2. Update the Job:
-   - 2a. `all-passed`, `max-rounds`, `no-active-members` → `MeetingStorePort.updateJob({ jobId, status: 'completed', terminationReason, lastSeq: state.lastSeq, finishedAt: Clock.now })`. Emit `job.completed`.
-   - 2b. `cancelled` → `MeetingStorePort.updateJob({ jobId, status: 'cancelled', cancelReason, finishedAt: Clock.now })`. Emit `job.cancelled`.
+   - 2a. `all-passed`, `max-rounds`, `no-active-members` → `MeetingStorePort.updateJob({ jobId, status: 'completed', terminationReason, lastSeq: state.lastSeq, rounds: state.roundNumber, finishedAt: Clock.now })`. Emit `job.completed` with `rounds: state.roundNumber` in the payload.
+   - 2b. `cancelled` → `MeetingStorePort.updateJob({ jobId, status: 'cancelled', cancelReason, rounds: state.roundNumber, finishedAt: Clock.now })`. Emit `job.cancelled` (`rounds` is captured on the Job entity, not in the cancellation payload).
+   - The `rounds` value is the number of Rounds that fully executed (`state.roundNumber`), distinct from `lastSeq` which is just the highest event-log sequence touched by this Job.
 3. Do **not** close Member Sessions here — they remain open across Jobs for the same Meeting. Sessions are closed only on drop, on [end-meeting](../meeting/end-meeting.usecase.md), or on [cancel-job](../meeting/cancel-job.usecase.md) when the Adapter's cancellation strategy requires it.
 
 ## Errors

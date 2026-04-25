@@ -69,6 +69,7 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		turnTimeoutMs: 120_000,
 		addressees: null,
 		lastSeq: 7,
+		rounds: 2,
 		terminationReason: "all-passed",
 		error: null,
 		cancelReason: null,

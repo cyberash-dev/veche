@@ -34,11 +34,13 @@ export const renderMarkdown: Renderer = (input) => {
 		lines.push("");
 		lines.push("## Jobs");
 		lines.push("");
-		lines.push("| jobId | status | reason | lastSeq |");
-		lines.push("|---|---|---|---|");
+		lines.push("| jobId | status | reason | rounds | lastSeq |");
+		lines.push("|---|---|---|---|---|");
 		for (const job of input.jobs) {
 			const reason = job.terminationReason ?? job.cancelReason ?? job.error?.code ?? "(none)";
-			lines.push(`| \`${job.id}\` | ${job.status} | ${reason} | ${job.lastSeq} |`);
+			lines.push(
+				`| \`${job.id}\` | ${job.status} | ${reason} | ${job.rounds} | ${job.lastSeq} |`,
+			);
 		}
 	}
 

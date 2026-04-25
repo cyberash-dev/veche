@@ -65,6 +65,7 @@ export class TerminateDiscussionUseCase {
 					finishedAt: now,
 					cancelReason: input.cancelReason ?? "cancelled",
 					lastSeq: input.state.lastSeq,
+					rounds: roundsExecuted,
 				},
 			});
 			await store.appendSystemEvent({
@@ -81,6 +82,7 @@ export class TerminateDiscussionUseCase {
 				status: "completed",
 				finishedAt: now,
 				lastSeq: input.state.lastSeq,
+				rounds: roundsExecuted,
 				terminationReason: input.reason,
 			},
 		});

@@ -62,7 +62,8 @@ Ephemeral aggregate used inside committee-protocol; not stored separately from M
 | `startedAt` | `Instant` \| `null` | Set when `status` becomes `running`. |
 | `finishedAt` | `Instant` \| `null` | Set when `status` is any terminal value. |
 | `maxRounds` | integer 1–`AI_MEETING_MAX_ROUNDS_CAP` | Effective cap for this Job. |
-| `lastSeq` | integer ≥ -1 | Highest Message `seq` appended by this Job. `-1` before the Facilitator Message lands. |
+| `lastSeq` | integer ≥ -1 | Highest Message `seq` appended by this Job. `-1` before the Facilitator Message lands. Reflects log position, NOT discussion progress. |
+| `rounds` | integer ≥ 0 | Number of Rounds executed by this Job. `0` while the Job is still in Round 0 (facilitator Message just appended); incremented at the end of each Round. Frozen on terminal status. |
 | `error` | `{ code: string, message: string }` \| `null` | Set when `status = failed`. |
 | `cancelReason` | `string` \| `null` | Set when `status = cancelled`. |
 

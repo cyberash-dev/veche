@@ -52,7 +52,9 @@ export const renderText: Renderer = (input) => {
 						: job.status === "cancelled"
 							? c.yellow(job.status)
 							: c.cyan(job.status);
-			lines.push(`  ${job.id}  ${statusColored}  ${reason}  lastSeq=${job.lastSeq}`);
+			lines.push(
+				`  ${job.id}  ${statusColored}  ${reason}  rounds=${job.rounds}  lastSeq=${job.lastSeq}`,
+			);
 		}
 	}
 

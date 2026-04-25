@@ -125,6 +125,7 @@ export class SendMessageUseCase {
 			turnTimeoutMs,
 			addressees: addresseeIds,
 			lastSeq: -1,
+			rounds: 0,
 			terminationReason: null,
 			error: null,
 			cancelReason: null,

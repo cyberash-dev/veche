@@ -1,5 +1,11 @@
 import type { Participant } from "../../../../features/meeting/domain/Participant.js";
-import { escapeHtml, groupByRound, participantColor, truncate } from "./helpers.js";
+import {
+	escapeHtml,
+	groupByRound,
+	participantColor,
+	renderMarkdownToHtml,
+	truncate,
+} from "./helpers.js";
 import type { Renderer } from "./types.js";
 
 const CSS = `
@@ -80,10 +86,64 @@ h3 { margin: 20px 0 12px; font-size: 15px; font-weight: 600; color: #4b5563; }
   border-radius: 14px;
   padding: 10px 14px;
   max-width: 72%;
-  white-space: pre-wrap;
+  white-space: normal;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   border: 1px solid rgba(0,0,0,0.05);
 }
+.msg .bubble > p { margin: 0 0 8px; }
+.msg .bubble > p:last-child { margin-bottom: 0; }
+.msg .bubble strong { font-weight: 600; }
+.msg .bubble em { font-style: italic; }
+.msg .bubble code {
+  background: rgba(0,0,0,0.06);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+.msg .bubble pre {
+  background: rgba(0,0,0,0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+  white-space: pre;
+}
+.msg .bubble pre code { background: transparent; padding: 0; font-size: inherit; }
+.msg .bubble ul, .msg .bubble ol { margin: 6px 0 6px 20px; padding: 0; }
+.msg .bubble li { margin: 2px 0; }
+.msg .bubble blockquote {
+  margin: 6px 0;
+  padding: 4px 10px;
+  border-left: 3px solid rgba(0,0,0,0.15);
+  color: #4b5563;
+}
+.msg .bubble h1, .msg .bubble h2, .msg .bubble h3 {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.msg .bubble h1 { font-size: 1.15em; }
+.msg .bubble h2 { font-size: 1.08em; }
+.msg .bubble h3 { font-size: 1em; }
+.msg .bubble hr { border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin: 8px 0; }
+.msg .bubble a { color: #1d4ed8; text-decoration: underline; }
+.msg .bubble table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 0.95em;
+  background: rgba(255,255,255,0.5);
+}
+.msg .bubble th, .msg .bubble td {
+  border: 1px solid rgba(0,0,0,0.12);
+  padding: 4px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.msg .bubble th { background: rgba(0,0,0,0.04); font-weight: 600; }
 .msg .col { display: flex; flex-direction: column; min-width: 0; }
 .msg.right .col { align-items: flex-end; }
 .pass {
@@ -220,7 +280,7 @@ export const renderHtml: Renderer = (input) => {
 		out.push("<h2>Jobs</h2>");
 		out.push('<table class="jobs-table">');
 		out.push(
-			"<thead><tr><th>id</th><th>status</th><th>reason</th><th>rounds</th><th>finished</th></tr></thead>",
+			"<thead><tr><th>id</th><th>status</th><th>reason</th><th>rounds</th><th>lastSeq</th><th>finished</th></tr></thead>",
 		);
 		out.push("<tbody>");
 		for (const job of jobs) {
@@ -230,6 +290,7 @@ export const renderHtml: Renderer = (input) => {
 					`<td><code>${escapeHtml(job.id)}</code></td>` +
 					`<td><span class="pill ${statusClass(job.status)}">${escapeHtml(job.status)}</span></td>` +
 					`<td>${escapeHtml(reason)}</td>` +
+					`<td>${job.rounds}</td>` +
 					`<td>${job.lastSeq}</td>` +
 					`<td><code>${escapeHtml(job.finishedAt ?? "—")}</code></td>` +
 					`</tr>`,
@@ -271,12 +332,13 @@ export const renderHtml: Renderer = (input) => {
 				// `speech`/`pass` messages: facilitator id is not in the member index.
 				const memberIdx = memberIndexByParticipant.get(String(m.author));
 				const layoutClass = memberIdx === undefined ? "facilitator" : bubbleSide(memberIdx);
+				const body = renderMarkdownToHtml(m.text);
 				out.push(
 					`<div class="msg ${layoutClass}">` +
 						`<div class="col">` +
 						`<div class="author">${escapeHtml(String(m.author))}` +
 						`<span class="time">${escapeHtml(m.createdAt)}</span></div>` +
-						`<div class="bubble" style="background:${escapeHtml(bg)}">${escapeHtml(m.text)}</div>` +
+						`<div class="bubble" style="background:${escapeHtml(bg)}">${body}</div>` +
 						`</div>` +
 						`</div>`,
 				);

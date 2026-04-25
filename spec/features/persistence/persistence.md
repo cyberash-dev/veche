@@ -61,7 +61,7 @@ The port composes aggregates by folding events. Consumers see only DTOs:
 | `endMeeting` | `{ meetingId, at }` | `MeetingSnapshot` | `MeetingNotFound`, `MeetingAlreadyEnded` |
 | `createJob` | `Job` | `JobSnapshot` | `MeetingNotFound`, `MeetingAlreadyEnded`, `JobAlreadyExists` |
 | `loadJob` | `JobId` | `JobSnapshot` | `JobNotFound` |
-| `updateJob` | `{ jobId, patch }` | `JobSnapshot` | `JobNotFound`, `JobStateTransitionInvalid` |
+| `updateJob` | `{ jobId, patch }` | `JobSnapshot` | `JobNotFound`, `JobStateTransitionInvalid` | (Patch fields: `status`, `startedAt`, `finishedAt`, `lastSeq`, `rounds`, `terminationReason`, `error`, `cancelReason`.) |
 | `appendMessage` | `{ meetingId, message }` (message without `seq`) | `Message` (with `seq` filled) | `MeetingNotFound`, `MeetingAlreadyEnded` |
 | `appendSystemEvent` | `{ meetingId, type, payload, at }` | `{ seq }` | `MeetingNotFound` |
 | `readMessagesSince` | `{ meetingId, cursor?, limit }` | `MessagePage` | `MeetingNotFound`, `CursorInvalid` |

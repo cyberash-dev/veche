@@ -241,6 +241,7 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 			...(patch.startedAt !== undefined ? { startedAt: patch.startedAt } : {}),
 			...(patch.finishedAt !== undefined ? { finishedAt: patch.finishedAt } : {}),
 			...(patch.lastSeq !== undefined ? { lastSeq: patch.lastSeq } : {}),
+			...(patch.rounds !== undefined ? { rounds: patch.rounds } : {}),
 			...(patch.terminationReason !== undefined
 				? { terminationReason: patch.terminationReason }
 				: {}),

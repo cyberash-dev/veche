@@ -57,10 +57,16 @@ const reduceJobs = (events: readonly AnyEvent[]): Job[] => {
 				turnTimeoutMs: ev.payload.turnTimeoutMs,
 				addressees: ev.payload.addressees,
 				lastSeq: -1,
+				rounds: 0,
 				terminationReason: null,
 				error: null,
 				cancelReason: null,
 			});
+		} else if (ev.type === "round.completed") {
+			const j = byId.get(ev.payload.jobId);
+			if (j) {
+				byId.set(j.id, { ...j, rounds: ev.payload.roundNumber });
+			}
 		} else if (ev.type === "job.completed") {
 			const j = byId.get(ev.payload.jobId);
 			if (j) {
@@ -69,6 +75,7 @@ const reduceJobs = (events: readonly AnyEvent[]): Job[] => {
 					status: "completed",
 					finishedAt: ev.at,
 					lastSeq: ev.payload.lastSeq,
+					rounds: ev.payload.rounds,
 					terminationReason: ev.payload.terminationReason,
 				});
 			}

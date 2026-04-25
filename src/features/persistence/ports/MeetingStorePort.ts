@@ -54,6 +54,7 @@ export interface JobPatch {
 	readonly startedAt?: Instant;
 	readonly finishedAt?: Instant;
 	readonly lastSeq?: number;
+	readonly rounds?: number;
 	readonly terminationReason?: TerminationReason;
 	readonly error?: JobError;
 	readonly cancelReason?: string;

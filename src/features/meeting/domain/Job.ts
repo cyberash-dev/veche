@@ -21,6 +21,8 @@ export interface Job {
 	readonly turnTimeoutMs: number;
 	readonly addressees: readonly string[] | null;
 	readonly lastSeq: number;
+	/** Number of Rounds executed by this Job (not log position). 0 while Round 0 only. */
+	readonly rounds: number;
 	readonly terminationReason: TerminationReason | null;
 	readonly error: JobError | null;
 	readonly cancelReason: string | null;

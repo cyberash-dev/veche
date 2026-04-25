@@ -161,6 +161,16 @@ describe("committee integration", () => {
 		const facilitatorMsg = final.messages.find((m) => m.round === 0);
 		expect(facilitatorMsg?.text).toBe("Decide X vs Y");
 
+		// Regression: the persisted Job tracks discussion progress (rounds) separately from
+		// log position (lastSeq). The meeting ran 2 rounds (R1 speeches + R2 passes). The log
+		// has many more events (meeting.created, participant.joined×3, job.started,
+		// round.started×2, message.posted×5, round.completed×2, job.completed) so lastSeq is
+		// strictly larger than rounds. Earlier these were conflated and the renderer reported
+		// `lastSeq` as the round count.
+		const { job: persisted } = await t.store.loadJob(sent.jobId);
+		expect(persisted.rounds).toBe(2);
+		expect(persisted.lastSeq).toBeGreaterThan(persisted.rounds);
+
 		// Bounded-delta invariant: in Round 2, each member's prompt prefix contains ONLY the
 		// other member's Round 1 speech — the facilitator's opening Message is already in the
 		// member's provider session from Round 1 and must not be re-sent. The member's own

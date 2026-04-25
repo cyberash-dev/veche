@@ -290,6 +290,7 @@ export class FileMeetingStore implements MeetingStorePort {
 			...(patch.startedAt !== undefined ? { startedAt: patch.startedAt } : {}),
 			...(patch.finishedAt !== undefined ? { finishedAt: patch.finishedAt } : {}),
 			...(patch.lastSeq !== undefined ? { lastSeq: patch.lastSeq } : {}),
+			...(patch.rounds !== undefined ? { rounds: patch.rounds } : {}),
 			...(patch.terminationReason !== undefined
 				? { terminationReason: patch.terminationReason }
 				: {}),
@@ -571,10 +572,16 @@ export class FileMeetingStore implements MeetingStorePort {
 					turnTimeoutMs: ev.payload.turnTimeoutMs,
 					addressees: ev.payload.addressees,
 					lastSeq: -1,
+					rounds: 0,
 					terminationReason: null,
 					error: null,
 					cancelReason: null,
 				});
+			} else if (ev.type === "round.completed") {
+				const j = jobs.get(ev.payload.jobId);
+				if (j) {
+					jobs.set(j.id, { ...j, rounds: ev.payload.roundNumber });
+				}
 			} else if (ev.type === "job.completed") {
 				const j = jobs.get(ev.payload.jobId);
 				if (j) {
@@ -583,6 +590,7 @@ export class FileMeetingStore implements MeetingStorePort {
 						status: "completed",
 						finishedAt: ev.at,
 						lastSeq: ev.payload.lastSeq,
+						rounds: ev.payload.rounds,
 						terminationReason: ev.payload.terminationReason,
 					});
 				}
