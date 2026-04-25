@@ -1,3 +1,5 @@
+![Veche banner](assets/brand/veche-banner.png)
+
 # Veche
 
 > Вече — bounded multi-agent deliberation as an MCP server.
