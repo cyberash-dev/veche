@@ -62,7 +62,7 @@ const buildHostPlan = (
 			cli,
 			skillsRoot: path.join(home, ".claude", "skills"),
 			probeArgs: ["--version"],
-			listArgs: ["mcp", "list", "--scope", "user"],
+			listArgs: ["mcp", "list"],
 			removeArgs: ["mcp", "remove", mcpName, "--scope", "user"],
 			mcpAddArgs: [
 				"mcp",

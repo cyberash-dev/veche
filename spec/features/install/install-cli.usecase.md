@@ -60,7 +60,7 @@ When a step is skipped (`--skills-only` / `--mcp-only` / `--dry-run`), the line 
    - 5b. **MCP register** (skipped if `--skills-only`):
      - Probe the host CLI: spawn `<cli> --version`. If it fails with `ENOENT`, this counts as "host CLI missing" — see step 6.
      - Claude Code path:
-       - Spawn `claude mcp list --scope user`. Parse stdout line-by-line. If a row begins with `<mcp-name>:`, spawn `claude mcp remove <mcp-name> --scope user`. Ignore non-zero exits from remove only when stderr says "not found"; otherwise propagate.
+       - Spawn `claude mcp list` (Claude's `mcp list` does NOT accept `--scope` and lists all scopes; the `<mcp-name>:` row test is sufficient because the user-scope name namespace is unique enough for the install flow). Parse stdout line-by-line. If a row begins with `<mcp-name>:`, spawn `claude mcp remove <mcp-name> --scope user`. Ignore non-zero exits from remove only when stderr says "not found"; otherwise propagate.
        - Spawn `claude mcp add <mcp-name> --scope user -e VECHE_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6.
      - Codex path:
        - Spawn `codex mcp add <mcp-name> --env VECHE_LOG_LEVEL=info -- node <server-bin>`. Non-zero exit → step 6. (Codex `mcp add` overwrites; no probe needed.)
@@ -90,7 +90,7 @@ In `--dry-run` mode, every step that would touch the filesystem or spawn a proce
 - Writes one `SKILL.md` per requested host under `~/.claude/skills/<mcp-name>/` and/or `~/.codex/skills/<mcp-name>/`. Atomic write (`<path>.tmp-<pid>-<ts>` + `rename`). Mode `0o600`.
 - Spawns the following whitelisted commands (and ONLY these):
   - `claude --version`
-  - `claude mcp list --scope user`
+  - `claude mcp list`
   - `claude mcp remove <mcp-name> --scope user`
   - `claude mcp add <mcp-name> --scope user -e VECHE_LOG_LEVEL=info -- node <server-bin>`
   - `codex --version`
