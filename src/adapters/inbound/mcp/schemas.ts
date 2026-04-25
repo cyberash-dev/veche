@@ -21,7 +21,7 @@ export const startMeetingSchema = {
 				systemPrompt: z.string().optional(),
 				workdir: z.string().optional(),
 				extraFlags: z.array(z.string()).max(16).optional(),
-				env: z.record(z.string()).optional(),
+				env: z.record(z.string(), z.string()).optional(),
 			}),
 		)
 		.min(1)
