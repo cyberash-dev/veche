@@ -40,7 +40,6 @@
   },
   "files": [
     "dist",
-    "spec",
     "skills",
     "examples",
     "README.md",
