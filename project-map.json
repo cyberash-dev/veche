@@ -1,0 +1,1088 @@
+{
+  "metadata": {
+    "toolVersion": "0.2.1",
+    "generatedAt": "2026-04-25T15:42:41.901Z",
+    "revision": "478f858",
+    "configHash": "sha256:b4c4489d65a9f599",
+    "scannedFiles": 87,
+    "excludedFiles": 0,
+    "buildDurationMs": 649,
+    "language": "typescript",
+    "frameworks": [],
+    "overview": null,
+    "errors": []
+  },
+  "project": {
+    "name": "veche",
+    "language": "typescript",
+    "frameworks": []
+  },
+  "contexts": [
+    {
+      "path": "src/features",
+      "fileCount": 44,
+      "role": "Vertical slice features"
+    },
+    {
+      "path": "src/adapters",
+      "fileCount": 23,
+      "role": "Infrastructure adapters"
+    }
+  ],
+  "entities": [
+    {
+      "name": "MeetingStorePort",
+      "source": {
+        "file": "src/features/persistence/ports/MeetingStorePort.ts",
+        "line": 70
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "createMeeting",
+        "loadMeeting",
+        "listMeetings",
+        "endMeeting",
+        "createJob",
+        "loadJob",
+        "updateJob",
+        "appendMessage"
+      ],
+      "referencedFrom": 21,
+      "importance": 25
+    },
+    {
+      "name": "ClockPort",
+      "source": {
+        "file": "src/shared/ports/ClockPort.ts",
+        "line": 3
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "now",
+        "monoNow"
+      ],
+      "referencedFrom": 21,
+      "importance": 22
+    },
+    {
+      "name": "LoggerPort",
+      "source": {
+        "file": "src/shared/ports/LoggerPort.ts",
+        "line": 5
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error",
+        "child"
+      ],
+      "referencedFrom": 18,
+      "importance": 21
+    },
+    {
+      "name": "Participant",
+      "source": {
+        "file": "src/features/meeting/domain/Participant.ts",
+        "line": 8
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "ParticipantId"
+        },
+        {
+          "name": "role",
+          "type": "ParticipantRole"
+        },
+        {
+          "name": "displayName",
+          "type": "string"
+        },
+        {
+          "name": "adapter",
+          "type": "AdapterKind | null"
+        },
+        {
+          "name": "profile",
+          "type": "string | null"
+        },
+        {
+          "name": "systemPrompt",
+          "type": "string | null"
+        },
+        {
+          "name": "workdir",
+          "type": "string | null"
+        },
+        {
+          "name": "model",
+          "type": "string | null"
+        },
+        {
+          "name": "extraFlags",
+          "type": "readonly string[]"
+        },
+        {
+          "name": "env",
+          "type": "Readonly<Record<string, string>>"
+        },
+        {
+          "name": "sessionId",
+          "type": "SessionId | null"
+        },
+        {
+          "name": "providerRef",
+          "type": "string | null"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 13,
+      "importance": 16.6
+    },
+    {
+      "name": "Job",
+      "source": {
+        "file": "src/features/meeting/domain/Job.ts",
+        "line": 13
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "JobId"
+        },
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "status",
+          "type": "JobStatus"
+        },
+        {
+          "name": "createdAt",
+          "type": "Instant"
+        },
+        {
+          "name": "startedAt",
+          "type": "Instant | null"
+        },
+        {
+          "name": "finishedAt",
+          "type": "Instant | null"
+        },
+        {
+          "name": "maxRounds",
+          "type": "number"
+        },
+        {
+          "name": "turnTimeoutMs",
+          "type": "number"
+        },
+        {
+          "name": "addressees",
+          "type": "readonly string[] | null"
+        },
+        {
+          "name": "lastSeq",
+          "type": "number"
+        },
+        {
+          "name": "rounds",
+          "type": "number"
+        },
+        {
+          "name": "terminationReason",
+          "type": "TerminationReason | null"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 12,
+      "importance": 15.6
+    },
+    {
+      "name": "Message",
+      "source": {
+        "file": "src/features/meeting/domain/Message.ts",
+        "line": 8
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "MessageId"
+        },
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "seq",
+          "type": "number"
+        },
+        {
+          "name": "round",
+          "type": "number"
+        },
+        {
+          "name": "author",
+          "type": "MessageAuthor"
+        },
+        {
+          "name": "kind",
+          "type": "MessageKind"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "createdAt",
+          "type": "Instant"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 12,
+      "importance": 14.4
+    },
+    {
+      "name": "Session",
+      "source": {
+        "file": "src/features/agent-integration/domain/Session.ts",
+        "line": 7
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "SessionId"
+        },
+        {
+          "name": "adapter",
+          "type": "AdapterKind"
+        },
+        {
+          "name": "participantId",
+          "type": "ParticipantId"
+        },
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "providerRef",
+          "type": "string | null"
+        },
+        {
+          "name": "status",
+          "type": "SessionStatus"
+        },
+        {
+          "name": "openedAt",
+          "type": "Instant"
+        },
+        {
+          "name": "closedAt",
+          "type": "Instant | null"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 9,
+      "importance": 11.4
+    },
+    {
+      "name": "AgentAdapterPort",
+      "source": {
+        "file": "src/features/agent-integration/ports/AgentAdapterPort.ts",
+        "line": 23
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "capabilities",
+        "openSession",
+        "sendTurn",
+        "closeSession"
+      ],
+      "referencedFrom": 8,
+      "importance": 10
+    },
+    {
+      "name": "Turn",
+      "source": {
+        "file": "src/features/agent-integration/domain/Turn.ts",
+        "line": 13
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "session",
+          "type": "Session"
+        },
+        {
+          "name": "participantId",
+          "type": "ParticipantId"
+        },
+        {
+          "name": "prompt",
+          "type": "string"
+        },
+        {
+          "name": "transcriptPrefix",
+          "type": "readonly MessageView[]"
+        },
+        {
+          "name": "systemPrompt",
+          "type": "string | null"
+        },
+        {
+          "name": "workdir",
+          "type": "string | null"
+        },
+        {
+          "name": "model",
+          "type": "string | null"
+        },
+        {
+          "name": "extraFlags",
+          "type": "readonly string[]"
+        },
+        {
+          "name": "env",
+          "type": "Readonly<Record<string, string>>"
+        },
+        {
+          "name": "roundNumber",
+          "type": "number"
+        },
+        {
+          "name": "timeoutMs",
+          "type": "number"
+        },
+        {
+          "name": "cancellationSignal",
+          "type": "AbortSignal"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 5,
+      "importance": 8.6
+    },
+    {
+      "name": "IdGenPort",
+      "source": {
+        "file": "src/shared/ports/IdGenPort.ts",
+        "line": 3
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "newMeetingId",
+        "newMessageId",
+        "newJobId",
+        "newParticipantSessionId",
+        "newUuid"
+      ],
+      "referencedFrom": 6,
+      "importance": 8.5
+    },
+    {
+      "name": "Meeting",
+      "source": {
+        "file": "src/features/meeting/domain/Meeting.ts",
+        "line": 7
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "MeetingId"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "MeetingStatus"
+        },
+        {
+          "name": "createdAt",
+          "type": "Instant"
+        },
+        {
+          "name": "endedAt",
+          "type": "Instant | null"
+        },
+        {
+          "name": "participants",
+          "type": "readonly Participant[]"
+        },
+        {
+          "name": "defaultMaxRounds",
+          "type": "number"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 6,
+      "importance": 8.1
+    },
+    {
+      "name": "MeetingSummary",
+      "source": {
+        "file": "src/features/persistence/ports/MeetingStorePort.ts",
+        "line": 17
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "\"active\" | \"ended\""
+        },
+        {
+          "name": "createdAt",
+          "type": "Instant"
+        },
+        {
+          "name": "endedAt",
+          "type": "Instant | null"
+        },
+        {
+          "name": "participants",
+          "type": "ReadonlyArray<{\n\t\treadonly id: ParticipantId;\n\t\treadonly role: \"facilitator\" | \"member\";\n\t\treadonly adapter: \"codex-cli\" | \"claude-code-cli\" | null;\n\t\treadonly status: \"active\" | \"dropped\";\n\t}>"
+        },
+        {
+          "name": "lastSeq",
+          "type": "number"
+        },
+        {
+          "name": "openJobCount",
+          "type": "number"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 5,
+      "importance": 7.4
+    },
+    {
+      "name": "FileMeetingStore",
+      "source": {
+        "file": "src/features/persistence/adapters/file/FileMeetingStore.ts",
+        "line": 106
+      },
+      "inherits": [
+        "MeetingStorePort"
+      ],
+      "fields": [
+        {
+          "name": "root",
+          "type": "string"
+        },
+        {
+          "name": "states",
+          "type": null
+        },
+        {
+          "name": "jobIndex",
+          "type": null
+        },
+        {
+          "name": "initialised",
+          "type": null
+        }
+      ],
+      "methods": [
+        "constructor",
+        "createMeeting",
+        "loadMeeting",
+        "listMeetings",
+        "endMeeting",
+        "createJob",
+        "loadJob",
+        "updateJob"
+      ],
+      "referencedFrom": 2,
+      "importance": 7.2
+    },
+    {
+      "name": "ClaudeCodeCliAgentAdapter",
+      "source": {
+        "file": "src/features/agent-integration/adapters/claude-code-cli/ClaudeCodeCliAgentAdapter.ts",
+        "line": 39
+      },
+      "inherits": [
+        "AgentAdapterPort"
+      ],
+      "fields": [
+        {
+          "name": "sessions",
+          "type": null
+        },
+        {
+          "name": "bin",
+          "type": "string"
+        },
+        {
+          "name": "defaultDisallowed",
+          "type": "readonly string[]"
+        },
+        {
+          "name": "availabilityChecked",
+          "type": null
+        },
+        {
+          "name": "availabilityError",
+          "type": "AdapterNotAvailable | null"
+        }
+      ],
+      "methods": [
+        "constructor",
+        "capabilities",
+        "openSession",
+        "sendTurn",
+        "closeSession",
+        "ensureAvailable",
+        "buildEnv",
+        "hasAllowedToolsOverride"
+      ],
+      "referencedFrom": 1,
+      "importance": 6.5
+    },
+    {
+      "name": "CodexCliAgentAdapter",
+      "source": {
+        "file": "src/features/agent-integration/adapters/codex-cli/CodexCliAgentAdapter.ts",
+        "line": 45
+      },
+      "inherits": [
+        "AgentAdapterPort"
+      ],
+      "fields": [
+        {
+          "name": "sessions",
+          "type": null
+        },
+        {
+          "name": "bin",
+          "type": "string"
+        },
+        {
+          "name": "defaultSandbox",
+          "type": "\"read-only\" | \"workspace-write\" | \"danger-full-access\""
+        },
+        {
+          "name": "availabilityChecked",
+          "type": null
+        },
+        {
+          "name": "availabilityError",
+          "type": "AdapterNotAvailable | null"
+        }
+      ],
+      "methods": [
+        "constructor",
+        "capabilities",
+        "openSession",
+        "sendTurn",
+        "closeSession",
+        "ensureAvailable",
+        "resolveSandbox",
+        "buildEnv"
+      ],
+      "referencedFrom": 1,
+      "importance": 6.5
+    },
+    {
+      "name": "MeetingNotFound",
+      "source": {
+        "file": "src/features/meeting/domain/errors.ts",
+        "line": 3
+      },
+      "inherits": [
+        "DomainError"
+      ],
+      "fields": [],
+      "methods": [
+        "constructor"
+      ],
+      "referencedFrom": 6,
+      "importance": 6.5
+    },
+    {
+      "name": "ValidationError",
+      "source": {
+        "file": "src/shared/errors/DomainError.ts",
+        "line": 13
+      },
+      "inherits": [
+        "DomainError"
+      ],
+      "fields": [],
+      "methods": [
+        "constructor"
+      ],
+      "referencedFrom": 6,
+      "importance": 6.5
+    },
+    {
+      "name": "DiscussionState",
+      "source": {
+        "file": "src/features/committee-protocol/domain/DiscussionState.ts",
+        "line": 4
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "jobId",
+          "type": "JobId"
+        },
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "maxRounds",
+          "type": "number"
+        },
+        {
+          "name": "roundNumber",
+          "type": "number"
+        },
+        {
+          "name": "pendingPass",
+          "type": "Set<ParticipantId>"
+        },
+        {
+          "name": "droppedThisJob",
+          "type": "Set<ParticipantId>"
+        },
+        {
+          "name": "terminationReason",
+          "type": "TerminationReason | null"
+        },
+        {
+          "name": "lastSeq",
+          "type": "number"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 4,
+      "importance": 6.4
+    },
+    {
+      "name": "StructuredLogger",
+      "source": {
+        "file": "src/infra/StructuredLogger.ts",
+        "line": 11
+      },
+      "inherits": [
+        "LoggerPort"
+      ],
+      "fields": [],
+      "methods": [
+        "constructor",
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error",
+        "child",
+        "emit"
+      ],
+      "referencedFrom": 2,
+      "importance": 6
+    },
+    {
+      "name": "JobRunner",
+      "source": {
+        "file": "src/features/meeting/application/JobRunner.ts",
+        "line": 13
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "running",
+          "type": null
+        }
+      ],
+      "methods": [
+        "constructor",
+        "start",
+        "isRunning",
+        "cancel",
+        "shutdown"
+      ],
+      "referencedFrom": 3,
+      "importance": 5.8
+    },
+    {
+      "name": "InMemoryMeetingStore",
+      "source": {
+        "file": "src/features/persistence/adapters/in-memory/InMemoryMeetingStore.ts",
+        "line": 77
+      },
+      "inherits": [
+        "MeetingStorePort"
+      ],
+      "fields": [
+        {
+          "name": "meetings",
+          "type": null
+        },
+        {
+          "name": "jobIndex",
+          "type": null
+        }
+      ],
+      "methods": [
+        "constructor",
+        "createMeeting",
+        "loadMeeting",
+        "listMeetings",
+        "endMeeting",
+        "createJob",
+        "loadJob",
+        "updateJob"
+      ],
+      "referencedFrom": 1,
+      "importance": 5.6
+    },
+    {
+      "name": "JobError",
+      "source": {
+        "file": "src/features/meeting/domain/Job.ts",
+        "line": 8
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "code",
+          "type": "string"
+        },
+        {
+          "name": "message",
+          "type": "string"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 5,
+      "importance": 5.6
+    },
+    {
+      "name": "OpenSessionInput",
+      "source": {
+        "file": "src/features/agent-integration/ports/AgentAdapterPort.ts",
+        "line": 12
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "meetingId",
+          "type": "MeetingId"
+        },
+        {
+          "name": "participantId",
+          "type": "ParticipantId"
+        },
+        {
+          "name": "sessionId",
+          "type": "SessionId"
+        },
+        {
+          "name": "systemPrompt",
+          "type": "string | null"
+        },
+        {
+          "name": "workdir",
+          "type": "string | null"
+        },
+        {
+          "name": "model",
+          "type": "string | null"
+        },
+        {
+          "name": "extraFlags",
+          "type": "readonly string[]"
+        },
+        {
+          "name": "env",
+          "type": "Readonly<Record<string, string>>"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 3,
+      "importance": 5.4
+    },
+    {
+      "name": "SseChannel",
+      "source": {
+        "file": "src/adapters/inbound/web/SseChannel.ts",
+        "line": 13
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "isOpen",
+          "type": null
+        }
+      ],
+      "methods": [
+        "constructor",
+        "writeHeaders",
+        "writeEvent",
+        "writeKeepalive",
+        "close",
+        "isClosed"
+      ],
+      "referencedFrom": 2,
+      "importance": 5.3
+    },
+    {
+      "name": "WatchServer",
+      "source": {
+        "file": "src/adapters/inbound/web/WatchServer.ts",
+        "line": 111
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "server",
+          "type": "Server | null"
+        },
+        {
+          "name": "channels",
+          "type": null
+        },
+        {
+          "name": "spaCache",
+          "type": "string | null"
+        },
+        {
+          "name": "boundHost",
+          "type": null
+        },
+        {
+          "name": "boundPort",
+          "type": null
+        },
+        {
+          "name": "allowedHosts",
+          "type": "Set<string> | null"
+        }
+      ],
+      "methods": [
+        "constructor",
+        "start",
+        "stop",
+        "handle",
+        "serveSpa"
+      ],
+      "referencedFrom": 1,
+      "importance": 5.3
+    },
+    {
+      "name": "DraftMessage",
+      "source": {
+        "file": "src/features/meeting/domain/Message.ts",
+        "line": 19
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "MessageId"
+        },
+        {
+          "name": "round",
+          "type": "number"
+        },
+        {
+          "name": "author",
+          "type": "MessageAuthor"
+        },
+        {
+          "name": "kind",
+          "type": "MessageKind"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "createdAt",
+          "type": "Instant"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 3,
+      "importance": 4.8
+    },
+    {
+      "name": "FakeAgentAdapter",
+      "source": {
+        "file": "src/features/agent-integration/adapters/fake/FakeAgentAdapter.ts",
+        "line": 26
+      },
+      "inherits": [
+        "AgentAdapterPort"
+      ],
+      "fields": [
+        {
+          "name": "scripts",
+          "type": null
+        },
+        {
+          "name": "turns",
+          "type": "Array<{ turn: Turn; result: TurnResult }>"
+        },
+        {
+          "name": "opened",
+          "type": "Session[]"
+        },
+        {
+          "name": "closed",
+          "type": "Session[]"
+        }
+      ],
+      "methods": [
+        "constructor",
+        "enqueue",
+        "capabilities",
+        "openSession",
+        "sendTurn",
+        "closeSession",
+        "isScriptExhausted"
+      ],
+      "referencedFrom": 0,
+      "importance": 4.7
+    },
+    {
+      "name": "DispatchTurnUseCase",
+      "source": {
+        "file": "src/features/committee-protocol/application/DispatchTurnUseCase.ts",
+        "line": 26
+      },
+      "inherits": [],
+      "fields": [],
+      "methods": [
+        "constructor",
+        "execute",
+        "buildPrompt",
+        "composeSystemPrompt",
+        "failureResult"
+      ],
+      "referencedFrom": 2,
+      "importance": 4.5
+    },
+    {
+      "name": "FakeIdGen",
+      "source": {
+        "file": "src/test-utils/FakeIdGen.ts",
+        "line": 13
+      },
+      "inherits": [
+        "IdGenPort"
+      ],
+      "fields": [
+        {
+          "name": "meetingCounter",
+          "type": null
+        },
+        {
+          "name": "jobCounter",
+          "type": null
+        },
+        {
+          "name": "messageCounter",
+          "type": null
+        },
+        {
+          "name": "sessionCounter",
+          "type": null
+        },
+        {
+          "name": "uuidCounter",
+          "type": null
+        }
+      ],
+      "methods": [
+        "constructor",
+        "newMeetingId",
+        "newJobId",
+        "newMessageId",
+        "newParticipantSessionId",
+        "newUuid"
+      ],
+      "referencedFrom": 0,
+      "importance": 4.5
+    },
+    {
+      "name": "JobPatch",
+      "source": {
+        "file": "src/features/persistence/ports/MeetingStorePort.ts",
+        "line": 52
+      },
+      "inherits": [],
+      "fields": [
+        {
+          "name": "status",
+          "type": "JobStatus"
+        },
+        {
+          "name": "startedAt",
+          "type": "Instant"
+        },
+        {
+          "name": "finishedAt",
+          "type": "Instant"
+        },
+        {
+          "name": "lastSeq",
+          "type": "number"
+        },
+        {
+          "name": "rounds",
+          "type": "number"
+        },
+        {
+          "name": "terminationReason",
+          "type": "TerminationReason"
+        },
+        {
+          "name": "error",
+          "type": "JobError"
+        },
+        {
+          "name": "cancelReason",
+          "type": "string"
+        }
+      ],
+      "methods": [],
+      "referencedFrom": 2,
+      "importance": 4.4
+    }
+  ],
+  "enums": [],
+  "endpoints": [],
+  "storage": {
+    "tables": [],
+    "migrations": []
+  },
+  "interactions": [],
+  "workers": []
+}

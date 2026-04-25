@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f PROJECT_MAP.md ]; then echo \"PROJECT_MAP.md is available at the repo root — a deterministic, AST-derived map of contexts, entities, enums, endpoints, storage, interactions, and workers. Read it before launching Explore or running broad Grep/Glob for cross-cutting questions.\"; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
