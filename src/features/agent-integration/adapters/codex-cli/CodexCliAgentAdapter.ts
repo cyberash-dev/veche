@@ -282,9 +282,12 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 	}
 
 	private resolveSandbox(extraFlags: readonly string[]): string {
-		for (let i = 0; i < extraFlags.length; i += 1) {
-			if (extraFlags[i] === "--sandbox" && i + 1 < extraFlags.length) {
-				return extraFlags[i + 1]!;
+		for (const [i, flag] of extraFlags.entries()) {
+			if (flag === "--sandbox") {
+				const next = extraFlags[i + 1];
+				if (next !== undefined) {
+					return next;
+				}
 			}
 		}
 		return this.defaultSandbox;

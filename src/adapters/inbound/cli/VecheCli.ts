@@ -69,8 +69,12 @@ interface ParsedFlags {
 const parseFlags = (argv: readonly string[]): ParsedFlags => {
 	const positional: string[] = [];
 	const flags = new Map<string, string | true>();
-	for (let i = 0; i < argv.length; i += 1) {
-		const arg = argv[i]!;
+	let i = 0;
+	while (i < argv.length) {
+		const arg = argv[i];
+		if (arg === undefined) {
+			break;
+		}
 		if (arg === "--") {
 			positional.push(...argv.slice(i + 1));
 			break;
@@ -94,6 +98,7 @@ const parseFlags = (argv: readonly string[]): ParsedFlags => {
 		} else {
 			positional.push(arg);
 		}
+		i += 1;
 	}
 	return { positional, flags };
 };
@@ -185,11 +190,11 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 			});
 		}
 		case "show": {
-			if (parsed.positional.length !== 1) {
+			const meetingId = parsed.positional[0];
+			if (parsed.positional.length !== 1 || meetingId === undefined) {
 				stderr(`show: expected exactly one <meetingId>\n`);
 				return EXIT_USAGE;
 			}
-			const meetingId = parsed.positional[0]!;
 			const format = readStringFlag(parsed.flags, "format", "text");
 			if (
 				format !== "text" &&

@@ -68,17 +68,14 @@ const isHostAllowed = (headerValue: string | undefined, allowed: ReadonlySet<str
 	return allowed.has(normalized);
 };
 
-interface RouteMatch {
-	readonly kind:
-		| "spa"
-		| "list-meetings"
-		| "get-meeting"
-		| "get-messages"
-		| "stream-meetings"
-		| "stream-meeting"
-		| "not-found";
-	readonly meetingId?: string;
-}
+type RouteMatch =
+	| { readonly kind: "spa" }
+	| { readonly kind: "list-meetings" }
+	| { readonly kind: "stream-meetings" }
+	| { readonly kind: "not-found" }
+	| { readonly kind: "get-meeting"; readonly meetingId: string }
+	| { readonly kind: "get-messages"; readonly meetingId: string }
+	| { readonly kind: "stream-meeting"; readonly meetingId: string };
 
 const matchRoute = (method: string, pathname: string): RouteMatch => {
 	if (method !== "GET") {
@@ -93,17 +90,17 @@ const matchRoute = (method: string, pathname: string): RouteMatch => {
 	if (pathname === "/api/stream") {
 		return { kind: "stream-meetings" };
 	}
-	const messagesMatch = /^\/api\/meetings\/([^/]+)\/messages$/.exec(pathname);
-	if (messagesMatch) {
-		return { kind: "get-messages", meetingId: decodeURIComponent(messagesMatch[1]!) };
+	const messagesId = /^\/api\/meetings\/([^/]+)\/messages$/.exec(pathname)?.[1];
+	if (messagesId !== undefined) {
+		return { kind: "get-messages", meetingId: decodeURIComponent(messagesId) };
 	}
-	const meetingMatch = /^\/api\/meetings\/([^/]+)$/.exec(pathname);
-	if (meetingMatch) {
-		return { kind: "get-meeting", meetingId: decodeURIComponent(meetingMatch[1]!) };
+	const meetingId = /^\/api\/meetings\/([^/]+)$/.exec(pathname)?.[1];
+	if (meetingId !== undefined) {
+		return { kind: "get-meeting", meetingId: decodeURIComponent(meetingId) };
 	}
-	const streamMatch = /^\/api\/stream\/([^/]+)$/.exec(pathname);
-	if (streamMatch) {
-		return { kind: "stream-meeting", meetingId: decodeURIComponent(streamMatch[1]!) };
+	const streamId = /^\/api\/stream\/([^/]+)$/.exec(pathname)?.[1];
+	if (streamId !== undefined) {
+		return { kind: "stream-meeting", meetingId: decodeURIComponent(streamId) };
 	}
 	return { kind: "not-found" };
 };
@@ -212,10 +209,10 @@ export class WatchServer {
 				await handleListMeetings(this.deps.store, url, response);
 				return;
 			case "get-meeting":
-				await handleGetMeeting(this.deps.store, route.meetingId!, response);
+				await handleGetMeeting(this.deps.store, route.meetingId, response);
 				return;
 			case "get-messages":
-				await handleGetMessages(this.deps.store, route.meetingId!, url, response);
+				await handleGetMessages(this.deps.store, route.meetingId, url, response);
 				return;
 			case "stream-meetings":
 				await streamMeetings(request, response, {
@@ -233,7 +230,7 @@ export class WatchServer {
 						logger: this.deps.logger,
 						channels: this.channels,
 					},
-					route.meetingId!,
+					route.meetingId,
 				);
 				return;
 			case "not-found":

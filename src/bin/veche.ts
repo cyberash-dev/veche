@@ -8,10 +8,12 @@ import { SystemClock } from "../infra/SystemClock.js";
 const VERSION = "0.1.0";
 
 const extractHomeOverride = (argv: readonly string[]): string | null => {
-	for (let i = 0; i < argv.length; i += 1) {
-		const a = argv[i]!;
-		if (a === "--home" && i + 1 < argv.length) {
-			return argv[i + 1]!;
+	for (const [i, a] of argv.entries()) {
+		if (a === "--home") {
+			const next = argv[i + 1];
+			if (next !== undefined) {
+				return next;
+			}
 		}
 		if (a.startsWith("--home=")) {
 			return a.slice("--home=".length);

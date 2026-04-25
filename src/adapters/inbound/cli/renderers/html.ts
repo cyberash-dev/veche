@@ -255,7 +255,7 @@ export const renderHtml: Renderer = (input) => {
 	);
 	out.push('<div class="p-list">');
 	for (const p of participants) {
-		const swatch = colorByParticipant.get(p.id)!;
+		const swatch = colorByParticipant.get(p.id) ?? "hsl(0, 0%, 93%)";
 		out.push(
 			`<span class="p-item">` +
 				`<span class="swatch" style="background:${escapeHtml(swatch)}"></span>` +

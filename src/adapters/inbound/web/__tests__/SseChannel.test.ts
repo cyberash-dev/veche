@@ -41,7 +41,10 @@ describe("SseChannel", () => {
 		const channel = new SseChannel(fake.response);
 		channel.writeHeaders();
 		expect(fake.headersWritten()).toHaveLength(1);
-		const written = fake.headersWritten()[0]!;
+		const [written] = fake.headersWritten();
+		if (written === undefined) {
+			throw new Error("headers not written");
+		}
 		expect(written.status).toBe(200);
 		expect(written.headers["Content-Type"]).toBe("text/event-stream; charset=utf-8");
 		expect(written.headers["Cache-Control"]).toBe("no-cache, no-transform");

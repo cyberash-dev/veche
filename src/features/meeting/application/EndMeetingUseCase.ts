@@ -34,8 +34,8 @@ export class EndMeetingUseCase {
 		const { store, clock, logger, adapters, cancelJob } = this.deps;
 		const snap = await store.loadMeeting(command.meetingId);
 		let cancelledJobId: JobId | null = null;
-		if (snap.openJobs.length > 0) {
-			const openJob = snap.openJobs[0]!;
+		const openJob = snap.openJobs[0];
+		if (openJob !== undefined) {
 			if (!command.cancelRunningJob) {
 				throw new MeetingBusy(command.meetingId, openJob.id);
 			}

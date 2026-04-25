@@ -13,7 +13,7 @@ export const participantColor = (participant: Participant): string => {
 	}
 	const digest = createHash("sha1").update(participant.id).digest();
 	// first 2 bytes → 0..65535 → mapped to 0..359
-	const hue = ((digest[0]! << 8) | digest[1]!) % 360;
+	const hue = digest.readUInt16BE(0) % 360;
 	return `hsl(${hue}, 60%, 86%)`;
 };
 

@@ -102,8 +102,8 @@ export class SendMessageUseCase {
 			addresseeIds = filtered;
 		}
 
-		if (snap.openJobs.length > 0) {
-			const open = snap.openJobs[0]!;
+		const open = snap.openJobs[0];
+		if (open !== undefined) {
 			throw new MeetingBusy(command.meetingId, open.id);
 		}
 

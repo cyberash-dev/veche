@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-04-25
+
+First release published with **npm provenance** via GitHub Actions OIDC. No runtime
+behaviour changes vs `0.1.0`; this release establishes the publishing pipeline and a few
+publish-readiness fixes.
+
+### Added
+
+- `.github/workflows/ci.yml` — push/PR gate on Node `20.11` + `22` matrix, runs
+  `typecheck → lint → build → test`.
+- `.github/workflows/publish.yml` — fires on GitHub release publish, runs the same gate
+  and then `npm publish --provenance --access public` with `id-token: write` permission so
+  the package gets a verified provenance attestation linked to the workflow run.
+- `LICENSE` (MIT), `CHANGELOG.md` (this file), `.nvmrc` (`22`), and brand assets under
+  `assets/brand/` (banner / icon / social-preview).
+- `prepublishOnly` script: `typecheck && lint && test && build` — gates manual `npm publish`
+  invocations.
+
+### Changed
+
+- **`zod` → `4.3.6`**. The peer requirement of `@modelcontextprotocol/sdk@1.29.0` is zod 4
+  (it ships its own bundled copy of `zod@4.3.6`). Keeping our top-level dependency on `zod@3`
+  produced two incompatible `ZodType` declarations in the type tree, which surfaced as a
+  build error after a recent `npm install` re-deduped the lockfile. The only API breakage
+  for our codebase was `z.record(value)` → `z.record(key, value)` in
+  `src/adapters/inbound/mcp/schemas.ts`.
+- README banner now uses an absolute `raw.githubusercontent.com` URL so the npmjs.com page
+  renders correctly regardless of relative-path resolution timing.
+- Repository / homepage / bugs URLs aligned with the actual GitHub remote
+  (`cyberash-dev/veche`).
+
 ## [0.1.0] — 2026-04-25
 
 Initial public release.
@@ -49,4 +80,5 @@ Initial public release.
 - Read-only invariant: `list` / `show` / `watch` never mutate the store; `install` never
   opens the store.
 
+[0.1.1]: https://github.com/cyberash-dev/veche/releases/tag/v0.1.1
 [0.1.0]: https://github.com/cyberash-dev/veche/releases/tag/v0.1.0

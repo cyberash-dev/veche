@@ -65,10 +65,18 @@ export class RunRoundUseCase {
 			at: now,
 		});
 
+		const dispatchTargets = activeMembers.flatMap((participantId) => {
+			const participant = input.participants.get(participantId);
+			const session = input.sessions.get(participantId);
+			if (participant === undefined || session === undefined) {
+				// Invariant — selectActiveMembers only returns ids present in both maps.
+				return [];
+			}
+			return [{ participantId, participant, session }];
+		});
+
 		const outcomes = await Promise.allSettled(
-			activeMembers.map(async (participantId) => {
-				const participant = input.participants.get(participantId)!;
-				const session = input.sessions.get(participantId)!;
+			dispatchTargets.map(async ({ participantId, participant, session }) => {
 				const lastRound = input.participantLastRound.get(participantId) ?? -1;
 				const prefix = this.buildPrefixForParticipant(
 					participantId,
@@ -89,15 +97,19 @@ export class RunRoundUseCase {
 
 		// Deterministic processing order: ascending participantId.
 		const processed = outcomes
-			.map((o, idx) => ({ o, participantId: activeMembers[idx]! }))
-			.sort((a, b) => a.participantId.localeCompare(b.participantId));
+			.flatMap((o, idx) => {
+				const target = dispatchTargets[idx];
+				return target === undefined ? [] : [{ o, target }];
+			})
+			.sort((a, b) => a.target.participantId.localeCompare(b.target.participantId));
 
-		for (const { o, participantId } of processed) {
+		for (const { o, target } of processed) {
+			const { participantId, session } = target;
 			if (o.status === "rejected") {
 				await handleFailure.execute({
 					state: input.state,
 					participantId,
-					session: input.sessions.get(participantId)!,
+					session,
 					jobId: input.job.id,
 					error: {
 						code: "AdapterInvocationError",
@@ -108,7 +120,7 @@ export class RunRoundUseCase {
 				});
 				continue;
 			}
-			const { result, session } = o.value;
+			const { result } = o.value;
 			if (result.kind === "failure") {
 				await handleFailure.execute({
 					state: input.state,

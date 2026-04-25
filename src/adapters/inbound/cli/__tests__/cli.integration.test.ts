@@ -267,11 +267,11 @@ describe("veche CLI (integration)", () => {
 				5000,
 			);
 			const onData = (chunk: string): void => {
-				const match = chunk.match(/listening on (http:\/\/[^\s]+)/);
-				if (match) {
+				const url = chunk.match(/listening on (http:\/\/[^\s]+)/)?.[1];
+				if (url !== undefined) {
 					clearTimeout(timer);
 					child.stderr.off("data", onData);
-					resolve({ url: match[1]! });
+					resolve({ url });
 				}
 			};
 			child.stderr.on("data", onData);

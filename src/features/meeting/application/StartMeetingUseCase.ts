@@ -233,18 +233,22 @@ export class StartMeetingUseCase {
 		}> = [];
 		try {
 			for (const m of resolvedMembers) {
-				const adapter = adapters.get(m.adapter!);
+				if (m.adapter === null || m.sessionId === null) {
+					// Invariant — Members always carry adapter + sessionId after profile resolution.
+					throw new ValidationError(`member ${m.id} missing adapter or sessionId`);
+				}
+				const adapter = adapters.get(m.adapter);
 				const session = await adapter.openSession({
 					meetingId: meeting.id,
 					participantId: m.id,
-					sessionId: m.sessionId!,
+					sessionId: m.sessionId,
 					systemPrompt: m.systemPrompt,
 					workdir: m.workdir,
 					model: m.model,
 					extraFlags: m.extraFlags,
 					env: m.env,
 				});
-				openedSessions.push({ participantId: m.id, adapter: m.adapter!, session });
+				openedSessions.push({ participantId: m.id, adapter: m.adapter, session });
 			}
 		} catch (err) {
 			logger.warn("start_meeting.adapter.open.failed", {
