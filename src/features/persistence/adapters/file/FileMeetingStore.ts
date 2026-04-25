@@ -446,6 +446,44 @@ export class FileMeetingStore implements MeetingStorePort {
 		return this.readAllEventsInternal(meetingId);
 	}
 
+	async refresh(): Promise<void> {
+		await this.ensureInit();
+		try {
+			const entries = await fs.readdir(path.join(this.root, "meetings"));
+			for (const entry of entries) {
+				const dir = path.join(this.root, "meetings", entry);
+				try {
+					const stat = await fs.stat(dir);
+					if (!stat.isDirectory()) {
+						continue;
+					}
+				} catch {
+					continue;
+				}
+				await this.refreshMeetingFromDisk(entry as MeetingId);
+			}
+			const jobFiles = await fs.readdir(path.join(this.root, "jobs"));
+			for (const f of jobFiles) {
+				if (!f.endsWith(".json")) {
+					continue;
+				}
+				const jobId = f.slice(0, -".json".length) as JobId;
+				if (this.jobIndex.has(jobId)) {
+					continue;
+				}
+				const raw = await fs.readFile(path.join(this.root, "jobs", f), "utf8");
+				try {
+					const parsed = JSON.parse(raw) as { meetingId: MeetingId; jobId: JobId };
+					this.jobIndex.set(parsed.jobId, parsed.meetingId);
+				} catch {
+					this.deps.logger.warn("filestore.job-index.corrupt", { file: f });
+				}
+			}
+		} catch (err) {
+			throw new StoreUnavailable(`cannot refresh store: ${(err as Error).message}`);
+		}
+	}
+
 	// ---------- filesystem helpers ----------
 
 	private async ensureInit(): Promise<void> {
@@ -512,6 +550,45 @@ export class FileMeetingStore implements MeetingStorePort {
 		}
 		const state = this.reduce(meetingId, events);
 		this.states.set(meetingId, state);
+	}
+
+	private async refreshMeetingFromDisk(meetingId: MeetingId): Promise<void> {
+		const existing = this.states.get(meetingId);
+		if (existing === undefined) {
+			await this.loadMeetingFromDisk(meetingId);
+			return;
+		}
+		const eventsPath = path.join(this.meetingDir(meetingId), "events.jsonl");
+		let raw = "";
+		try {
+			await fs.access(eventsPath, fsConstants.R_OK);
+			raw = await fs.readFile(eventsPath, "utf8");
+		} catch {
+			return;
+		}
+		const lines = raw.split("\n").filter((l) => l.length > 0);
+		const events: AnyEvent[] = [];
+		for (const line of lines) {
+			try {
+				events.push(JSON.parse(line) as AnyEvent);
+			} catch {
+				throw new StoreUnavailable(`corrupt event line in ${eventsPath}`);
+			}
+		}
+		if (events.length === 0) {
+			return;
+		}
+		const maxSeq = events.reduce((acc, ev) => (ev.seq > acc ? ev.seq : acc), -1);
+		if (maxSeq <= existing.lastSeq) {
+			return;
+		}
+		const fresh = this.reduce(meetingId, events);
+		// Preserve append-lock chain, manifest-write lock, and in-process watchers — they are
+		// owned by the writer process. We only refresh the value-object slots.
+		existing.meeting = fresh.meeting;
+		existing.participants = fresh.participants;
+		existing.jobs = fresh.jobs;
+		existing.lastSeq = fresh.lastSeq;
 	}
 
 	private reduce(meetingId: MeetingId, events: readonly AnyEvent[]): MeetingState {

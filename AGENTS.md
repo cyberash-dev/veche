@@ -123,7 +123,10 @@ The `ai-meeting` CLI is a second inbound adapter (alongside MCP) that reads the 
 
 - **Read-only against the store.** The CLI MUST NOT call `createMeeting`, `appendMessage`,
   `appendSystemEvent`, `markParticipantDropped`, `createJob`, `updateJob`, or `endMeeting`.
-  Safety of concurrent `ai-meeting` + `ai-meeting-server` processes depends on this.
+  Safety of concurrent `ai-meeting` + `ai-meeting-server` processes depends on this. The
+  `install` subcommand goes a step further: it never instantiates `MeetingStorePort` at all,
+  so even read-only methods (`loadMeeting`, `listMeetings`, `readMessagesSince`) are off the
+  table for it.
 - **HTML output is self-contained.** `renderers/html.ts` must emit zero `<script>` tags, no
   `<link rel="stylesheet">`, and no `src="http…"` / `href="http…"` references. All strings
   originating from user / model content flow through `escapeHtml` from `renderers/helpers.ts`.
@@ -177,6 +180,32 @@ different process from `ai-meeting-server`. The CLI invariants above apply in fu
   error. (`1` and `3` are not used by `watch`.)
 - **Polling cadence is not user-tunable.** `WATCH_POLL_MS = 750` is a constant. Change
   requires a spec PR.
+
+## `install` subcommand invariants (`src/adapters/inbound/cli/commands/install.ts`)
+
+The `install` subcommand is the canonical setup path for a fresh machine: it places
+`skills/ai-meeting/SKILL.md` under `~/.claude/skills/ai-meeting/` and/or
+`~/.codex/skills/ai-meeting/`, then delegates to `claude mcp add` / `codex mcp add` to
+register the stdio MCP server. Keep these invariants intact:
+
+- **Bounded write surface.** The only paths the install command writes to are
+  `<host-skills-root>/<mcp-name>/SKILL.md`. Atomic write (`<path>.tmp-<pid>-<ts>` →
+  `rename`, mode `0o600`) is mandatory. The host config files (`~/.claude.json`,
+  `~/.codex/config.toml`) are NEVER edited directly — go through the host CLI.
+- **Bounded subprocess surface.** The install command spawns ONLY `claude` and `codex`
+  (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH), and only with the argv
+  shapes documented in `spec/features/install/install-cli.usecase.md` → *Side Effects*.
+  Reviewers must reject a PR that introduces any other binary spawn from this command.
+- **Idempotent.** Re-running with the same flags reaches the same end state. Claude Code's
+  `mcp add` is not idempotent — the install command probes via `mcp list`, removes the
+  existing entry if present, then adds. Codex's `mcp add` overwrites natively, so a single
+  call suffices.
+- **`--dry-run` is a contract.** Never spawn a subprocess and never touch the filesystem
+  in dry-run; only print the plan.
+- **No new npm deps.** Node built-ins only.
+- **Skill text is single-source-of-truth.** The byte content of `skills/ai-meeting/SKILL.md`
+  is authoritative; both hosts get byte-identical copies. If Claude Code and Codex ever
+  need divergent skill content, that requires a spec change.
 
 ## Recursion guard (Claude Code adapter)
 

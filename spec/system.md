@@ -45,3 +45,4 @@ An MCP server that lets an orchestrator agent conduct multi-party committee meet
 - [agent-integration](./features/agent-integration/agent-integration.md) — The `AgentAdapter` port and its CLI-based adapters for Codex and Claude Code.
 - [persistence](./features/persistence/persistence.md) — The `MeetingStore` port and its `InMemoryStore` and `FileStore` adapters.
 - [web-viewer](./features/web-viewer/web-viewer.md) — Local HTTP server (`ai-meeting watch`) that serves a self-contained SPA and SSE channels for live observation of every Meeting.
+- [install](./features/install/install.md) — `ai-meeting install` CLI: copies the canonical skill file into Claude Code / Codex skills directory and registers the MCP server with each host through that host's own `mcp add` CLI.

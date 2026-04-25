@@ -14,8 +14,9 @@
 | Testing | `vitest` (unit), `vitest` + filesystem tmpdir (adapter integration) |
 | Lint / format | `biome` (lint + format) |
 | Build | `tsc` emitting ESM `dist/` |
-| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$AI_MEETING_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation. All subcommands are read-only against the store. |
-| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for the `watch` subcommand). No new npm dependencies beyond those listed above. |
+| Binary entries | `bin/ai-meeting-server.js` — stdio MCP server. `bin/ai-meeting.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$AI_MEETING_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation; subcommand `install` copies the canonical `skills/ai-meeting/SKILL.md` into Claude Code's / Codex's skills directory and registers the MCP server with each host (see [install-cli](../features/install/install-cli.usecase.md)). The `list` / `show` / `watch` subcommands are read-only against the store; `install` does not touch the store at all. |
+| CLI dependencies | The `ai-meeting` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for `watch`). The `install` subcommand additionally spawns the `claude` and `codex` host CLIs (already required by [agent-integration](../features/agent-integration/agent-integration.md)). No new npm dependencies beyond those listed above. |
+| Package contents (npm `files`) | `dist/` — compiled JS. `spec/` — full specification tree. `skills/` — canonical `SKILL.md` artefacts shipped alongside the binary; the `install` subcommand reads from this directory. |
 
 External binaries (resolved via `PATH`):
 
@@ -66,14 +67,16 @@ src/
   adapters/
     inbound/
       mcp/                          MCP server, tool registration, zod schemas
-      cli/                          human-operator CLI (read-only transcript viewer)
+      cli/                          human-operator CLI (read-only transcript viewer + install)
         AiMeetingCli.ts             argv parser + command dispatcher
         lib/
           opener.ts                 platform browser opener (shared by show --open and watch)
+          packageRoot.ts            resolves the package root from import.meta.url (used by install)
         commands/
           list.ts                   `ai-meeting list` — renders MeetingSummary[]
           show.ts                   `ai-meeting show <id>` — renders a Transcript
           watch.ts                  `ai-meeting watch` — starts WatchServer; SIGINT/SIGTERM handlers
+          install.ts                `ai-meeting install` — places SKILL.md and registers MCP server
         renderers/
           text.ts                   TTY-oriented, optional ANSI colors
           html.ts                   self-contained HTML report (inline CSS, no remote refs)
@@ -97,6 +100,14 @@ src/
   bin/
     ai-meeting-server.ts            stdio entrypoint → bootstrap() → listen
     ai-meeting.ts                   CLI entrypoint → loadConfig() + FileMeetingStore + AiMeetingCli
+```
+
+Plus a top-level `skills/` directory shipped via npm `files`:
+
+```
+skills/
+  ai-meeting/
+    SKILL.md                        canonical skill artefact placed by `ai-meeting install`
 ```
 
 ## Shared Code

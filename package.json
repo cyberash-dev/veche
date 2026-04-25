@@ -15,7 +15,8 @@
   },
   "files": [
     "dist",
-    "spec"
+    "spec",
+    "skills"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

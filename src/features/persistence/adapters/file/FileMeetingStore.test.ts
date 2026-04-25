@@ -74,4 +74,110 @@ describe("FileMeetingStore", () => {
 		expect(page.messages).toHaveLength(1);
 		expect(page.messages[0]?.text).toBe("hello");
 	});
+
+	it("refresh() picks up new meetings created by another process", async () => {
+		const clock = new FakeClock();
+		const ids = new FakeIdGen();
+		const logger = new SilentLogger();
+		const writer = new FileMeetingStore({ clock, logger }, { rootDir: root });
+		const reader = new FileMeetingStore({ clock, logger }, { rootDir: root });
+
+		const initial = await reader.listMeetings({ limit: 10 });
+		expect(initial.summaries).toHaveLength(0);
+
+		// Writer creates a meeting after reader has already initialised.
+		const meeting: Meeting = {
+			id: ids.newMeetingId(),
+			title: "Cross-process",
+			status: "active",
+			createdAt: clock.now(),
+			endedAt: null,
+			participants: [],
+			defaultMaxRounds: 3,
+		};
+		const facilitator: Participant = {
+			id: asParticipantId("alice"),
+			role: "facilitator",
+			displayName: "alice",
+			adapter: null,
+			profile: null,
+			systemPrompt: null,
+			workdir: null,
+			model: null,
+			extraFlags: [],
+			env: {},
+			sessionId: null,
+			providerRef: null,
+			status: "active",
+			droppedAt: null,
+			droppedReason: null,
+		};
+		await writer.createMeeting({ meeting, participants: [facilitator] });
+
+		// Without refresh, reader still sees zero meetings (cache is stale).
+		const stale = await reader.listMeetings({ limit: 10 });
+		expect(stale.summaries).toHaveLength(0);
+
+		// After refresh, the new meeting is visible.
+		await reader.refresh();
+		const fresh = await reader.listMeetings({ limit: 10 });
+		expect(fresh.summaries).toHaveLength(1);
+		expect(fresh.summaries[0]?.meetingId).toBe(meeting.id);
+	});
+
+	it("refresh() picks up new messages appended by another process to a known meeting", async () => {
+		const clock = new FakeClock();
+		const ids = new FakeIdGen();
+		const logger = new SilentLogger();
+		const writer = new FileMeetingStore({ clock, logger }, { rootDir: root });
+
+		const meeting: Meeting = {
+			id: ids.newMeetingId(),
+			title: "Updates",
+			status: "active",
+			createdAt: clock.now(),
+			endedAt: null,
+			participants: [],
+			defaultMaxRounds: 3,
+		};
+		const facilitator: Participant = {
+			id: asParticipantId("alice"),
+			role: "facilitator",
+			displayName: "alice",
+			adapter: null,
+			profile: null,
+			systemPrompt: null,
+			workdir: null,
+			model: null,
+			extraFlags: [],
+			env: {},
+			sessionId: null,
+			providerRef: null,
+			status: "active",
+			droppedAt: null,
+			droppedReason: null,
+		};
+		await writer.createMeeting({ meeting, participants: [facilitator] });
+
+		const reader = new FileMeetingStore({ clock, logger }, { rootDir: root });
+		const beforeList = await reader.listMeetings({ limit: 10 });
+		expect(beforeList.summaries[0]?.lastSeq).toBe(1);
+
+		await writer.appendMessage({
+			meetingId: meeting.id,
+			jobId: null,
+			message: {
+				id: ids.newMessageId(),
+				round: 0,
+				author: asParticipantId("alice"),
+				kind: "speech",
+				text: "hi",
+				createdAt: clock.now(),
+			},
+		});
+
+		await reader.refresh();
+		const afterList = await reader.listMeetings({ limit: 10 });
+		expect(afterList.summaries[0]?.lastSeq).toBe(2);
+	});
 });

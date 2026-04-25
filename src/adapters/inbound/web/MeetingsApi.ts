@@ -57,6 +57,7 @@ export const handleListMeetings = async (
 		return;
 	}
 	const cursor = url.searchParams.get("cursor");
+	await store.refresh?.();
 	const result = await store.listMeetings({
 		limit,
 		...(statusFilter !== undefined ? { status: statusFilter } : {}),
@@ -72,6 +73,7 @@ export const handleGetMeeting = async (
 	response: ServerResponse,
 ): Promise<void> => {
 	try {
+		await store.refresh?.();
 		const snapshot = await store.loadMeeting(asMeetingId(rawId));
 		writeJson(response, 200, snapshotDto(snapshot));
 	} catch (err) {
@@ -101,6 +103,7 @@ export const handleGetMessages = async (
 	const cursor = url.searchParams.get("cursor");
 	try {
 		const meetingId = asMeetingId(rawId);
+		await store.refresh?.();
 		await store.loadMeeting(meetingId);
 		const page = await store.readMessagesSince({
 			meetingId,

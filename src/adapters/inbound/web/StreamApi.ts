@@ -75,6 +75,7 @@ export const streamMeetings = async (
 
 	while (!signal.aborted) {
 		try {
+			await deps.store.refresh?.();
 			const result = await deps.store.listMeetings({ limit: WATCH_LIST_LIMIT });
 			if (!helloEmitted) {
 				const summaries = result.summaries.map(summaryDto);
@@ -134,6 +135,7 @@ export const streamMeeting = async (
 
 	while (!signal.aborted) {
 		try {
+			await deps.store.refresh?.();
 			if (!snapshotSent) {
 				const snapshot = await deps.store.loadMeeting(meetingId);
 

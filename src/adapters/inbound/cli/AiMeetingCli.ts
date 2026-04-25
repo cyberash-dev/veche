@@ -1,6 +1,13 @@
 import type { MeetingStorePort } from "../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../shared/ports/ClockPort.js";
 import type { LoggerPort } from "../../../shared/ports/LoggerPort.js";
+import {
+	buildRealInstallDeps,
+	type InstallCommand,
+	type InstallTargetSelection,
+	MCP_NAME_RE,
+	runInstall,
+} from "./commands/install.js";
 import { type ListCommand, runList } from "./commands/list.js";
 import { runShow, type ShowCommand } from "./commands/show.js";
 import { runWatch, type WatchCommand } from "./commands/watch.js";
@@ -35,6 +42,16 @@ commands:
     --port=N                   0..65535 (default: 0 — kernel-assigned ephemeral)
     --host=HOST                bind address (default: 127.0.0.1)
     --no-open                  do not auto-open the browser
+    --no-color
+
+  install                      install the ai-meeting skill + register MCP server
+    --for=claude-code|codex|both  (default: both)
+    --mcp-name=NAME            MCP server + skill directory name (default: ai-meeting)
+    --server-bin=<abs path>    override path to ai-meeting-server.js
+    --skills-only              only copy SKILL.md, skip MCP register
+    --mcp-only                 only register MCP, skip SKILL.md copy
+    --force                    proceed past missing host CLIs instead of aborting
+    --dry-run                  print actions without performing them
     --no-color
 
   global:
@@ -240,6 +257,42 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 				version: deps.version,
 				stderr: deps.stderr,
 			});
+		}
+		case "install": {
+			if (parsed.positional.length !== 0) {
+				stderr(`install: takes no positional arguments\n`);
+				return EXIT_USAGE;
+			}
+			const target = readStringFlag(parsed.flags, "for", "both");
+			if (target !== "claude-code" && target !== "codex" && target !== "both") {
+				stderr(`invalid --for: ${target}\n`);
+				return EXIT_USAGE;
+			}
+			const mcpName = readStringFlag(parsed.flags, "mcp-name", "ai-meeting");
+			if (!MCP_NAME_RE.test(mcpName)) {
+				stderr(`invalid --mcp-name: ${mcpName}\n`);
+				return EXIT_USAGE;
+			}
+			const serverBinRaw = parsed.flags.get("server-bin");
+			const serverBin =
+				typeof serverBinRaw === "string" && serverBinRaw.length > 0 ? serverBinRaw : null;
+			const skillsOnly = parsed.flags.get("skills-only") === true;
+			const mcpOnly = parsed.flags.get("mcp-only") === true;
+			if (skillsOnly && mcpOnly) {
+				stderr(`--skills-only and --mcp-only are mutually exclusive\n`);
+				return EXIT_USAGE;
+			}
+			const cmd: InstallCommand = {
+				target: target as InstallTargetSelection,
+				mcpName,
+				serverBin,
+				skillsOnly,
+				mcpOnly,
+				force: parsed.flags.get("force") === true,
+				dryRun: parsed.flags.get("dry-run") === true,
+				useColor: useColorFrom(parsed.flags),
+			};
+			return runInstall(cmd, buildRealInstallDeps(deps.stderr));
 		}
 		default: {
 			stderr(`unknown command: ${sub}\n${USAGE}`);

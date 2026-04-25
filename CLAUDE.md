@@ -26,6 +26,7 @@ context.
 | Change the CLI output format / add a renderer | [`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md) |
 | Touch `list` or `show` command logic | `src/adapters/inbound/cli/commands/{list,show}.ts` |
 | Touch the live web viewer (`ai-meeting watch`) | [`spec/features/web-viewer/watch-server.usecase.md`](spec/features/web-viewer/watch-server.usecase.md) and `src/adapters/inbound/web/*` |
+| Touch the install / setup command (`ai-meeting install`) | [`spec/features/install/install-cli.usecase.md`](spec/features/install/install-cli.usecase.md), `src/adapters/inbound/cli/commands/install.ts`, canonical skill at `skills/ai-meeting/SKILL.md` |
 | Touch HTML / text / markdown / json rendering | `src/adapters/inbound/cli/renderers/*.ts` (pure functions) |
 | See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/ai-meeting.ts` (CLI) |
 | Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `AI_MEETING_E2E=1`) |

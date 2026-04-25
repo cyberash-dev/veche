@@ -202,6 +202,50 @@ describe("ai-meeting CLI (integration)", () => {
 		expect(res.stderr).toContain("--port");
 	});
 
+	it("install --help prints usage and exits 0", async () => {
+		const res = await runCliBin(["install", "--help"], {
+			...process.env,
+			NO_COLOR: "1",
+			AI_MEETING_HOME: root,
+		});
+		expect(res.code).toBe(0);
+		expect(res.stderr).toContain("install");
+		expect(res.stderr).toContain("--for");
+	});
+
+	it("install --dry-run does not write files or spawn host CLIs", async () => {
+		const home = await mkdtemp(path.join(os.tmpdir(), "ai-meeting-install-"));
+		try {
+			const res = await runCliBin(["install", "--dry-run", "--home", root], {
+				...process.env,
+				NO_COLOR: "1",
+				HOME: home,
+				CLAUDE_BIN: "/nonexistent/claude",
+				CODEX_BIN: "/nonexistent/codex",
+			});
+			expect(res.code).toBe(0);
+			expect(res.stderr).toContain("(dry-run)");
+			expect(res.stderr).toContain("[claude-code]");
+			expect(res.stderr).toContain("[codex]");
+			await expect(
+				(await import("node:fs/promises")).access(
+					path.join(home, ".claude", "skills", "ai-meeting", "SKILL.md"),
+				),
+			).rejects.toBeTruthy();
+		} finally {
+			await rm(home, { recursive: true, force: true });
+		}
+	});
+
+	it("install with both --skills-only and --mcp-only returns 64", async () => {
+		const res = await runCliBin(["install", "--skills-only", "--mcp-only", "--home", root], {
+			...process.env,
+			NO_COLOR: "1",
+		});
+		expect(res.code).toBe(64);
+		expect(res.stderr).toContain("mutually exclusive");
+	});
+
 	it("watch starts a server, accepts SIGINT, and exits 0", async () => {
 		await seedMeeting(root);
 		const child = spawn(

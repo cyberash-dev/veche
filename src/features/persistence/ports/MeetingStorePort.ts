@@ -113,6 +113,14 @@ export interface MeetingStorePort {
 		timeoutMs: number;
 	}): Promise<void>;
 
+	/**
+	 * Optional. Re-read on-disk state to pick up changes made by another process. Same-process
+	 * adapters (e.g. InMemoryStore) leave this unimplemented. Cross-process readers (the watch
+	 * server) call this before each poll cycle so `listMeetings` / `loadMeeting` /
+	 * `readMessagesSince` reflect the current store contents.
+	 */
+	refresh?(): Promise<void>;
+
 	/** For tests and debug tooling — full event stream for a meeting. */
 	readAllEvents?(meetingId: MeetingId): Promise<readonly AnyEvent[]>;
 }
