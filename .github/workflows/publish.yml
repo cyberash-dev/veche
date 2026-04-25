@@ -17,12 +17,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          # Trusted Publishers OIDC requires npm CLI >= 11.5. Node 22 ships with npm 10.x;
+          # Node 24 ships with npm 11.x — pick it up here without an in-place npm upgrade
+          # (which can break arborist's dep tree on the runner).
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
-
-      # Trusted Publishers OIDC flow requires npm CLI >= 11.5; Node 22 ships with npm 10.x.
-      - run: npm install -g npm@latest
 
       - run: npm ci
       - run: npm run typecheck
