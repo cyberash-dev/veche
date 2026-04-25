@@ -1,6 +1,6 @@
 # Veche
 
-> Веча — bounded multi-agent deliberation as an MCP server.
+> Вече — bounded multi-agent deliberation as an MCP server.
 
 `veche` is a Model Context Protocol (MCP) server that lets an orchestrator agent (Claude
 Code, a custom agent, your IDE) convene **committee meetings** between LLM agents and read
