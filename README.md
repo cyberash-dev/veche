@@ -1,4 +1,4 @@
-![Veche banner](assets/brand/veche-banner.png)
+![Veche banner](https://raw.githubusercontent.com/cyberash-dev/veche/main/assets/brand/veche-banner.png)
 
 # Veche
 

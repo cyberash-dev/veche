@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "cyberash <mail@cyberash.dev>",
-  "homepage": "https://github.com/cyberash/veche#readme",
+  "homepage": "https://github.com/cyberash-dev/veche#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cyberash/veche.git"
+    "url": "git+https://github.com/cyberash-dev/veche.git"
   },
   "bugs": {
-    "url": "https://github.com/cyberash/veche/issues"
+    "url": "https://github.com/cyberash-dev/veche/issues"
   },
   "keywords": [
     "mcp",
@@ -44,7 +44,8 @@
     "skills",
     "examples",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -62,14 +63,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^3.23.8"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "3.23.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.13",
-    "@types/node": "^22.10.1",
-    "project-map-cli": "^0.2.1",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "@biomejs/biome": "2.4.13",
+    "@types/node": "22.10.1",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
   }
 }
