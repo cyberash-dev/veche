@@ -36,9 +36,9 @@ Returns:
 2. Prepare a temporary file path for `--output-last-message`: `os.tmpdir() + '/veche-codex-<randomSuffix>/last.txt'`.
 3. Decide between **initial invocation** and **resume** based on `session.providerRef`:
    - **Turn 1** (`providerRef === null`):
-     `codex exec --json -o <tmpPath> [--model <model>] --sandbox <sandbox> [--cd <workdir>] [-c instructions=<systemPromptJson>] <extraFlags…> <promptText>`
+     `codex exec --json -o <tmpPath> --skip-git-repo-check [--model <model>] --sandbox <sandbox> [--cd <workdir>] [-c instructions=<systemPromptJson>] <extraFlags…> <promptText>`
    - **Turn N ≥ 2** (`providerRef !== null`):
-     `codex exec resume <providerRef> --json -o <tmpPath> [--model <model>] <extraFlags…> <promptText>`
+     `codex exec resume <providerRef> --json -o <tmpPath> --skip-git-repo-check [--model <model>] <extraFlags…> <promptText>`
 
    The flag split is **not cosmetic** — `codex exec resume` rejects `--sandbox`, `--cd`, and `-c instructions=...` because the sandbox, working directory, and system prompt are inherited from the thread created in Turn 1. Passing them produces `error: unexpected argument '--sandbox' found` and a non-zero exit. The adapter therefore emits these flags only on Turn 1; on resume it emits only the small set that the CLI accepts on both subcommands (`--json`, `-o`, `--model`, allow-listed feature flags).
 4. `<sandbox>` defaults to `read-only`. A Participant may upgrade via the `extraFlags` allow-list below.
@@ -106,12 +106,13 @@ All errors are port-level (`AdapterNotAvailable`, `AdapterConfigInvalid`, `Adapt
 - **`-o <tmpPath>` is mandatory** for reading the final message reliably. The adapter parses JSONL for capture but treats the `-o` file as authoritative on success.
 - **Flag set differs between Turn 1 and resume.** The adapter MUST NOT emit `--sandbox`, `--cd`, or `-c instructions=...` on `codex exec resume`. Codex rejects them with a usage error because the thread inherits those settings from Turn 1.
 - **Sandbox default `read-only`.** Upgrades require explicit `extraFlags` entries from the allow-list below, applied on Turn 1 only.
+- **Auto-injected `--skip-git-repo-check`.** The adapter always emits `--skip-git-repo-check` on both `codex exec` and `codex exec resume`. The host process cwd from which `veche` is launched is not guaranteed to be a Git repo or a directory marked `trust_level = "trusted"` in `~/.codex/config.toml`; without the flag, codex refuses to start with `Not inside a trusted directory and --skip-git-repo-check was not specified` and the participant is dropped on Turn 1 with `codex-generic`. Skipping the trust prompt does not relax sandboxing — the default sandbox is still `read-only` and any upgrade is opt-in via `extraFlags`.
 - **Allow-listed `extraFlags`:**
   - `--sandbox workspace-write`
   - `--sandbox danger-full-access` (strongly discouraged; the adapter still permits it for operators who explicitly need it)
   - `--profile <name>` (Codex's own profile system; orthogonal to this project's Profile concept)
   - `--ephemeral`
-  - `--skip-git-repo-check`
+  - `--skip-git-repo-check` (kept in the allow-list for backwards compatibility; supplying it via `extraFlags` is a no-op because the adapter already injects it and de-duplicates user-supplied copies)
   Any flag outside this allow-list fails `openSession` with `AdapterConfigInvalid`.
 - **Model override** is passed via `--model` when `participant.model` is non-null; otherwise the adapter does not set the flag (Codex uses its configured default). `--model` is valid on both `exec` and `exec resume`.
 - **System prompt injection.** Exposed through `-c instructions='<content>'` on Turn 1 only. Content is JSON-stringified (argv, not a shell). On resume the system prompt is inherited and the adapter does not re-send it.

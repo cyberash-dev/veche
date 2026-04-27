@@ -20,7 +20,7 @@ d("codex e2e (opt-in VECHE_E2E=1)", () => {
 			systemPrompt: "Answer in one word.",
 			workdir: null,
 			model: null,
-			extraFlags: ["--skip-git-repo-check"],
+			extraFlags: [],
 			env: {},
 		});
 		try {
@@ -32,7 +32,7 @@ d("codex e2e (opt-in VECHE_E2E=1)", () => {
 				systemPrompt: "Answer in one word.",
 				workdir: null,
 				model: null,
-				extraFlags: ["--skip-git-repo-check"],
+				extraFlags: [],
 				env: {},
 				roundNumber: 1,
 				timeoutMs: 120_000,

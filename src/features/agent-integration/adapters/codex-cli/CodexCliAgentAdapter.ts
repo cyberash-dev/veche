@@ -105,6 +105,11 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 		}
 		// Flags valid on both `exec` and `exec resume`:
 		args.push("--json", "-o", tmpPath);
+		// Auto-injected: the host cwd is not guaranteed to be a Git repo or a
+		// codex-trusted directory; without this flag codex aborts with
+		// "Not inside a trusted directory" before doing any work. See
+		// spec/features/agent-integration/codex-cli-adapter.usecase.md.
+		args.push("--skip-git-repo-check");
 		if (entry.model) {
 			args.push("--model", entry.model);
 		}
@@ -119,13 +124,15 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 				args.push("-c", `instructions=${JSON.stringify(entry.systemPrompt)}`);
 			}
 		}
-		// Propagate extraFlags; drop sandbox literals since they were consumed above.
+		// Propagate extraFlags; drop sandbox literals since they were consumed above
+		// and drop --skip-git-repo-check since the adapter already injects it.
 		for (const f of entry.extraFlags) {
 			if (
 				f === "--sandbox" ||
 				f === "workspace-write" ||
 				f === "danger-full-access" ||
-				f === "read-only"
+				f === "read-only" ||
+				f === "--skip-git-repo-check"
 			) {
 				continue;
 			}

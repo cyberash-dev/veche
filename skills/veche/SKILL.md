@@ -56,7 +56,6 @@ Call `mcp__veche__start_meeting` with:
     {
       "id": "codex",
       "adapter": "codex-cli",
-      "extraFlags": ["--skip-git-repo-check"],
       "systemPrompt": "You are an independent agent in a multi-party deliberation. On each turn you will see every prior message from every other agent. Respond in 1-3 sentences with your honest, substantive perspective. If — and only if — you genuinely have nothing meaningful to add or contest, respond with exactly <PASS/> and nothing else."
     },
     {

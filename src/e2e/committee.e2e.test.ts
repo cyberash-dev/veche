@@ -146,7 +146,6 @@ d("committee e2e (opt-in VECHE_E2E=1)", () => {
 					adapter: "codex-cli",
 					systemPrompt:
 						"You are a terse pragmatic engineer. Answer in one or two sentences. If you have nothing to add, respond with exactly <PASS/> and nothing else.",
-					extraFlags: ["--skip-git-repo-check"],
 				},
 				{
 					id: "reviewer",
