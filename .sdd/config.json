@@ -16,6 +16,48 @@
         "src/features/persistence/**/*.test.ts"
       ],
       "sandbox_paths": []
+    },
+    "agent-integration": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/features/agent-integration/**/*.test.ts",
+        "src/features/meeting/application/__tests__/committee.integration.test.ts",
+        "src/e2e/codex.e2e.test.ts",
+        "src/e2e/claude-code.e2e.test.ts",
+        "src/e2e/committee.e2e.test.ts"
+      ],
+      "sandbox_paths": []
+    },
+    "committee-protocol": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/features/committee-protocol/**/*.test.ts",
+        "src/features/meeting/application/__tests__/committee.integration.test.ts"
+      ],
+      "sandbox_paths": []
+    },
+    "meeting": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/features/meeting/**/*.test.ts",
+        "src/adapters/inbound/mcp/__tests__/**/*.test.ts",
+        "src/adapters/inbound/cli/__tests__/**/*.test.ts"
+      ],
+      "sandbox_paths": []
+    },
+    "web-viewer": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/adapters/inbound/web/__tests__/**/*.test.ts"
+      ],
+      "sandbox_paths": []
+    },
+    "install": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/adapters/inbound/cli/commands/__tests__/install.test.ts"
+      ],
+      "sandbox_paths": []
     }
   }
 }
