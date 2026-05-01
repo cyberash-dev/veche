@@ -1,0 +1,10 @@
+plan_id: 2026-05-01T214114Z-0m7o8
+created_at: 2026-05-01T21:41:14.906Z
+pending_attestations:
+  - id: persistence:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-01T21:41:14.905Z
+    change_request: local/spec-migration-persistence-v1
+    scope: first-time-approval
+    target_status: approved

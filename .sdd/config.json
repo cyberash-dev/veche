@@ -1,0 +1,21 @@
+{
+  "$schema": "https://github.com/cyberash-dev/sdd-cli/blob/main/schema/sdd.config.schema.json",
+  "spec_file": "spec/spec.md",
+  "baseline_id": "persistence:BL-001",
+  "discovery_scope": [
+    "src/features/persistence"
+  ],
+  "mechanism": "git_tree_hash_v1",
+  "lint": {
+    "spec_files": ["spec/spec.md"]
+  },
+  "partitions": {
+    "persistence": {
+      "spec_paths": ["spec/spec.md"],
+      "test_paths": [
+        "src/features/persistence/**/*.test.ts"
+      ],
+      "sandbox_paths": []
+    }
+  }
+}
