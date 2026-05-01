@@ -136,7 +136,7 @@ discovery_scope:
   - src/features/persistence
 coverage_evidence:
   - kind: git_tree_hash_v1
-    reference: d4fa8f5a342cbd7ea01c9b17ab58e76b21088c13e9c79819ce35d0d3877afaf3
+    reference: 2e943cd66ff1376efd0e7bbaa43b20f52d1b9685cd45b51a8c0f83e4a3a5d92e
     note: |
       Token covers ports/, adapters/file/, adapters/in-memory/,
       domain/Event.ts, and index.ts of the persistence slice.
@@ -145,8 +145,8 @@ coverage_evidence:
       they are intentionally excluded from this partition's Discovery
       scope and will be covered by the meeting partition's baseline
       when that partition migrates.
-freshness_token: d4fa8f5a342cbd7ea01c9b17ab58e76b21088c13e9c79819ce35d0d3877afaf3
-baseline_commit_sha: df14e222606e0a34c9fd9311b4829b896e4bde0b
+freshness_token: 2e943cd66ff1376efd0e7bbaa43b20f52d1b9685cd45b51a8c0f83e4a3a5d92e
+baseline_commit_sha: 1b81125334731d6a8340c1368ad3c9e98e586f69
 mechanism: git_tree_hash_v1
 notes: |
   BL-001 lifecycle remains proposed until a non-agent owner records an
