@@ -13,6 +13,8 @@ export interface InstallCommand {
 	readonly serverBin: string | null;
 	readonly skillsOnly: boolean;
 	readonly mcpOnly: boolean;
+	readonly skipConfig: boolean;
+	readonly homeOverride: string | null;
 	readonly force: boolean;
 	readonly dryRun: boolean;
 	readonly useColor: boolean;
@@ -93,6 +95,26 @@ const buildHostPlan = (
 const expandTargets = (selection: InstallTargetSelection): readonly InstallTarget[] =>
 	selection === "both" ? ["claude-code", "codex"] : [selection];
 
+const resolveVecheHome = (cmd: InstallCommand, deps: InstallDeps): string => {
+	if (cmd.homeOverride) {
+		return cmd.homeOverride;
+	}
+	const fromEnv = deps.env.VECHE_HOME;
+	if (fromEnv && fromEnv.length > 0) {
+		return fromEnv;
+	}
+	return path.join(deps.homedir(), ".veche");
+};
+
+const fileExists = async (target: string): Promise<boolean> => {
+	try {
+		await fs.access(target);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
 const writeAtomic = async (filePath: string, content: string): Promise<void> => {
 	await fs.mkdir(path.dirname(filePath), { recursive: true });
 	const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
@@ -146,6 +168,48 @@ interface RunStepResult {
 	readonly outcome: "ok" | "skipped" | "error";
 	readonly message?: string;
 }
+
+const runConfigBootstrap = async (
+	cmd: InstallCommand,
+	deps: InstallDeps,
+): Promise<RunStepResult> => {
+	const { stderr } = deps;
+	if (cmd.skipConfig) {
+		stderr(`(skipped) config file (--skip-config)\n`);
+		return { outcome: "skipped" };
+	}
+
+	const source = path.join(deps.packageRoot, "examples", "config.json.example");
+	let template: string;
+	try {
+		template = await fs.readFile(source, "utf8");
+	} catch {
+		stderr(`config source not found at ${source}\n`);
+		return { outcome: "error", message: "config-source-missing" };
+	}
+
+	const home = resolveVecheHome(cmd, deps);
+	const target = path.join(home, "config.json");
+
+	if (cmd.dryRun) {
+		stderr(`(dry-run) writing config file → ${target}\n`);
+		return { outcome: "ok" };
+	}
+
+	if (!cmd.force && (await fileExists(target))) {
+		stderr(`(exists) config file → ${target}\n`);
+		return { outcome: "skipped" };
+	}
+
+	try {
+		await writeAtomic(target, template);
+	} catch (err) {
+		stderr(`error: cannot write ${target}: ${(err as Error).message}\n`);
+		return { outcome: "error", message: "write-failed" };
+	}
+	stderr(`writing config file → ${target}\n`);
+	return { outcome: "ok" };
+};
 
 const runHost = async (
 	plan: HostPlan,
@@ -258,6 +322,11 @@ export const runInstall = async (cmd: InstallCommand, deps: InstallDeps): Promis
 		await fs.access(serverBin);
 	} catch {
 		deps.stderr(`server bin not found at ${serverBin}\n`);
+		return 2;
+	}
+
+	const configResult = await runConfigBootstrap(cmd, deps);
+	if (configResult.outcome === "error") {
 		return 2;
 	}
 
