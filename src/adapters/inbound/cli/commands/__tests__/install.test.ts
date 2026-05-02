@@ -70,6 +70,11 @@ const buildDeps = async (
 	);
 	await fs.mkdir(path.join(root, "dist", "bin"), { recursive: true });
 	await fs.writeFile(path.join(root, "dist", "bin", "veche-server.js"), "// stub");
+	await fs.mkdir(path.join(root, "examples"), { recursive: true });
+	await fs.writeFile(
+		path.join(root, "examples", "config.json.example"),
+		'{"version":1,"profiles":[]}\n',
+	);
 	let stderrBuffer = "";
 	const deps: InstallDeps = {
 		stderr: (s: string) => {
@@ -90,6 +95,8 @@ const baseCommand = (): InstallCommand => ({
 	serverBin: null,
 	skillsOnly: false,
 	mcpOnly: false,
+	skipConfig: true,
+	homeOverride: null,
 	force: false,
 	dryRun: false,
 	useColor: false,
@@ -298,9 +305,10 @@ describe("runInstall", () => {
 		expect(codexCall).toBeDefined();
 	});
 
-	it("never writes outside the host skills root", async () => {
-		// Successful run; the skill file paths must be under home/.claude or home/.codex.
-		await runInstall(baseCommand(), depsHandle.deps);
+	it("never writes outside the bounded write surface", async () => {
+		// Successful run with config bootstrap enabled: writes must land under
+		// home/.claude/skills/veche, home/.codex/skills/veche, or home/.veche/config.json.
+		await runInstall({ ...baseCommand(), skipConfig: false }, depsHandle.deps);
 		const findFiles = async (dir: string, acc: string[] = []): Promise<string[]> => {
 			let entries: import("node:fs").Dirent[];
 			try {
@@ -319,10 +327,115 @@ describe("runInstall", () => {
 			return acc;
 		};
 		const written = await findFiles(depsHandle.home);
+		const claudeRoot = path.join(depsHandle.home, ".claude", "skills", "veche");
+		const codexRoot = path.join(depsHandle.home, ".codex", "skills", "veche");
+		const configFile = path.join(depsHandle.home, ".veche", "config.json");
 		for (const file of written) {
-			const claudeRoot = path.join(depsHandle.home, ".claude", "skills", "veche");
-			const codexRoot = path.join(depsHandle.home, ".codex", "skills", "veche");
-			expect(file.startsWith(claudeRoot) || file.startsWith(codexRoot)).toBe(true);
+			const allowed =
+				file.startsWith(claudeRoot) || file.startsWith(codexRoot) || file === configFile;
+			expect(allowed).toBe(true);
 		}
+	});
+
+	describe("config bootstrap", () => {
+		it("writes $VECHE_HOME/config.json byte-identical with the template", async () => {
+			const code = await runInstall({ ...baseCommand(), skipConfig: false }, depsHandle.deps);
+			expect(code).toBe(0);
+			const configPath = path.join(depsHandle.home, ".veche", "config.json");
+			const written = await fs.readFile(configPath, "utf8");
+			const template = await fs.readFile(
+				path.join(depsHandle.deps.packageRoot, "examples", "config.json.example"),
+				"utf8",
+			);
+			expect(written).toBe(template);
+			expect(depsHandle.stderr()).toContain(`writing config file → ${configPath}`);
+		});
+
+		it("preserves an existing config.json without --force", async () => {
+			const configPath = path.join(depsHandle.home, ".veche", "config.json");
+			await fs.mkdir(path.dirname(configPath), { recursive: true });
+			const custom =
+				'{"version":1,"profiles":[{"name":"my-custom","adapter":"codex-cli"}]}\n';
+			await fs.writeFile(configPath, custom);
+
+			const code = await runInstall({ ...baseCommand(), skipConfig: false }, depsHandle.deps);
+			expect(code).toBe(0);
+
+			const after = await fs.readFile(configPath, "utf8");
+			expect(after).toBe(custom);
+			expect(depsHandle.stderr()).toContain(`(exists) config file → ${configPath}`);
+		});
+
+		it("overwrites an existing config.json with --force", async () => {
+			const configPath = path.join(depsHandle.home, ".veche", "config.json");
+			await fs.mkdir(path.dirname(configPath), { recursive: true });
+			await fs.writeFile(configPath, '{"version":1,"profiles":[{"name":"old"}]}\n');
+
+			const code = await runInstall(
+				{ ...baseCommand(), skipConfig: false, force: true },
+				depsHandle.deps,
+			);
+			expect(code).toBe(0);
+
+			const after = await fs.readFile(configPath, "utf8");
+			const template = await fs.readFile(
+				path.join(depsHandle.deps.packageRoot, "examples", "config.json.example"),
+				"utf8",
+			);
+			expect(after).toBe(template);
+		});
+
+		it("--skip-config does not write config.json", async () => {
+			const code = await runInstall({ ...baseCommand(), skipConfig: true }, depsHandle.deps);
+			expect(code).toBe(0);
+			const configPath = path.join(depsHandle.home, ".veche", "config.json");
+			await expect(fs.access(configPath)).rejects.toBeTruthy();
+			expect(depsHandle.stderr()).toContain("(skipped) config file (--skip-config)");
+		});
+
+		it("--dry-run logs the bootstrap line but writes nothing", async () => {
+			const code = await runInstall(
+				{ ...baseCommand(), skipConfig: false, dryRun: true },
+				depsHandle.deps,
+			);
+			expect(code).toBe(0);
+			const configPath = path.join(depsHandle.home, ".veche", "config.json");
+			await expect(fs.access(configPath)).rejects.toBeTruthy();
+			expect(depsHandle.stderr()).toContain(`(dry-run) writing config file → ${configPath}`);
+		});
+
+		it("homeOverride redirects config to a custom path", async () => {
+			const overrideHome = await fs.mkdtemp(path.join(os.tmpdir(), "veche-home-override-"));
+			tmpDirs.push(overrideHome);
+			const code = await runInstall(
+				{ ...baseCommand(), skipConfig: false, homeOverride: overrideHome },
+				depsHandle.deps,
+			);
+			expect(code).toBe(0);
+			await fs.access(path.join(overrideHome, "config.json"));
+			await expect(
+				fs.access(path.join(depsHandle.home, ".veche", "config.json")),
+			).rejects.toBeTruthy();
+		});
+
+		it("env.VECHE_HOME is used when homeOverride is null", async () => {
+			const envHome = await fs.mkdtemp(path.join(os.tmpdir(), "veche-home-env-"));
+			tmpDirs.push(envHome);
+			const handle = await buildDeps({
+				spawner: spawn.spawner,
+				env: { VECHE_HOME: envHome },
+			});
+			tmpDirs.push(handle.root, handle.home);
+			const code = await runInstall({ ...baseCommand(), skipConfig: false }, handle.deps);
+			expect(code).toBe(0);
+			await fs.access(path.join(envHome, "config.json"));
+		});
+
+		it("returns 2 when the config template is missing in the package", async () => {
+			await fs.rm(path.join(depsHandle.deps.packageRoot, "examples"), { recursive: true });
+			const code = await runInstall({ ...baseCommand(), skipConfig: false }, depsHandle.deps);
+			expect(code).toBe(2);
+			expect(depsHandle.stderr()).toContain("config source not found");
+		});
 	});
 });

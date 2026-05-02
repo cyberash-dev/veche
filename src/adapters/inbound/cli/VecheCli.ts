@@ -52,7 +52,8 @@ commands:
     --server-bin=<abs path>    override path to veche-server.js
     --skills-only              only copy SKILL.md, skip MCP register
     --mcp-only                 only register MCP, skip SKILL.md copy
-    --force                    proceed past missing host CLIs instead of aborting
+    --skip-config              skip seeding $VECHE_HOME/config.json
+    --force                    proceed past missing host CLIs; overwrite existing config.json
     --dry-run                  print actions without performing them
     --no-color
 
@@ -290,12 +291,17 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 				stderr(`--skills-only and --mcp-only are mutually exclusive\n`);
 				return EXIT_USAGE;
 			}
+			const skipConfig = parsed.flags.get("skip-config") === true;
+			const homeRaw = parsed.flags.get("home");
+			const homeOverride = typeof homeRaw === "string" && homeRaw.length > 0 ? homeRaw : null;
 			const cmd: InstallCommand = {
 				target: target as InstallTargetSelection,
 				mcpName,
 				serverBin,
 				skillsOnly,
 				mcpOnly,
+				skipConfig,
+				homeOverride,
 				force: parsed.flags.get("force") === true,
 				dryRun: parsed.flags.get("dry-run") === true,
 				useColor: useColorFrom(parsed.flags),
