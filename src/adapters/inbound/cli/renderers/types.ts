@@ -1,3 +1,4 @@
+import type { SynthesisView } from "../../../../features/meeting/application/humanTurnState.js";
 import type { Job } from "../../../../features/meeting/domain/Job.js";
 import type { Meeting } from "../../../../features/meeting/domain/Meeting.js";
 import type { Message } from "../../../../features/meeting/domain/Message.js";
@@ -10,6 +11,7 @@ export interface RenderInput {
 	readonly participants: readonly Participant[];
 	readonly jobs: readonly Job[];
 	readonly messages: readonly Message[];
+	readonly synthesis: SynthesisView | null;
 	/** Non-null when `--raw` is set; populated from `MeetingStorePort.readAllEvents`. */
 	readonly events: readonly AnyEvent[] | null;
 	readonly generatedAt: Instant;

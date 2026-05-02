@@ -1,5 +1,10 @@
 import type { ServerResponse } from "node:http";
+import {
+	pendingHumanTurn,
+	type SynthesisView,
+} from "../../../features/meeting/application/humanTurnState.js";
 import { MeetingNotFound } from "../../../features/meeting/domain/errors.js";
+import type { AnyEvent } from "../../../features/persistence/domain/Event.js";
 import type { MeetingStorePort } from "../../../features/persistence/ports/MeetingStorePort.js";
 import { asMeetingId } from "../../../shared/types/ids.js";
 import { type MessageDto, messageDto, type SummaryDto, snapshotDto, summaryDto } from "./dto.js";
@@ -9,7 +14,7 @@ const MAX_MESSAGES_LIMIT = 500;
 const DEFAULT_LIST_LIMIT = 100;
 const DEFAULT_MESSAGES_LIMIT = 200;
 
-const writeJson = (response: ServerResponse, status: number, body: unknown): void => {
+export const writeJson = (response: ServerResponse, status: number, body: unknown): void => {
 	const payload = `${JSON.stringify(body, null, 2)}\n`;
 	response.writeHead(status, {
 		"Content-Type": "application/json; charset=utf-8",
@@ -39,6 +44,19 @@ const parseLimit = (raw: string | null, fallback: number, max: number): number |
 		return "invalid";
 	}
 	return Math.min(n, max);
+};
+
+const latestSynthesis = (events: readonly AnyEvent[]): SynthesisView | null => {
+	for (const event of [...events].reverse()) {
+		if (event.type === "synthesis.submitted") {
+			return {
+				jobId: event.payload.jobId,
+				text: event.payload.text,
+				createdAt: event.at,
+			};
+		}
+	}
+	return null;
 };
 
 export const handleListMeetings = async (
@@ -75,7 +93,19 @@ export const handleGetMeeting = async (
 	try {
 		await store.refresh?.();
 		const snapshot = await store.loadMeeting(asMeetingId(rawId));
-		writeJson(response, 200, snapshotDto(snapshot));
+		const events = store.readAllEvents ? await store.readAllEvents(snapshot.meeting.id) : [];
+		const currentJob = snapshot.openJobs[0] ?? null;
+		writeJson(
+			response,
+			200,
+			snapshotDto(snapshot, {
+				humanTurn:
+					currentJob === null
+						? null
+						: pendingHumanTurn(events, snapshot.participants, currentJob.id),
+				synthesis: latestSynthesis(events),
+			}),
+		);
 	} catch (err) {
 		if (err instanceof MeetingNotFound) {
 			writeJson(response, 404, { error: "meeting not found", meetingId: rawId });

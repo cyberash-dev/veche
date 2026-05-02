@@ -1,7 +1,13 @@
 import type { JobId, MeetingId } from "../../../shared/types/ids.js";
 import type { Instant } from "../../../shared/types/instant.js";
 
-export type JobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type JobStatus =
+	| "queued"
+	| "running"
+	| "waiting_for_human"
+	| "completed"
+	| "failed"
+	| "cancelled";
 
 export type TerminationReason = "all-passed" | "max-rounds" | "no-active-members" | "cancelled";
 

@@ -14,9 +14,9 @@
 | Testing | `vitest` (unit), `vitest` + filesystem tmpdir (adapter integration) |
 | Lint / format | `biome` (lint + format) |
 | Build | `tsc` emitting ESM `dist/` |
-| Binary entries | `bin/veche-server.js` — stdio MCP server. `bin/veche.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$VECHE_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation; subcommand `install` copies the canonical `skills/veche/SKILL.md` into Claude Code's / Codex's skills directory and registers the MCP server with each host (see [install-cli](../features/install/install-cli.usecase.md)). The `list` / `show` / `watch` subcommands are read-only against the store; `install` does not touch the store at all. |
+| Binary entries | `bin/veche-server.js` — stdio MCP server. `bin/veche.js` — human-operator CLI; subcommands `list` / `show` read transcripts from `$VECHE_HOME` directly via `FileMeetingStore`; subcommand `watch` starts a long-lived local HTTP server (loopback by default) that serves a self-contained SPA and SSE channels for live observation; subcommand `install` copies the canonical `skills/veche/` skill artefacts into Claude Code's / Codex's skills directory and registers the MCP server with each host (see [install-cli](../features/install/install-cli.usecase.md)). The `list` / `show` / `watch` subcommands are read-only against the store; `install` does not touch the store at all. |
 | CLI dependencies | The `veche` CLI uses Node built-ins only (`process.stdout`, `process.stderr`, `node:fs/promises`, `node:os`, `node:child_process`, `node:crypto`, plus `node:http` and `node:url` for `watch`). The `install` subcommand additionally spawns the `claude` and `codex` host CLIs (already required by [agent-integration](../features/agent-integration/agent-integration.md)). No new npm dependencies beyond those listed above. |
-| Package contents (npm `files`) | `dist/` — compiled JS. `spec/` — full specification tree. `skills/` — canonical `SKILL.md` artefacts shipped alongside the binary; the `install` subcommand reads from this directory. |
+| Package contents (npm `files`) | `dist/` — compiled JS. `spec/` — full specification tree. `skills/` — canonical skill artefacts (`SKILL.md` plus optional host UI metadata) shipped alongside the binary; the `install` subcommand reads from this directory. |
 
 External binaries (resolved via `PATH`):
 
@@ -76,7 +76,7 @@ src/
           list.ts                   `veche list` — renders MeetingSummary[]
           show.ts                   `veche show <id>` — renders a Transcript
           watch.ts                  `veche watch` — starts WatchServer; SIGINT/SIGTERM handlers
-          install.ts                `veche install` — places SKILL.md and registers MCP server
+          install.ts                `veche install` — places SKILL.md / UI metadata and registers MCP server
         renderers/
           text.ts                   TTY-oriented, optional ANSI colors
           html.ts                   self-contained HTML report (inline CSS, no remote refs)
@@ -108,6 +108,8 @@ Plus a top-level `skills/` directory shipped via npm `files`:
 skills/
   veche/
     SKILL.md                        canonical skill artefact placed by `veche install`
+    agents/
+      openai.yaml                   optional host UI metadata placed by `veche install`
 ```
 
 ## Shared Code

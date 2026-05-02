@@ -1,0 +1,4 @@
+interface:
+  display_name: "Veche"
+  short_description: "Convene Codex and Claude committee meetings"
+  default_prompt: "Use $veche to convene a committee; ask me for human mode, round budget, and any per-launch role customizations before starting."

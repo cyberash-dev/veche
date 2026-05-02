@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Execute the multi-party discussion triggered by a Facilitator Message. Runs a sequence of broadcast Rounds until every active Member declines to add anything (Pass Signal) or `max_rounds` is reached. Appends every Member response, every drop incident, and the termination marker to the Meeting Transcript.
+Execute the multi-party discussion triggered by a Facilitator Message. Runs a sequence of model broadcast Rounds until every active Model Member declines to add anything (Pass Signal) or `max_rounds` is reached. When an enabled Human Member is present, the Job pauses after each model Round for a Human Turn before the next termination decision.
 
 ## Domain Entities
 
@@ -13,7 +13,7 @@ Ephemeral, in-memory only. Drives a single Round execution.
 | Field | Type | Rules |
 |-------|------|-------|
 | `number` | integer ≥ 1 | The Round index this plan executes. |
-| `activeMembers` | `ParticipantId[]` | Non-dropped, non-passing Members to dispatch this Round. Order irrelevant (parallel dispatch). |
+| `activeMembers` | `ParticipantId[]` | Non-dropped Model Members to dispatch this Round. Order irrelevant (parallel dispatch). |
 | `transcriptCursor` | `Cursor` | Upper bound of visible Transcript when the Round started. |
 
 ### TurnOutcome
@@ -37,7 +37,7 @@ Ephemeral. Aggregates RoundPlans for a single Job.
 | `meetingId` | `MeetingId` | — |
 | `maxRounds` | integer | From the Job. |
 | `roundNumber` | integer ≥ 0 | Incremented before each Round; starts at 0 after the Facilitator Message. |
-| `pendingPass` | `Set<ParticipantId>` | Members that emitted `<PASS/>` in the current Round. Cleared whenever a non-pass `speech` is appended. |
+| `pendingPass` | `Set<ParticipantId>` | Model Members that emitted `<PASS/>` in the current Round. Cleared when model speech or Human steering requires another model Round. |
 | `droppedThisJob` | `Set<ParticipantId>` | Members dropped during this Job. Cumulative for the remainder of the Meeting. |
 | `terminationReason` | `all-passed` \| `max-rounds` \| `cancelled` \| `no-active-members` \| `null` | Set when the discussion ends. |
 
@@ -65,11 +65,12 @@ Used to stamp system Messages (drop incidents, termination markers) and to enfor
 ## Rules
 
 - **Round 0 is the Facilitator Message.** It is appended by [send-message](../meeting/send-message.usecase.md) before the first invocation of this feature.
-- **Rounds 1..N are Member broadcasts.** Every active Member receives the Transcript snapshot taken at Round start and produces at most one Message. Rounds proceed strictly in order; Round N does not start before every Turn in Round N−1 has reached a terminal state (speech, pass, or failure).
+- **Rounds 1..N are Model Member broadcasts.** Every active Model Member receives the Transcript snapshot taken at Round start and produces at most one Message. Rounds proceed strictly in order; Round N does not start before every model Turn in Round N−1 has reached a terminal state (speech, pass, or failure).
+- **Human pause.** After each model Round completes, if an active Human Member is enabled, the Job transitions to `waiting_for_human` and emits `human.turn.requested`. `agree` and `skip` submissions do not clear model pass state. `steer` appends the Human text, clears model pass state, and allows another model Round when the max-Rounds cap permits it.
 - **Parallel within a Round.** All Turns inside a single Round are dispatched concurrently. No Member sees another Member's Round-N Message before Round N+1.
 - **Pass resets.** `pendingPass` holds Members that passed this Round. If any Member emits a `speech` in this Round, every other Member's prior pass is *still* counted for this Round — but in the next Round the set resets, so a Member that passed earlier may speak again once the Transcript has grown.
 - **Termination conditions.** The Job terminates when any of the following holds, evaluated at the end of a Round:
-  1. Every Member whose `status` is `active` emitted `<PASS/>` in the just-finished Round → `all-passed`.
+  1. Every active Model Member emitted `<PASS/>` in the just-finished Round and no Human steering cleared that pass state → `all-passed`.
   2. `roundNumber >= maxRounds` → `max-rounds`.
   3. No Members are `active` (all dropped) → `no-active-members`.
   4. An external cancellation is observed → `cancelled`.
@@ -77,3 +78,4 @@ Used to stamp system Messages (drop incidents, termination markers) and to enfor
 - **Transcript writes are append-only.** Once a Message is appended, its fields are immutable. A retraction is modeled as a new `system` Message, not a mutation.
 - **`<PASS/>` and `speech` are mutually exclusive.** A response containing both is recorded as `speech` (see [parse-pass-signal](./parse-pass-signal.usecase.md) for the exact rules).
 - **Bounded round-delta per Turn.** Every Member receives, on each Turn, the Messages from rounds the Member has not yet seen — specifically every `speech`/`pass`/`system` Message with `round >= lastRound[member]`, excluding the Member's own messages. `lastRound[member]` is the round in which this Member most recently spoke (or `-1` before any). On Round 1 this is exactly the facilitator's opening Message; on Round N+1 it is every other Member's Message from Round N. The prefix is symmetric — every Member sees the same set of peer Messages from the just-finished round, regardless of intra-round dispatch order. Older context — including the Member's own past responses and prior peer Messages it has already seen — is retained by the adapter's provider session (Codex `thread_id`, Claude Code `--resume`); the protocol depends on this session continuity to keep prompts compact. Construction of the prefix is documented in [dispatch-turn](../agent-integration/dispatch-turn.usecase.md).
+- **Role-aware transcript preambles.** Every model prompt block for a Participant-authored Message includes that author's `discussionRole.name` and `discussionRole.weight`; descriptions are included in the first-turn system context and may be repeated in compact form in preambles.

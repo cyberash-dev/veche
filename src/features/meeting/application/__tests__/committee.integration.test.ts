@@ -17,7 +17,9 @@ import { CancelJobUseCase } from "../CancelJobUseCase.js";
 import { GetResponseUseCase } from "../GetResponseUseCase.js";
 import { JobRunner } from "../JobRunner.js";
 import { SendMessageUseCase } from "../SendMessageUseCase.js";
+import { SetHumanParticipationUseCase } from "../SetHumanParticipationUseCase.js";
 import { StartMeetingUseCase } from "../StartMeetingUseCase.js";
+import { SubmitHumanTurnUseCase } from "../SubmitHumanTurnUseCase.js";
 
 const setup = () => {
 	const clock = new FakeClock();
@@ -61,7 +63,7 @@ const setup = () => {
 		dispatch,
 		handleFailure,
 	});
-	const discussion = new DiscussionRunner({ store, clock, logger, runRound, terminate });
+	const discussion = new DiscussionRunner({ store, clock, ids, logger, runRound, terminate });
 	const jobRunner = new JobRunner({ runner: discussion, logger });
 
 	const start = new StartMeetingUseCase({
@@ -82,8 +84,23 @@ const setup = () => {
 		maxRoundsCap: 16,
 	});
 	const getResponse = new GetResponseUseCase({ store });
+	const submitHumanTurn = new SubmitHumanTurnUseCase({ store, clock, ids });
+	const setHumanParticipation = new SetHumanParticipationUseCase({ store, clock });
 	const cancelJob = new CancelJobUseCase({ store, clock, jobRunner });
-	return { store, clock, ids, codex, claude, jobRunner, start, send, getResponse, cancelJob };
+	return {
+		store,
+		clock,
+		ids,
+		codex,
+		claude,
+		jobRunner,
+		start,
+		send,
+		getResponse,
+		submitHumanTurn,
+		setHumanParticipation,
+		cancelJob,
+	};
 };
 
 const waitForJob = async (
@@ -125,6 +142,20 @@ const waitForJob = async (
 		return { ...last, messages: accumulated };
 	}
 	throw new Error("job did not terminate");
+};
+
+const waitForHumanTurn = async (
+	getResponse: GetResponseUseCase,
+	jobId: ReturnType<FakeIdGen["newJobId"]>,
+): Promise<Awaited<ReturnType<GetResponseUseCase["execute"]>>> => {
+	for (let i = 0; i < 50; i++) {
+		const res = await getResponse.execute({ jobId, limit: 500 });
+		if (res.status === "waiting_for_human" && res.humanTurn !== null) {
+			return res;
+		}
+		await new Promise((r) => setTimeout(r, 5));
+	}
+	throw new Error("job did not wait for human");
 };
 
 describe("committee integration", () => {
@@ -256,6 +287,69 @@ describe("committee integration", () => {
 		const final = await waitForJob(t.getResponse, sent.jobId);
 		expect(final.status).toBe("completed");
 		expect(final.terminationReason).toBe("max-rounds");
+	});
+
+	it("pauses for a human turn and resumes after skip", async () => {
+		const t = setup();
+		const started = await t.start.execute({
+			title: "Human pause",
+			facilitator: { id: "claude" },
+			members: [
+				{ id: "coder", adapter: "codex-cli" },
+				{ id: "human", participantKind: "human" },
+			],
+			defaultMaxRounds: 3,
+		});
+		t.codex.enqueue("coder", [{ kind: "pass" }]);
+
+		const sent = await t.send.execute({
+			meetingId: started.meetingId,
+			text: "go",
+		});
+		const waiting = await waitForHumanTurn(t.getResponse, sent.jobId);
+		expect(waiting.humanTurn?.participant.id).toBe("human");
+		expect(waiting.humanTurn?.agreeTargets.map((target) => target.id)).toEqual(["coder"]);
+
+		await t.submitHumanTurn.execute({
+			jobId: sent.jobId,
+			requestId: waiting.humanTurn?.requestId ?? "",
+			action: "skip",
+		});
+
+		const final = await waitForJob(t.getResponse, sent.jobId);
+		expect(final.status).toBe("completed");
+		expect(final.terminationReason).toBe("all-passed");
+		expect(final.messages.some((m) => m.author === "human" && m.kind === "pass")).toBe(true);
+	});
+
+	it("auto-skips a pending human turn when participation is disabled", async () => {
+		const t = setup();
+		const started = await t.start.execute({
+			title: "Human toggle",
+			facilitator: { id: "claude" },
+			members: [
+				{ id: "coder", adapter: "codex-cli" },
+				{ id: "human", participantKind: "human" },
+			],
+			defaultMaxRounds: 3,
+		});
+		t.codex.enqueue("coder", [{ kind: "pass" }]);
+
+		const sent = await t.send.execute({
+			meetingId: started.meetingId,
+			text: "go",
+		});
+		await waitForHumanTurn(t.getResponse, sent.jobId);
+		await t.setHumanParticipation.execute({
+			meetingId: started.meetingId,
+			participantId: "human",
+			enabled: false,
+			jobId: sent.jobId,
+		});
+
+		const final = await waitForJob(t.getResponse, sent.jobId);
+		expect(final.status).toBe("completed");
+		expect(final.messages.some((m) => m.author === "human" && m.kind === "pass")).toBe(true);
 	});
 
 	it("cancels an in-flight job and finalises the transcript", async () => {

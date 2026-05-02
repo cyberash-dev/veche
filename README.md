@@ -40,6 +40,7 @@ orchestrator hand-rolling turn-taking.
 ```bash
 npm install -g veche
 veche install        # writes SKILL.md to ~/.claude/skills/veche/ and ~/.codex/skills/veche/
+                     # plus optional skill UI metadata under agents/openai.yaml
                      # plus claude mcp add / codex mcp add for the stdio MCP server
 ```
 
@@ -74,11 +75,16 @@ After `veche install`, open Claude Code and type:
 /veche should we use argparse or click for a new Python CLI?
 ```
 
-The skill drives the full lifecycle: `start_meeting` → `send_message` →
-poll `get_response` until the Job terminates → `end_meeting` → render the transcript
-grouped by member with a synthesis paragraph.
+The skill first asks for launch options: whether to include a Human Participant, whether
+to use the default round budget or enter `--rounds N`, and whether to customize roles for
+this launch. If custom roles are enabled, it shows the default `codex` / `claude` role
+metadata and system prompt, then lets you override role description, weight, and system
+prompt without writing a persistent profile.
 
-Pass `ROUNDS=N` (1..16) before the question to override the default 3-round budget.
+After that, the skill drives the full lifecycle: `start_meeting` → `send_message` →
+poll `get_response` until the Job terminates → `end_meeting` → render the transcript
+grouped by member with a synthesis paragraph. `--rounds N`, `--human`, `--no-human`,
+`--custom-roles`, and `--default-roles` preselect the corresponding launch answers.
 
 ### As a generic MCP server
 
@@ -115,12 +121,15 @@ One `send_message` = one `Job`. Each Job executes up to `maxRounds` (default 8, 
 `VECHE_MAX_ROUNDS_CAP`, default 16) rounds:
 
 1. **Round 0** — the facilitator's message is appended to the transcript.
-2. **Round N (N ≥ 1)** — every active member is dispatched in parallel. Each member sees
+2. **Round N (N ≥ 1)** — every active model member is dispatched in parallel. Each member sees
    every other member's prior messages since its own last turn. A member replies with
    either new substantive content (`speech`) or the literal token `<PASS/>` (`pass`) to opt
    out of the current round.
-3. The discussion terminates when:
-   - every active member emits `<PASS/>` in the same round → `all-passed`
+3. If an enabled Human Participant is present, the Job enters `waiting_for_human` after
+   the model round. The human can agree with a target at strength 1..3, skip, or steer the
+   next model round.
+4. The discussion terminates when:
+   - every active model member emits `<PASS/>` in the same round → `all-passed`
    - `roundNumber >= maxRounds` → `max-rounds`
    - all members dropped out → `no-active-members`
    - an external `cancel_job` fired → `cancelled`
@@ -143,6 +152,9 @@ Full rules:
 | `get_transcript` | Read a transcript outside of a Job-polling loop. |
 | `end_meeting` | Close a meeting. `cancelRunningJob` terminates an in-flight Job first. |
 | `cancel_job` | Abort a running Job. Graceful first (30s), forced after. |
+| `submit_human_turn` | Submit human `agree`, `skip`, or `steer` feedback for a pending request. |
+| `set_human_participation` | Enable or disable a Human Participant for future pauses. |
+| `submit_synthesis` | Store the facilitator's final synthesis for a terminal Job. |
 
 Schemas and per-tool behaviour:
 [`spec/features/meeting/*.usecase.md`](spec/features/meeting/).
@@ -182,7 +194,9 @@ two Server-Sent Events channels: one for the meeting list (sidebar updates as ne
 appear / change status), one per selected meeting (transcript updates as messages are
 appended). Cross-process safe — the watch server polls the on-disk store at 750 ms cadence,
 so MCP-server-driven updates surface within ~1 s without restarting anything. Speech
-bubbles render the same Markdown subset as `show --format html`.
+bubbles render the same Markdown subset as `show --format html`. The viewer remains
+loopback-only by default and has a narrow write surface for Human Turn submit/toggle
+controls only.
 
 Exit codes: `0` ok · `2` store unavailable / write failed · `3` meeting not found ·
 `64` usage error · `1` unhandled internal error.
@@ -222,6 +236,11 @@ Named participant profiles live in `$VECHE_HOME/config.json`
       "adapter": "codex-cli",
       "model": "gpt-5-codex",
       "systemPrompt": "You are a senior engineer. Give concise opinions.",
+      "discussionRole": {
+        "name": "senior engineer",
+        "description": "Independent model participant focused on implementation tradeoffs.",
+        "weight": 1
+      },
       "workdir": null,
       "extraFlags": ["--skip-git-repo-check"],
       "env": {}

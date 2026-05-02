@@ -5,7 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Meeting } from "../../../../features/meeting/domain/Meeting.js";
-import type { Participant } from "../../../../features/meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../../features/meeting/domain/Participant.js";
 import { FileMeetingStore } from "../../../../features/persistence/adapters/file/FileMeetingStore.js";
 import {
 	asMeetingId,
@@ -62,6 +66,9 @@ const seedMeeting = async (root: string): Promise<string> => {
 	const facilitator: Participant = {
 		id: asParticipantId("claude"),
 		role: "facilitator",
+		participantKind: "human",
+		discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "claude",
 		adapter: null,
 		profile: null,
@@ -80,6 +87,9 @@ const seedMeeting = async (root: string): Promise<string> => {
 		...facilitator,
 		id: asParticipantId("coder"),
 		role: "member",
+		participantKind: "model",
+		discussionRole: DEFAULT_MODEL_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "coder",
 		adapter: "codex-cli",
 		sessionId: asSessionId("00000000-0000-4000-8000-000000000001"),

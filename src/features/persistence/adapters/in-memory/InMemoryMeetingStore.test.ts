@@ -5,7 +5,11 @@ import { FakeIdGen } from "../../../../test-utils/FakeIdGen.js";
 import { decodeCursor } from "../../../meeting/domain/Cursor.js";
 import type { Job } from "../../../meeting/domain/Job.js";
 import type { Meeting } from "../../../meeting/domain/Meeting.js";
-import type { Participant } from "../../../meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../meeting/domain/Participant.js";
 import type { AnyEvent } from "../../domain/Event.js";
 import { InMemoryMeetingStore } from "./InMemoryMeetingStore.js";
 
@@ -31,6 +35,9 @@ const makeMeeting = (
 	const facilitator: Participant = {
 		id: facilitatorId,
 		role: "facilitator",
+		participantKind: "human",
+		discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "claude",
 		adapter: null,
 		profile: null,
@@ -49,6 +56,9 @@ const makeMeeting = (
 		...facilitator,
 		id: memberId,
 		role: "member",
+		participantKind: "model",
+		discussionRole: DEFAULT_MODEL_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "codex",
 		adapter: "codex-cli",
 		sessionId: ids.newParticipantSessionId(),

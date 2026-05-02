@@ -32,4 +32,24 @@ describe("renderSpa", () => {
 	it("embeds the version into a meta tag", () => {
 		expect(html).toContain('name="veche-version" content="0.0.1-test"');
 	});
+
+	it("contains the bottom human-turn composer affordances", () => {
+		expect(html).toContain("participation-toggle");
+		expect(html).toContain("turn-option");
+		expect(html).toContain("send-human");
+		expect(html).toContain('textContent = "Send"');
+	});
+
+	it("tracks the last rendered round without querying divider position", () => {
+		expect(html).toContain("let lastRenderedRound = -1;");
+		expect(html).toContain("if (m.round !== lastRenderedRound)");
+		expect(html).not.toContain(".round-divider:last-of-type");
+	});
+
+	it("contains round progress and right-aligned human bubble styling", () => {
+		expect(html).toContain("round-progress-label");
+		expect(html).toContain('Round " + current + " / " + maxRounds');
+		expect(html).toContain(".bubble.human-message.pass-message");
+		expect(html).toContain("text-align: right");
+	});
 });

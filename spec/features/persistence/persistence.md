@@ -28,6 +28,10 @@ Persisted record. Append-only, immutable after write.
 | `message.posted` | `{ messageId, round, author, kind, text }` | send-message (Round 0), [run-round](../committee-protocol/run-round.usecase.md) |
 | `round.started` | `{ roundNumber, activeParticipantIds }` | run-round |
 | `round.completed` | `{ roundNumber, passedParticipantIds }` | run-round |
+| `human.turn.requested` | `{ jobId, requestId, roundNumber, participantId, agreeTargets, strengths }` | discussion loop |
+| `human.turn.submitted` | `{ jobId, requestId, roundNumber, participantId, action, targetParticipantId?, strength?, text?, messageId, messageSeq, auto }` | `submit_human_turn`, discussion loop auto-skip |
+| `human.participation.set` | `{ participantId, enabled, jobId? }` | `set_human_participation`, Web Viewer POST |
+| `synthesis.submitted` | `{ jobId, text }` | `submit_synthesis` |
 | `participant.dropped` | `{ participantId, reason, error? }` | [handle-agent-failure](../committee-protocol/handle-agent-failure.usecase.md) |
 | `job.completed` | `{ jobId, terminationReason, lastSeq, rounds }` | [terminate-discussion](../committee-protocol/terminate-discussion.usecase.md) |
 | `job.failed` | `{ jobId, error }` | send-message / run-round fatal errors |
@@ -97,7 +101,9 @@ The port composes aggregates by folding events. Consumers see only DTOs:
 ## Rules
 
 - **Append-only.** `appendMessage` and `appendSystemEvent` are the only write paths after creation events. Existing events never change.
-- **Single writer per Meeting.** The application layer guarantees that at any moment only one Job is `running` for a given Meeting, and that Round execution inside that Job is serialised. Stores therefore do not need multi-writer conflict resolution; they must detect violations and fail with `JobStateTransitionInvalid` rather than silently accept them.
+- **Single model runner per Meeting.** The application layer guarantees that at any moment only one Job is `running` or `waiting_for_human` for a given Meeting, and that model Round execution inside that Job is serialised.
+- **Bounded cross-process human writes.** `veche watch` may append only Human Turn submission and Human Participation events, plus the Transcript Message that represents the submitted Human Turn. The model runner treats the first valid submission by event `seq` as authoritative and ignores later duplicates.
 - **Monotonic `seq`.** `seq` starts at 0 and increments by 1 per event. Gaps are a fatal inconsistency.
 - **Cursors are opaque to callers.** Internal encoding is a store detail; callers only compare by equality and pass cursors back unchanged.
 - **Endurance boundary.** `InMemoryStore` explicitly does not persist anything. `FileStore` survives process restarts and preserves all events indefinitely unless the operator deletes the directory.
+- **Post-meeting synthesis.** `synthesis.submitted` may be appended after `meeting.ended` because it records facilitator output for an already-terminal Job and does not mutate the Transcript.

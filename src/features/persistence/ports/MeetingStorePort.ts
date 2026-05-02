@@ -4,7 +4,11 @@ import type { Cursor } from "../../meeting/domain/Cursor.js";
 import type { Job, JobError, JobStatus, TerminationReason } from "../../meeting/domain/Job.js";
 import type { Meeting } from "../../meeting/domain/Meeting.js";
 import type { DraftMessage, Message } from "../../meeting/domain/Message.js";
-import type { Participant } from "../../meeting/domain/Participant.js";
+import type {
+	DiscussionRole,
+	Participant,
+	ParticipantKind,
+} from "../../meeting/domain/Participant.js";
 import type { AnyEvent, EventType } from "../domain/Event.js";
 
 export interface MeetingSnapshot {
@@ -23,6 +27,9 @@ export interface MeetingSummary {
 	readonly participants: ReadonlyArray<{
 		readonly id: ParticipantId;
 		readonly role: "facilitator" | "member";
+		readonly participantKind: ParticipantKind;
+		readonly discussionRole: DiscussionRole;
+		readonly isHumanParticipationEnabled: boolean;
 		readonly adapter: "codex-cli" | "claude-code-cli" | null;
 		readonly status: "active" | "dropped";
 	}>;

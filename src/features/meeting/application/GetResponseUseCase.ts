@@ -4,6 +4,12 @@ import type { MeetingStorePort } from "../../persistence/ports/MeetingStorePort.
 import type { Job, JobError, JobStatus, TerminationReason } from "../domain/Job.js";
 import type { Message } from "../domain/Message.js";
 import { GetResponseDefaultLimit } from "./constants.js";
+import {
+	type HumanTurnView,
+	pendingHumanTurn,
+	type SynthesisView,
+	synthesisForJob,
+} from "./humanTurnState.js";
 
 export interface GetResponseQuery {
 	readonly jobId: JobId;
@@ -19,6 +25,8 @@ export interface GetResponseResult {
 	readonly terminationReason: TerminationReason | null;
 	readonly error: JobError | null;
 	readonly messages: readonly Message[];
+	readonly humanTurn: HumanTurnView | null;
+	readonly synthesis: SynthesisView | null;
 	readonly nextCursor: string;
 	readonly hasMore: boolean;
 }
@@ -59,6 +67,8 @@ export class GetResponseUseCase {
 			limit,
 		});
 		const latestJob: Job = (await store.loadJob(query.jobId)).job;
+		const snapshot = await store.loadMeeting(meetingId);
+		const events = store.readAllEvents ? await store.readAllEvents(meetingId) : [];
 		return {
 			jobId: query.jobId,
 			meetingId,
@@ -66,6 +76,8 @@ export class GetResponseUseCase {
 			terminationReason: latestJob.terminationReason,
 			error: latestJob.error,
 			messages: page.messages,
+			humanTurn: pendingHumanTurn(events, snapshot.participants, latestJob.id),
+			synthesis: synthesisForJob(events, latestJob.id),
 			nextCursor: page.nextCursor,
 			hasMore: page.hasMore,
 		};

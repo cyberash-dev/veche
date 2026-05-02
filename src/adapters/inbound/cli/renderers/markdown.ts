@@ -44,6 +44,12 @@ export const renderMarkdown: Renderer = (input) => {
 		}
 	}
 
+	if (input.synthesis !== null && input.events === null) {
+		lines.push("");
+		lines.push("## Synthesis");
+		lines.push("");
+		lines.push(input.synthesis.text);
+	}
 	lines.push("");
 	lines.push("## Transcript");
 	if (input.events !== null) {

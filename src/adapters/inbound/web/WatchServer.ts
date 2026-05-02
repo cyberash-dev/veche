@@ -1,8 +1,13 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import type {
+	SetHumanParticipationUseCase,
+	SubmitHumanTurnUseCase,
+} from "../../../features/meeting/index.js";
 import type { MeetingStorePort } from "../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../shared/ports/ClockPort.js";
 import type { LoggerPort } from "../../../shared/ports/LoggerPort.js";
+import { handleSetHumanParticipation, handleSubmitHumanTurn } from "./HumanControlsApi.js";
 import {
 	handleGetMeeting,
 	handleGetMessages,
@@ -25,6 +30,8 @@ export interface WatchServerDeps {
 	readonly store: MeetingStorePort;
 	readonly clock: ClockPort;
 	readonly logger: LoggerPort;
+	readonly submitHumanTurn?: SubmitHumanTurnUseCase;
+	readonly setHumanParticipation?: SetHumanParticipationUseCase;
 }
 
 export interface WatchServerStartResult {
@@ -75,30 +82,48 @@ type RouteMatch =
 	| { readonly kind: "not-found" }
 	| { readonly kind: "get-meeting"; readonly meetingId: string }
 	| { readonly kind: "get-messages"; readonly meetingId: string }
+	| { readonly kind: "submit-human-turn"; readonly meetingId: string }
+	| { readonly kind: "set-human-participation"; readonly meetingId: string }
 	| { readonly kind: "stream-meeting"; readonly meetingId: string };
 
 const matchRoute = (method: string, pathname: string): RouteMatch => {
-	if (method !== "GET") {
-		return { kind: "not-found" };
-	}
-	if (pathname === "/" || pathname === "/index.html") {
+	if (method === "GET" && (pathname === "/" || pathname === "/index.html")) {
 		return { kind: "spa" };
 	}
-	if (pathname === "/api/meetings") {
+	if (method === "GET" && pathname === "/api/meetings") {
 		return { kind: "list-meetings" };
 	}
-	if (pathname === "/api/stream") {
+	if (method === "GET" && pathname === "/api/stream") {
 		return { kind: "stream-meetings" };
 	}
-	const messagesId = /^\/api\/meetings\/([^/]+)\/messages$/.exec(pathname)?.[1];
+	const messagesId =
+		method === "GET" ? /^\/api\/meetings\/([^/]+)\/messages$/.exec(pathname)?.[1] : undefined;
 	if (messagesId !== undefined) {
 		return { kind: "get-messages", meetingId: decodeURIComponent(messagesId) };
 	}
-	const meetingId = /^\/api\/meetings\/([^/]+)$/.exec(pathname)?.[1];
+	const humanTurnId =
+		method === "POST"
+			? /^\/api\/meetings\/([^/]+)\/human-turn$/.exec(pathname)?.[1]
+			: undefined;
+	if (humanTurnId !== undefined) {
+		return { kind: "submit-human-turn", meetingId: decodeURIComponent(humanTurnId) };
+	}
+	const participationId =
+		method === "POST"
+			? /^\/api\/meetings\/([^/]+)\/human-participation$/.exec(pathname)?.[1]
+			: undefined;
+	if (participationId !== undefined) {
+		return {
+			kind: "set-human-participation",
+			meetingId: decodeURIComponent(participationId),
+		};
+	}
+	const meetingId =
+		method === "GET" ? /^\/api\/meetings\/([^/]+)$/.exec(pathname)?.[1] : undefined;
 	if (meetingId !== undefined) {
 		return { kind: "get-meeting", meetingId: decodeURIComponent(meetingId) };
 	}
-	const streamId = /^\/api\/stream\/([^/]+)$/.exec(pathname)?.[1];
+	const streamId = method === "GET" ? /^\/api\/stream\/([^/]+)$/.exec(pathname)?.[1] : undefined;
 	if (streamId !== undefined) {
 		return { kind: "stream-meeting", meetingId: decodeURIComponent(streamId) };
 	}
@@ -213,6 +238,30 @@ export class WatchServer {
 				return;
 			case "get-messages":
 				await handleGetMessages(this.deps.store, route.meetingId, url, response);
+				return;
+			case "submit-human-turn":
+				if (this.deps.submitHumanTurn === undefined) {
+					writeNotFound(response);
+					return;
+				}
+				await handleSubmitHumanTurn(
+					this.deps.submitHumanTurn,
+					request,
+					route.meetingId,
+					response,
+				);
+				return;
+			case "set-human-participation":
+				if (this.deps.setHumanParticipation === undefined) {
+					writeNotFound(response);
+					return;
+				}
+				await handleSetHumanParticipation(
+					this.deps.setHumanParticipation,
+					request,
+					route.meetingId,
+					response,
+				);
 				return;
 			case "stream-meetings":
 				await streamMeetings(request, response, {

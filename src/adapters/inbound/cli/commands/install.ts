@@ -151,6 +151,7 @@ const runHost = async (
 	plan: HostPlan,
 	cmd: InstallCommand,
 	skillSource: string,
+	skillMetadataSource: string | null,
 	deps: InstallDeps,
 ): Promise<RunStepResult> => {
 	const { stderr } = deps;
@@ -172,7 +173,8 @@ const runHost = async (
 
 	// 2. Skill copy.
 	if (!cmd.mcpOnly) {
-		const skillTarget = path.join(plan.skillsRoot, cmd.mcpName, "SKILL.md");
+		const skillRoot = path.join(plan.skillsRoot, cmd.mcpName);
+		const skillTarget = path.join(skillRoot, "SKILL.md");
 		if (cmd.dryRun) {
 			stderr(`${tag} (dry-run) writing skill file → ${skillTarget}\n`);
 		} else {
@@ -182,6 +184,22 @@ const runHost = async (
 			} catch (err) {
 				stderr(`${tag} error: cannot write ${skillTarget}: ${(err as Error).message}\n`);
 				return { outcome: "error", message: "write-failed" };
+			}
+		}
+		if (skillMetadataSource !== null) {
+			const metadataTarget = path.join(skillRoot, "agents", "openai.yaml");
+			if (cmd.dryRun) {
+				stderr(`${tag} (dry-run) writing skill metadata → ${metadataTarget}\n`);
+			} else {
+				stderr(`${tag} writing skill metadata → ${metadataTarget}\n`);
+				try {
+					await writeAtomic(metadataTarget, skillMetadataSource);
+				} catch (err) {
+					stderr(
+						`${tag} error: cannot write ${metadataTarget}: ${(err as Error).message}\n`,
+					);
+					return { outcome: "error", message: "write-failed" };
+				}
 			}
 		}
 	} else {
@@ -240,12 +258,28 @@ const runHost = async (
 
 export const runInstall = async (cmd: InstallCommand, deps: InstallDeps): Promise<number> => {
 	const skillSourcePath = path.join(deps.packageRoot, "skills", cmd.mcpName, "SKILL.md");
+	const skillMetadataSourcePath = path.join(
+		deps.packageRoot,
+		"skills",
+		cmd.mcpName,
+		"agents",
+		"openai.yaml",
+	);
 	let skillSource: string;
 	try {
 		skillSource = await fs.readFile(skillSourcePath, "utf8");
 	} catch {
 		deps.stderr(`skill source not found at ${skillSourcePath}\n`);
 		return 2;
+	}
+	let skillMetadataSource: string | null = null;
+	try {
+		skillMetadataSource = await fs.readFile(skillMetadataSourcePath, "utf8");
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+			deps.stderr(`skill metadata unreadable at ${skillMetadataSourcePath}\n`);
+			return 2;
+		}
 	}
 
 	const serverBin =
@@ -264,7 +298,7 @@ export const runInstall = async (cmd: InstallCommand, deps: InstallDeps): Promis
 	const targets = expandTargets(cmd.target);
 	for (const target of targets) {
 		const plan = buildHostPlan(target, deps, cmd.mcpName, serverBin);
-		const result = await runHost(plan, cmd, skillSource, deps);
+		const result = await runHost(plan, cmd, skillSource, skillMetadataSource, deps);
 		if (result.outcome === "error") {
 			return 2;
 		}

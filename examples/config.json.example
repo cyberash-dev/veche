@@ -6,6 +6,11 @@
       "adapter": "codex-cli",
       "model": null,
       "systemPrompt": "You are a pragmatic senior engineer. Prefer concise, concrete answers.",
+      "discussionRole": {
+        "name": "pragmatic engineer",
+        "description": "Independent model participant focused on concrete implementation choices.",
+        "weight": 1
+      },
       "workdir": null,
       "extraFlags": [],
       "env": {}
@@ -15,6 +20,11 @@
       "adapter": "claude-code-cli",
       "model": null,
       "systemPrompt": "You are a careful reviewer. Surface risks and counter-examples before agreeing.",
+      "discussionRole": {
+        "name": "reviewer",
+        "description": "Independent model participant focused on risks and counter-examples.",
+        "weight": 1
+      },
       "workdir": null,
       "extraFlags": [],
       "env": {}

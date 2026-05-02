@@ -1,5 +1,9 @@
 import type { Meeting } from "../../../../features/meeting/domain/Meeting.js";
-import type { Participant } from "../../../../features/meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../../features/meeting/domain/Participant.js";
 import { InMemoryMeetingStore } from "../../../../features/persistence/adapters/in-memory/InMemoryMeetingStore.js";
 import { asMeetingId, asMessageId, asParticipantId } from "../../../../shared/types/ids.js";
 import { asInstant } from "../../../../shared/types/instant.js";
@@ -24,6 +28,9 @@ export const buildMeeting = (id: string, title: string, clock: FakeClock): Meeti
 export const buildFacilitator = (id: string): Participant => ({
 	id: asParticipantId(id),
 	role: "facilitator",
+	participantKind: "human",
+	discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	isHumanParticipationEnabled: false,
 	displayName: id,
 	adapter: null,
 	profile: null,
@@ -42,6 +49,9 @@ export const buildFacilitator = (id: string): Participant => ({
 export const buildMember = (id: string): Participant => ({
 	...buildFacilitator(id),
 	role: "member",
+	participantKind: "model",
+	discussionRole: DEFAULT_MODEL_DISCUSSION_ROLE,
+	isHumanParticipationEnabled: false,
 	adapter: "codex-cli",
 });
 

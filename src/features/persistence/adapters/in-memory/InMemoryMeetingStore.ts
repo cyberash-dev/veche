@@ -48,6 +48,7 @@ interface Watcher {
 }
 
 const TERMINAL_JOB_STATES: ReadonlySet<JobStatus> = new Set(["completed", "failed", "cancelled"]);
+const OPEN_JOB_STATES: ReadonlySet<JobStatus> = new Set(["queued", "running", "waiting_for_human"]);
 
 const isValidTransition = (from: JobStatus, to: JobStatus): boolean => {
 	if (from === to) {
@@ -57,7 +58,14 @@ const isValidTransition = (from: JobStatus, to: JobStatus): boolean => {
 		case "queued":
 			return to === "running" || to === "cancelled" || to === "failed";
 		case "running":
-			return to === "completed" || to === "failed" || to === "cancelled";
+			return (
+				to === "waiting_for_human" ||
+				to === "completed" ||
+				to === "failed" ||
+				to === "cancelled"
+			);
+		case "waiting_for_human":
+			return to === "running" || to === "failed" || to === "cancelled";
 		default:
 			return false;
 	}
@@ -112,6 +120,9 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 					participant: {
 						id: p.id,
 						role: p.role,
+						participantKind: p.participantKind,
+						discussionRole: p.discussionRole,
+						isHumanParticipationEnabled: p.isHumanParticipationEnabled,
 						displayName: p.displayName,
 						adapter: p.adapter,
 						profile: p.profile,
@@ -145,8 +156,8 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 			if (filter.createdBefore && record.meeting.createdAt >= filter.createdBefore) {
 				continue;
 			}
-			const openJobCount = Array.from(record.jobs.values()).filter(
-				(j) => j.status === "queued" || j.status === "running",
+			const openJobCount = Array.from(record.jobs.values()).filter((j) =>
+				OPEN_JOB_STATES.has(j.status),
 			).length;
 			summaries.push({
 				meetingId: record.meeting.id,
@@ -157,6 +168,9 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 				participants: Array.from(record.participants.values()).map((p) => ({
 					id: p.id,
 					role: p.role,
+					participantKind: p.participantKind,
+					discussionRole: p.discussionRole,
+					isHumanParticipationEnabled: p.isHumanParticipationEnabled,
 					adapter: p.adapter,
 					status: p.status,
 				})),
@@ -198,9 +212,7 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 		if (record.jobs.has(job.id)) {
 			throw new JobAlreadyExists(job.id);
 		}
-		const hasOpen = Array.from(record.jobs.values()).some(
-			(j) => j.status === "queued" || j.status === "running",
-		);
+		const hasOpen = Array.from(record.jobs.values()).some((j) => OPEN_JOB_STATES.has(j.status));
 		if (hasOpen) {
 			throw new JobStateTransitionInvalid(job.id, "n/a", "queued");
 		}
@@ -286,8 +298,23 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 
 	async appendSystemEvent(input: AppendSystemEventInput): Promise<{ seq: number }> {
 		const record = this.must(input.meetingId);
-		if (record.meeting.status === "ended" && input.type !== "meeting.ended") {
+		if (
+			record.meeting.status === "ended" &&
+			input.type !== "meeting.ended" &&
+			input.type !== "synthesis.submitted"
+		) {
 			throw new MeetingAlreadyEnded(input.meetingId);
+		}
+		if (input.type === "human.participation.set") {
+			const participantId = input.payload.participantId as ParticipantId;
+			const participant = record.participants.get(participantId);
+			if (!participant) {
+				throw new ParticipantNotFound(input.meetingId, participantId);
+			}
+			record.participants.set(participantId, {
+				...participant,
+				isHumanParticipationEnabled: input.payload.enabled === true,
+			});
 		}
 		const event = this.appendEvent(record, {
 			type: input.type,
@@ -434,9 +461,7 @@ export class InMemoryMeetingStore implements MeetingStorePort {
 		return {
 			meeting: record.meeting,
 			participants: Array.from(record.participants.values()),
-			openJobs: Array.from(record.jobs.values()).filter(
-				(j) => j.status === "queued" || j.status === "running",
-			),
+			openJobs: Array.from(record.jobs.values()).filter((j) => OPEN_JOB_STATES.has(j.status)),
 			lastSeq: record.events.length - 1,
 		};
 	}

@@ -7,7 +7,10 @@ import { FakeClock } from "../../../../test-utils/FakeClock.js";
 import { FakeIdGen } from "../../../../test-utils/FakeIdGen.js";
 import { SilentLogger } from "../../../../test-utils/SilentLogger.js";
 import type { Meeting } from "../../../meeting/domain/Meeting.js";
-import type { Participant } from "../../../meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../meeting/domain/Participant.js";
 import { FileMeetingStore } from "./FileMeetingStore.js";
 
 describe("FileMeetingStore", () => {
@@ -39,6 +42,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("claude"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "claude",
 			adapter: null,
 			profile: null,
@@ -100,6 +106,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,
@@ -146,6 +155,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,
@@ -201,6 +213,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,
@@ -283,6 +298,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,
@@ -346,6 +364,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,
@@ -423,6 +444,9 @@ describe("FileMeetingStore", () => {
 		const facilitator: Participant = {
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			displayName: "alice",
 			adapter: null,
 			profile: null,

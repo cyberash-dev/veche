@@ -64,7 +64,10 @@ describe("stdio MCP smoke", () => {
 			"get_transcript",
 			"list_meetings",
 			"send_message",
+			"set_human_participation",
 			"start_meeting",
+			"submit_human_turn",
+			"submit_synthesis",
 		]);
 	});
 });

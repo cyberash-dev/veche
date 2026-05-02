@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { SynthesisView } from "../../../../features/meeting/application/humanTurnState.js";
 import { MeetingNotFound } from "../../../../features/meeting/domain/errors.js";
 import type { Job } from "../../../../features/meeting/domain/Job.js";
 import type { Message } from "../../../../features/meeting/domain/Message.js";
@@ -104,6 +105,19 @@ const reduceJobs = (events: readonly AnyEvent[]): Job[] => {
 	return Array.from(byId.values()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 };
 
+const reduceSynthesis = (events: readonly AnyEvent[]): SynthesisView | null => {
+	for (const ev of [...events].reverse()) {
+		if (ev.type === "synthesis.submitted") {
+			return {
+				jobId: ev.payload.jobId,
+				text: ev.payload.text,
+				createdAt: ev.at,
+			};
+		}
+	}
+	return null;
+};
+
 const writeFileAtomic = async (filePath: string, content: string): Promise<void> => {
 	const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
 	await fs.writeFile(tmp, content, { mode: 0o600 });
@@ -154,6 +168,9 @@ export const runShow = async (cmd: ShowCommand, deps: ShowDeps): Promise<number>
 	const jobs = store.readAllEvents
 		? reduceJobs(await store.readAllEvents(meetingId))
 		: [...snapshot.openJobs];
+	const synthesis = store.readAllEvents
+		? reduceSynthesis(await store.readAllEvents(meetingId))
+		: null;
 
 	const renderer = RENDERERS[cmd.format];
 	const output = renderer({
@@ -161,6 +178,7 @@ export const runShow = async (cmd: ShowCommand, deps: ShowDeps): Promise<number>
 		participants: snapshot.participants,
 		jobs,
 		messages,
+		synthesis,
 		events,
 		generatedAt: clock.now(),
 		useColor: cmd.useColor,

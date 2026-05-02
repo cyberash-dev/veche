@@ -18,7 +18,12 @@ import {
 import type { Job, JobStatus } from "../../../meeting/domain/Job.js";
 import type { Meeting } from "../../../meeting/domain/Meeting.js";
 import type { DraftMessage, Message } from "../../../meeting/domain/Message.js";
-import type { Participant } from "../../../meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_HUMAN_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../meeting/domain/Participant.js";
 import type { AnyEvent, EventType } from "../../domain/Event.js";
 import type {
 	AppendSystemEventInput,
@@ -32,6 +37,7 @@ import type {
 } from "../../ports/MeetingStorePort.js";
 
 const TERMINAL_JOB_STATES: ReadonlySet<JobStatus> = new Set(["completed", "failed", "cancelled"]);
+const OPEN_JOB_STATES: ReadonlySet<JobStatus> = new Set(["queued", "running", "waiting_for_human"]);
 
 interface MeetingState {
 	meeting: Meeting;
@@ -93,7 +99,14 @@ const isValidTransition = (from: JobStatus, to: JobStatus): boolean => {
 		case "queued":
 			return to === "running" || to === "cancelled" || to === "failed";
 		case "running":
-			return to === "completed" || to === "failed" || to === "cancelled";
+			return (
+				to === "waiting_for_human" ||
+				to === "completed" ||
+				to === "failed" ||
+				to === "cancelled"
+			);
+		case "waiting_for_human":
+			return to === "running" || to === "failed" || to === "cancelled";
 		default:
 			return false;
 	}
@@ -154,6 +167,9 @@ export class FileMeetingStore implements MeetingStorePort {
 					participant: {
 						id: p.id,
 						role: p.role,
+						participantKind: p.participantKind,
+						discussionRole: p.discussionRole,
+						isHumanParticipationEnabled: p.isHumanParticipationEnabled,
 						displayName: p.displayName,
 						adapter: p.adapter,
 						profile: p.profile,
@@ -191,8 +207,8 @@ export class FileMeetingStore implements MeetingStorePort {
 			if (filter.createdBefore && m.createdAt >= filter.createdBefore) {
 				continue;
 			}
-			const openJobCount = Array.from(state.jobs.values()).filter(
-				(j) => j.status === "queued" || j.status === "running",
+			const openJobCount = Array.from(state.jobs.values()).filter((j) =>
+				OPEN_JOB_STATES.has(j.status),
 			).length;
 			summaries.push({
 				meetingId: m.id,
@@ -203,6 +219,9 @@ export class FileMeetingStore implements MeetingStorePort {
 				participants: Array.from(state.participants.values()).map((p) => ({
 					id: p.id,
 					role: p.role,
+					participantKind: p.participantKind,
+					discussionRole: p.discussionRole,
+					isHumanParticipationEnabled: p.isHumanParticipationEnabled,
 					adapter: p.adapter,
 					status: p.status,
 				})),
@@ -247,9 +266,7 @@ export class FileMeetingStore implements MeetingStorePort {
 		if (state.jobs.has(job.id)) {
 			throw new JobAlreadyExists(job.id);
 		}
-		const hasOpen = Array.from(state.jobs.values()).some(
-			(j) => j.status === "queued" || j.status === "running",
-		);
+		const hasOpen = Array.from(state.jobs.values()).some((j) => OPEN_JOB_STATES.has(j.status));
 		if (hasOpen) {
 			throw new JobStateTransitionInvalid(job.id, "n/a", "queued");
 		}
@@ -338,10 +355,28 @@ export class FileMeetingStore implements MeetingStorePort {
 	async appendSystemEvent(input: AppendSystemEventInput): Promise<{ seq: number }> {
 		await this.ensureInit();
 		const state = await this.mustState(input.meetingId);
-		if (state.meeting.status === "ended" && input.type !== "meeting.ended") {
+		if (
+			state.meeting.status === "ended" &&
+			input.type !== "meeting.ended" &&
+			input.type !== "synthesis.submitted"
+		) {
 			throw new MeetingAlreadyEnded(input.meetingId);
 		}
+		if (input.type === "human.participation.set") {
+			const participantId = input.payload.participantId as ParticipantId;
+			const participant = state.participants.get(participantId);
+			if (!participant) {
+				throw new ParticipantNotFound(input.meetingId, participantId);
+			}
+			state.participants.set(participantId, {
+				...participant,
+				isHumanParticipationEnabled: input.payload.enabled === true,
+			});
+		}
 		const event = await this.append(state, { type: input.type, payload: input.payload });
+		if (input.type === "human.participation.set") {
+			await this.writeManifest(state);
+		}
 		return { seq: event.seq };
 	}
 
@@ -610,9 +645,22 @@ export class FileMeetingStore implements MeetingStorePort {
 				};
 			} else if (ev.type === "participant.joined") {
 				const p = ev.payload.participant;
+				const participantKind =
+					p.participantKind ??
+					(p.role === "facilitator" || p.adapter === null ? "human" : "model");
+				const defaultRole =
+					p.role === "facilitator"
+						? DEFAULT_FACILITATOR_DISCUSSION_ROLE
+						: participantKind === "human"
+							? DEFAULT_HUMAN_DISCUSSION_ROLE
+							: DEFAULT_MODEL_DISCUSSION_ROLE;
 				participants.set(p.id, {
 					id: p.id,
 					role: p.role,
+					participantKind,
+					discussionRole: p.discussionRole ?? defaultRole,
+					isHumanParticipationEnabled:
+						p.isHumanParticipationEnabled ?? participantKind === "human",
 					displayName: p.displayName,
 					adapter: p.adapter,
 					profile: p.profile,
@@ -658,6 +706,24 @@ export class FileMeetingStore implements MeetingStorePort {
 				const j = jobs.get(ev.payload.jobId);
 				if (j) {
 					jobs.set(j.id, { ...j, rounds: ev.payload.roundNumber });
+				}
+			} else if (ev.type === "human.participation.set") {
+				const existing = participants.get(ev.payload.participantId);
+				if (existing) {
+					participants.set(existing.id, {
+						...existing,
+						isHumanParticipationEnabled: ev.payload.enabled,
+					});
+				}
+			} else if (ev.type === "human.turn.requested") {
+				const j = jobs.get(ev.payload.jobId);
+				if (j) {
+					jobs.set(j.id, { ...j, status: "waiting_for_human" });
+				}
+			} else if (ev.type === "human.turn.submitted") {
+				const j = jobs.get(ev.payload.jobId);
+				if (j) {
+					jobs.set(j.id, { ...j, status: "running", lastSeq: ev.payload.messageSeq });
 				}
 			} else if (ev.type === "job.completed") {
 				const j = jobs.get(ev.payload.jobId);
@@ -834,9 +900,7 @@ export class FileMeetingStore implements MeetingStorePort {
 		return {
 			meeting: state.meeting,
 			participants: Array.from(state.participants.values()),
-			openJobs: Array.from(state.jobs.values()).filter(
-				(j) => j.status === "queued" || j.status === "running",
-			),
+			openJobs: Array.from(state.jobs.values()).filter((j) => OPEN_JOB_STATES.has(j.status)),
 			lastSeq: state.lastSeq,
 		};
 	}

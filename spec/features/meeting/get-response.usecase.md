@@ -21,7 +21,7 @@ Orchestrator Agent calling MCP tool `get_response`.
 {
   jobId: JobId,
   meetingId: MeetingId,
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled',
+  status: 'queued' | 'running' | 'waiting_for_human' | 'completed' | 'failed' | 'cancelled',
   terminationReason: 'all-passed' | 'max-rounds' | 'no-active-members' | 'cancelled' | null,
   error: { code: string, message: string } | null,
   messages: {
@@ -33,6 +33,16 @@ Orchestrator Agent calling MCP tool `get_response`.
     text: string,
     createdAt: Instant
   }[],
+  humanTurn: null | {
+    requestId: string,
+    round: integer,
+    participant: { id: ParticipantId, displayName: string, discussionRole: DiscussionRole },
+    agreeTargets: { id: ParticipantId, displayName: string, discussionRole: DiscussionRole }[],
+    strengths: [1, 2, 3],
+    canSkip: true,
+    canSteer: true
+  },
+  synthesis: null | { jobId: JobId, text: string, createdAt: Instant },
   nextCursor: Cursor,
   hasMore: boolean
 }
@@ -45,13 +55,15 @@ Orchestrator Agent calling MCP tool `get_response`.
 1. Validate Input.
 2. `MeetingStorePort.loadJob(jobId)`. If absent → `JobNotFound`.
 3. Resolve `meetingId` from the Job.
-4. If `waitMs > 0` and the Job is `queued` or `running` and there are no events beyond `cursor` (quick pre-check via `readMessagesSince(meetingId, cursor, limit=1)`): wait on the store's change-notification primitive for up to `waitMs` or until an event lands, whichever comes first. Stores expose this as a single `watchNewEvents(meetingId, sinceCursor, timeoutMs): Promise<void>` capability; `InMemoryStore` implements it with an in-memory condition variable, `FileStore` with a watcher on the events file.
+4. If `waitMs > 0` and the Job is `queued` or `running` and there are no events beyond `cursor` (quick pre-check via `readMessagesSince(meetingId, cursor, limit=1)`): wait on the store's change-notification primitive for up to `waitMs` or until an event lands, whichever comes first. `waiting_for_human` Jobs return immediately so callers can surface the pending `humanTurn`.
 5. Read the next page: `MeetingStorePort.readMessagesSince({ meetingId, cursor, limit })`.
 6. Load the Job again if `status` may have advanced since step 2. Return the latest `JobSnapshot` along with the page.
 7. Compose the success payload:
    - `status` and `terminationReason` come from the Job.
    - `error` comes from the Job (`null` unless `status = failed`).
    - `messages` contains `speech`, `pass`, and `system` Messages from the page. Other event types (e.g. `round.started`) are **not** surfaced through this tool — they remain in the store's event log for observability but are not part of the public contract.
+   - `humanTurn` is non-null only when the latest Human Turn request for this Job has no accepted submission and the Human Participant remains enabled.
+   - `synthesis` is non-null after `submit_synthesis` stores a final result for this Job.
    - `nextCursor` = page's `nextCursor`; `hasMore` = page's `hasMore`.
 
 ## Errors

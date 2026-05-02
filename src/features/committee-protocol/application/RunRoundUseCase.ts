@@ -82,6 +82,7 @@ export class RunRoundUseCase {
 					participantId,
 					input.priorMessages,
 					lastRound,
+					input.participants,
 				);
 				const result = await dispatch.execute({
 					session,
@@ -183,6 +184,9 @@ export class RunRoundUseCase {
 			if (p.role !== "member") {
 				continue;
 			}
+			if (p.participantKind !== "model") {
+				continue;
+			}
 			if (p.status === "dropped") {
 				continue;
 			}
@@ -207,6 +211,7 @@ export class RunRoundUseCase {
 		self: ParticipantId,
 		allMessages: readonly Message[],
 		lastRound: number,
+		participants?: ReadonlyMap<ParticipantId, Participant>,
 	): MessageView[] {
 		const views: MessageView[] = [];
 		for (const m of allMessages) {
@@ -217,10 +222,14 @@ export class RunRoundUseCase {
 				continue;
 			}
 			if (m.kind === "speech" || m.kind === "pass" || m.kind === "system") {
+				const author = m.author === "system" ? undefined : participants?.get(m.author);
 				views.push({
 					authorId: String(m.author),
 					authorRole:
 						m.author === "system" ? "system" : m.round === 0 ? "facilitator" : "member",
+					...(author !== undefined
+						? { authorDiscussionRole: author.discussionRole }
+						: {}),
 					round: m.round,
 					text: m.text,
 					kind: m.kind,

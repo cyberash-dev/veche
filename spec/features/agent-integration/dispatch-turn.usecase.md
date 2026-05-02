@@ -30,8 +30,8 @@ A `TurnResult` (see [agent-integration](./agent-integration.md)):
 1. **Build the prompt content.** The Adapter receives a single `prompt` string plus the native Session reference. Content is assembled as follows:
    - 1a. **Preamble** (always): a short tag block identifying the Round and the Participant's own id, e.g. `[meeting-round=3 self=codex]`. This anchors context for the model.
    - 1b. **The new Messages** from rounds this Member has not yet seen (`m.round >= lastRound[member]`, excluding own), in `seq` order. One block per `MessageView`. The block tag is chosen by `MessageView.authorRole`:
-     - `facilitator` → `[facilitator=<id> round=<n>] <text>` (only on Round 1; thereafter the facilitator Message is in session memory)
-     - `member` → `[author=<id> role=member round=<n>] <text>`
+     - `facilitator` → `[facilitator=<id> discussionRole=<name> weight=<weight> round=<n>] <text>` (only on Round 1; thereafter the facilitator Message is in session memory)
+     - `member` → `[author=<id> role=member discussionRole=<name> weight=<weight> round=<n>] <text>`
      - `system` → `[system round=<n>] <text>` — included verbatim so the Member can acknowledge new dropouts and other incidents.
    - 1c. No raw JSON; plain text blocks separated by a blank line. This keeps the payload model-agnostic.
    - 1d. The prompt is incremental — older context (the Member's own past responses, prior peer messages it has already received) is retained by the adapter's provider session (Codex `thread_id`, Claude Code `--resume`). The protocol depends on session continuity to keep prompts compact.
@@ -62,6 +62,7 @@ Returned as `TurnResult.kind = 'failure'`, with `error`:
 ## Rules
 
 - **System prompt lifetime.** The resolved system prompt enters the provider session exactly once (on Turn 1). Adapters never re-send it on resume.
+- **Role context.** The first-turn system prompt includes the Participant's own Discussion Role and explains that transcript block preambles carry each author's Discussion Role and weight. The model uses weights as influence priors, not as permission to ignore lower-weight arguments.
 - **No prompt mutation for retries.** A retry inside this use case reuses the identical prompt. The Adapter may add idempotency measures (Codex: stick with the same `thread_id` via `resume`; Claude Code: stick with the same `--session-id`) so the provider side treats retries as the natural continuation.
 - **`MAX_ATTEMPTS_PER_TURN = 3`.** Global constant; not tunable per Meeting.
 - **PASS_PROTOCOL_SUFFIX** appended to every Member's first-Turn system prompt:

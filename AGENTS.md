@@ -184,14 +184,17 @@ different process from `veche-server`. The CLI invariants above apply in full. P
 ## `install` subcommand invariants (`src/adapters/inbound/cli/commands/install.ts`)
 
 The `install` subcommand is the canonical setup path for a fresh machine: it places
-`skills/veche/SKILL.md` under `~/.claude/skills/veche/` and/or
-`~/.codex/skills/veche/`, then delegates to `claude mcp add` / `codex mcp add` to
-register the stdio MCP server. Keep these invariants intact:
+`skills/veche/SKILL.md` and optional skill UI metadata under
+`~/.claude/skills/veche/` and/or `~/.codex/skills/veche/`, then delegates to
+`claude mcp add` / `codex mcp add` to register the stdio MCP server. Keep these
+invariants intact:
 
 - **Bounded write surface.** The only paths the install command writes to are
-  `<host-skills-root>/<mcp-name>/SKILL.md`. Atomic write (`<path>.tmp-<pid>-<ts>` →
-  `rename`, mode `0o600`) is mandatory. The host config files (`~/.claude.json`,
-  `~/.codex/config.toml`) are NEVER edited directly — go through the host CLI.
+  `<host-skills-root>/<mcp-name>/SKILL.md` and optional
+  `<host-skills-root>/<mcp-name>/agents/openai.yaml`. Atomic write
+  (`<path>.tmp-<pid>-<ts>` → `rename`, mode `0o600`) is mandatory. The host config files
+  (`~/.claude.json`, `~/.codex/config.toml`) are NEVER edited directly — go through the
+  host CLI.
 - **Bounded subprocess surface.** The install command spawns ONLY `claude` and `codex`
   (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH), and only with the argv
   shapes documented in `spec/features/install/install-cli.usecase.md` → *Side Effects*.
@@ -203,9 +206,10 @@ register the stdio MCP server. Keep these invariants intact:
 - **`--dry-run` is a contract.** Never spawn a subprocess and never touch the filesystem
   in dry-run; only print the plan.
 - **No new npm deps.** Node built-ins only.
-- **Skill text is single-source-of-truth.** The byte content of `skills/veche/SKILL.md`
-  is authoritative; both hosts get byte-identical copies. If Claude Code and Codex ever
-  need divergent skill content, that requires a spec change.
+- **Skill artefacts are single-source-of-truth.** The byte content of
+  `skills/veche/SKILL.md` and optional `skills/veche/agents/openai.yaml` is authoritative;
+  both hosts get byte-identical copies. If Claude Code and Codex ever need divergent skill
+  content, that requires a spec change.
 
 ## Recursion guard (Claude Code adapter)
 

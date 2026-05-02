@@ -1,5 +1,8 @@
+import { SetHumanParticipationUseCase } from "../../../../features/meeting/application/SetHumanParticipationUseCase.js";
+import { SubmitHumanTurnUseCase } from "../../../../features/meeting/application/SubmitHumanTurnUseCase.js";
 import type { MeetingStorePort } from "../../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../../shared/ports/ClockPort.js";
+import type { IdGenPort } from "../../../../shared/ports/IdGenPort.js";
 import type { LoggerPort } from "../../../../shared/ports/LoggerPort.js";
 import { WatchServer } from "../../web/WatchServer.js";
 import { openInBrowser } from "../lib/opener.js";
@@ -14,6 +17,7 @@ export interface WatchCommand {
 export interface WatchDeps {
 	readonly store: MeetingStorePort;
 	readonly clock: ClockPort;
+	readonly ids: IdGenPort;
 	readonly logger: LoggerPort;
 	readonly version: string;
 	readonly stderr: (s: string) => void;
@@ -37,7 +41,20 @@ const defaultRegisterSignals = (handler: () => void): (() => void) => {
 export const runWatch = async (cmd: WatchCommand, deps: WatchDeps): Promise<number> => {
 	const server = new WatchServer(
 		{ host: cmd.host, port: cmd.port, version: deps.version },
-		{ store: deps.store, clock: deps.clock, logger: deps.logger },
+		{
+			store: deps.store,
+			clock: deps.clock,
+			logger: deps.logger,
+			submitHumanTurn: new SubmitHumanTurnUseCase({
+				store: deps.store,
+				clock: deps.clock,
+				ids: deps.ids,
+			}),
+			setHumanParticipation: new SetHumanParticipationUseCase({
+				store: deps.store,
+				clock: deps.clock,
+			}),
+		},
 	);
 
 	let listening: { url: string; host: string; port: number };

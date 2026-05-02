@@ -32,9 +32,11 @@ The command emits one line per high-level step in this order, prefixed by the ho
 
 ```
 [claude-code] writing skill file → /Users/<u>/.claude/skills/veche/SKILL.md
+[claude-code] writing skill metadata → /Users/<u>/.claude/skills/veche/agents/openai.yaml
 [claude-code] mcp register: claude mcp add veche --scope user -e VECHE_LOG_LEVEL=info -- node /abs/path/to/dist/bin/veche-server.js
 [claude-code] ok
 [codex] writing skill file → /Users/<u>/.codex/skills/veche/SKILL.md
+[codex] writing skill metadata → /Users/<u>/.codex/skills/veche/agents/openai.yaml
 [codex] mcp register: codex mcp add veche --env VECHE_LOG_LEVEL=info -- node /abs/path/to/dist/bin/veche-server.js
 [codex] ok
 done.
@@ -49,14 +51,15 @@ When a step is skipped (`--skills-only` / `--mcp-only` / `--dry-run`), the line 
    - `--mcp-name` not matching the regex → `64`.
    - `--server-bin` provided but not absolute / not pointing at an existing `*.js` file → `64`.
    - `--skills-only` and `--mcp-only` both set → `64`.
-2. Resolve the **canonical skill source**: `<package-root>/skills/<mcp-name>/SKILL.md`. The package root is derived from `import.meta.url` of the install module. If the file is missing, exit `2` with `skill source not found at <path>` (this should never happen in a correct package).
+2. Resolve the **canonical skill source**: `<package-root>/skills/<mcp-name>/SKILL.md`. Also resolve optional UI metadata at `<package-root>/skills/<mcp-name>/agents/openai.yaml` when present. The package root is derived from `import.meta.url` of the install module. If `SKILL.md` is missing, exit `2` with `skill source not found at <path>` (this should never happen in a correct package).
 3. Resolve the **server bin**: `--server-bin` if given, else `<package-root>/dist/bin/veche-server.js`. Exit `2` if the resolved path does not exist.
 4. Build the host plan from `--for`: a list of one or two `HostTarget` records (`claude-code`, `codex`). Each target carries the host name, the skills root (`~/.claude/skills` for claude-code, `~/.codex/skills` for codex), the host CLI command (`claude` / `codex`), the `mcp add` argv template, and the `mcp list` / `mcp remove` argv (claude only).
 5. For each target, in declaration order, do:
-   - 5a. **Skill file** (skipped if `--mcp-only`):
+  - 5a. **Skill files** (skipped if `--mcp-only`):
      - Compute `<skills-root>/<mcp-name>/SKILL.md`.
      - Atomic write: write to `<path>.tmp-<pid>-<ts>` (mode `0o600`), `fsync`, `rename` to the final path. Create parent dirs as needed (`mkdir -p` semantics).
      - Log `[<host>] writing skill file → <path>`.
+     - If optional UI metadata exists, compute `<skills-root>/<mcp-name>/agents/openai.yaml`, write it atomically with the same mode, and log `[<host>] writing skill metadata → <path>`.
    - 5b. **MCP register** (skipped if `--skills-only`):
      - Probe the host CLI: spawn `<cli> --version`. If it fails with `ENOENT`, this counts as "host CLI missing" — see step 6.
      - Claude Code path:
@@ -87,7 +90,7 @@ In `--dry-run` mode, every step that would touch the filesystem or spawn a proce
 
 ## Side Effects
 
-- Writes one `SKILL.md` per requested host under `~/.claude/skills/<mcp-name>/` and/or `~/.codex/skills/<mcp-name>/`. Atomic write (`<path>.tmp-<pid>-<ts>` + `rename`). Mode `0o600`.
+- Writes one `SKILL.md` per requested host under `~/.claude/skills/<mcp-name>/` and/or `~/.codex/skills/<mcp-name>/`. When the package contains optional UI metadata, writes one `agents/openai.yaml` per requested host under the same skill directory. Atomic write (`<path>.tmp-<pid>-<ts>` + `rename`). Mode `0o600`.
 - Spawns the following whitelisted commands (and ONLY these):
   - `claude --version`
   - `claude mcp list`
@@ -102,8 +105,9 @@ In `--dry-run` mode, every step that would touch the filesystem or spawn a proce
 
 - **No store access.** The install command never instantiates `MeetingStorePort` and never reads `$VECHE_HOME`. Tests inject a throwing mock store and assert no method is invoked.
 - **Bounded subprocess surface.** Only `claude` and `codex` are spawned. The argv for each invocation is fixed by this spec — no user input is interpolated into the argv unquoted. The `mcp-name` is validated against the regex above before any subprocess uses it.
-- **Bounded write surface.** Skill writes go ONLY to `<host-skills-root>/<mcp-name>/SKILL.md`. A test verifies that no `fs.writeFile` / `fs.rename` happens outside those paths.
+- **Bounded write surface.** Skill writes go ONLY to `<host-skills-root>/<mcp-name>/SKILL.md` and, when present in the package, `<host-skills-root>/<mcp-name>/agents/openai.yaml`. A test verifies that no `fs.writeFile` / `fs.rename` happens outside the requested host skill directories.
 - **Atomic skill writes.** `<path>.tmp-<pid>-<ts>` then `rename`. Mirrors the existing `show --out` pattern. Readers (Claude Code / Codex) never see a half-written `SKILL.md`.
+- **Interactive launch contract.** The installed `SKILL.md` collects missing launch choices before calling `start_meeting`: question, Human Participant inclusion, round budget, and whether to use custom per-launch roles. When custom roles are enabled, the skill presents default `codex` and `claude` Discussion Role metadata plus the default system prompt, accepts per-launch overrides for role name, role description, weight, and system prompt, and passes those overrides in the `members[]` records. It does not persist those overrides to `$VECHE_HOME/config.json`.
 - **Override env vars are honoured.** `CLAUDE_BIN` and `CODEX_BIN` are read from the environment and used when set, mirroring the same vars used by [agent-integration](../agent-integration/agent-integration.md) when spawning members. The install command does not introduce new env vars.
 - **Idempotent across runs.** Re-running with the same flags is safe: the skill file is overwritten atomically; the Claude Code MCP entry is removed-then-added (because `claude mcp add` rejects duplicates); the Codex entry is overwritten by `codex mcp add` natively. The server bin path picked up on the second run reflects the *current* installation, so re-running after `npm i -g <newer-version>` updates the registration to the new path automatically.
 - **No new npm dependencies.** Only Node built-ins (`node:fs/promises`, `node:os`, `node:path`, `node:child_process`, `node:url`).

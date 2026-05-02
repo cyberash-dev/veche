@@ -5,6 +5,7 @@ export const renderJson: Renderer = (input) => {
 		meeting: input.meeting,
 		participants: input.participants,
 		jobs: input.jobs,
+		synthesis: input.synthesis,
 		messages: input.messages,
 		events: input.events,
 		generatedAt: input.generatedAt,

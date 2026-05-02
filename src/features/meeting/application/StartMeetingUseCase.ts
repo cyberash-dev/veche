@@ -21,7 +21,15 @@ import type { MeetingStorePort } from "../../persistence/ports/MeetingStorePort.
 import { encodeCursor } from "../domain/Cursor.js";
 import { DuplicateParticipantId } from "../domain/errors.js";
 import type { Meeting } from "../domain/Meeting.js";
-import type { AdapterKind, Participant } from "../domain/Participant.js";
+import {
+	type AdapterKind,
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_HUMAN_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type DiscussionRole,
+	type Participant,
+	type ParticipantKind,
+} from "../domain/Participant.js";
 import {
 	DefaultMaxRounds,
 	MaxEnvEntries,
@@ -32,14 +40,39 @@ import {
 const FORBIDDEN_ENV_KEYS = new Set(["HOME", "PATH", "CODEX_BIN", "CLAUDE_BIN"]);
 const ENV_KEY = /^[A-Z_][A-Z0-9_]*$/;
 
+const resolvedDiscussionRole = (
+	input: DiscussionRole | undefined | null,
+	fallback: DiscussionRole,
+	context: string,
+): DiscussionRole => {
+	if (input === undefined || input === null) {
+		return fallback;
+	}
+	const name = input.name.trim();
+	const description = input.description.trim();
+	if (name.length === 0 || name.length > 64) {
+		throw new ValidationError(`${context}: discussionRole.name must be 1..64 chars`);
+	}
+	if (description.length === 0 || description.length > 400) {
+		throw new ValidationError(`${context}: discussionRole.description must be 1..400 chars`);
+	}
+	if (!Number.isFinite(input.weight) || input.weight <= 0) {
+		throw new ValidationError(`${context}: discussionRole.weight must be > 0`);
+	}
+	return { name, description, weight: input.weight };
+};
+
 export interface StartMeetingCommand {
 	readonly title: string;
 	readonly facilitator?: {
 		readonly id?: string;
 		readonly displayName?: string;
+		readonly discussionRole?: DiscussionRole;
 	};
 	readonly members: ReadonlyArray<{
 		readonly id: string;
+		readonly participantKind?: ParticipantKind;
+		readonly discussionRole?: DiscussionRole;
 		readonly profile?: string;
 		readonly adapter?: AdapterKind;
 		readonly model?: string;
@@ -58,6 +91,8 @@ export interface StartMeetingResult {
 	readonly participants: ReadonlyArray<{
 		readonly id: ParticipantId;
 		readonly role: "facilitator" | "member";
+		readonly participantKind: ParticipantKind;
+		readonly discussionRole: DiscussionRole;
 		readonly adapter: AdapterKind | null;
 		readonly profile: string | null;
 		readonly model: string | null;
@@ -109,6 +144,13 @@ export class StartMeetingUseCase {
 		const facilitator: Participant = {
 			id: asParticipantId(facilitatorId),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: resolvedDiscussionRole(
+				command.facilitator?.discussionRole,
+				DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+				"facilitator",
+			),
+			isHumanParticipationEnabled: false,
 			displayName: command.facilitator?.displayName ?? facilitatorId,
 			adapter: null,
 			profile: null,
@@ -133,6 +175,50 @@ export class StartMeetingUseCase {
 				throw new DuplicateParticipantId(entry.id);
 			}
 			seen.add(entry.id);
+			const participantKind = entry.participantKind ?? "model";
+			if (participantKind !== "model" && participantKind !== "human") {
+				throw new ValidationError(`member ${entry.id}: participantKind is invalid`);
+			}
+			if (participantKind === "human") {
+				if (
+					entry.profile !== undefined ||
+					entry.adapter !== undefined ||
+					entry.model !== undefined ||
+					entry.systemPrompt !== undefined ||
+					entry.workdir !== undefined ||
+					entry.extraFlags !== undefined ||
+					entry.env !== undefined
+				) {
+					throw new ValidationError(
+						`member ${entry.id}: human participants cannot define adapter configuration`,
+					);
+				}
+				resolvedMembers.push({
+					id: asParticipantId(entry.id),
+					role: "member",
+					participantKind: "human",
+					discussionRole: resolvedDiscussionRole(
+						entry.discussionRole,
+						DEFAULT_HUMAN_DISCUSSION_ROLE,
+						`member ${entry.id}`,
+					),
+					isHumanParticipationEnabled: true,
+					displayName: entry.id,
+					adapter: null,
+					profile: null,
+					systemPrompt: null,
+					workdir: null,
+					model: null,
+					extraFlags: [],
+					env: {},
+					sessionId: null,
+					providerRef: null,
+					status: "active",
+					droppedAt: null,
+					droppedReason: null,
+				});
+				continue;
+			}
 			if (
 				entry.systemPrompt &&
 				Buffer.byteLength(entry.systemPrompt, "utf8") > MaxSystemPromptLengthBytes
@@ -171,6 +257,9 @@ export class StartMeetingUseCase {
 				...(entry.profile !== undefined ? { profile: entry.profile } : {}),
 				...(entry.adapter !== undefined ? { adapter: entry.adapter } : {}),
 				...(entry.systemPrompt !== undefined ? { systemPrompt: entry.systemPrompt } : {}),
+				...(entry.discussionRole !== undefined
+					? { discussionRole: entry.discussionRole }
+					: {}),
 				...(entry.model !== undefined ? { model: entry.model } : {}),
 				...(entry.workdir !== undefined ? { workdir: entry.workdir } : {}),
 				...(entry.extraFlags !== undefined ? { extraFlags: entry.extraFlags } : {}),
@@ -194,6 +283,13 @@ export class StartMeetingUseCase {
 			resolvedMembers.push({
 				id: asParticipantId(entry.id),
 				role: "member",
+				participantKind: "model",
+				discussionRole: resolvedDiscussionRole(
+					resolved.discussionRole,
+					DEFAULT_MODEL_DISCUSSION_ROLE,
+					`member ${entry.id}`,
+				),
+				isHumanParticipationEnabled: false,
 				displayName: entry.id,
 				adapter: resolved.adapter,
 				profile: resolved.profile,
@@ -233,8 +329,11 @@ export class StartMeetingUseCase {
 		}> = [];
 		try {
 			for (const m of resolvedMembers) {
+				if (m.participantKind === "human") {
+					continue;
+				}
 				if (m.adapter === null || m.sessionId === null) {
-					// Invariant — Members always carry adapter + sessionId after profile resolution.
+					// Invariant — Model members carry adapter + sessionId after profile resolution.
 					throw new ValidationError(`member ${m.id} missing adapter or sessionId`);
 				}
 				const adapter = adapters.get(m.adapter);
@@ -280,6 +379,8 @@ export class StartMeetingUseCase {
 			participants: [facilitator, ...resolvedMembers].map((p) => ({
 				id: p.id,
 				role: p.role,
+				participantKind: p.participantKind,
+				discussionRole: p.discussionRole,
 				adapter: p.adapter,
 				profile: p.profile,
 				model: p.model,
