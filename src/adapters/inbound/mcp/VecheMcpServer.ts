@@ -7,7 +7,10 @@ import type {
 	GetTranscriptUseCase,
 	ListMeetingsUseCase,
 	SendMessageUseCase,
+	SetHumanParticipationUseCase,
 	StartMeetingUseCase,
+	SubmitHumanTurnUseCase,
+	SubmitSynthesisUseCase,
 } from "../../../features/meeting/index.js";
 import type { LoggerPort } from "../../../shared/ports/LoggerPort.js";
 import { asJobId, asMeetingId } from "../../../shared/types/ids.js";
@@ -19,7 +22,10 @@ import {
 	getTranscriptSchema,
 	listMeetingsSchema,
 	sendMessageSchema,
+	setHumanParticipationSchema,
 	startMeetingSchema,
+	submitHumanTurnSchema,
+	submitSynthesisSchema,
 } from "./schemas.js";
 
 interface VecheDeps {
@@ -29,6 +35,9 @@ interface VecheDeps {
 	readonly getResponse: GetResponseUseCase;
 	readonly listMeetings: ListMeetingsUseCase;
 	readonly getTranscript: GetTranscriptUseCase;
+	readonly submitHumanTurn: SubmitHumanTurnUseCase;
+	readonly setHumanParticipation: SetHumanParticipationUseCase;
+	readonly submitSynthesis: SubmitSynthesisUseCase;
 	readonly endMeeting: EndMeetingUseCase;
 	readonly cancelJob: CancelJobUseCase;
 }
@@ -82,6 +91,9 @@ export class VecheMcpServer {
 			getResponse,
 			listMeetings,
 			getTranscript,
+			submitHumanTurn,
+			setHumanParticipation,
+			submitSynthesis,
 			endMeeting,
 			cancelJob,
 		} = this.deps;
@@ -97,6 +109,12 @@ export class VecheMcpServer {
 				try {
 					const members = args.members.map((m) => ({
 						id: m.id,
+						...(m.participantKind !== undefined
+							? { participantKind: m.participantKind }
+							: {}),
+						...(m.discussionRole !== undefined
+							? { discussionRole: m.discussionRole }
+							: {}),
 						...(m.profile !== undefined ? { profile: m.profile } : {}),
 						...(m.adapter !== undefined ? { adapter: m.adapter } : {}),
 						...(m.model !== undefined ? { model: m.model } : {}),
@@ -112,6 +130,9 @@ export class VecheMcpServer {
 									: {}),
 								...(args.facilitator.displayName !== undefined
 									? { displayName: args.facilitator.displayName }
+									: {}),
+								...(args.facilitator.discussionRole !== undefined
+									? { discussionRole: args.facilitator.discussionRole }
 									: {}),
 							}
 						: undefined;
@@ -169,6 +190,74 @@ export class VecheMcpServer {
 						...(args.cursor !== undefined ? { cursor: args.cursor } : {}),
 						...(args.limit !== undefined ? { limit: args.limit } : {}),
 						...(args.waitMs !== undefined ? { waitMs: args.waitMs } : {}),
+					});
+					return textResult(result);
+				} catch (err) {
+					return errorResult(err);
+				}
+			},
+		);
+
+		this.server.registerTool(
+			"submit_human_turn",
+			{
+				description:
+					"Submit agree, skip, or steering feedback for a pending human turn request.",
+				inputSchema: submitHumanTurnSchema,
+			},
+			async (args) => {
+				try {
+					const result = await submitHumanTurn.execute({
+						jobId: asJobId(args.jobId),
+						requestId: args.requestId,
+						action: args.action,
+						...(args.targetParticipantId !== undefined
+							? { targetParticipantId: args.targetParticipantId }
+							: {}),
+						...(args.strength !== undefined ? { strength: args.strength } : {}),
+						...(args.text !== undefined ? { text: args.text } : {}),
+					});
+					return textResult(result);
+				} catch (err) {
+					return errorResult(err);
+				}
+			},
+		);
+
+		this.server.registerTool(
+			"set_human_participation",
+			{
+				description:
+					"Enable or disable a human participant for human-turn pauses in a meeting.",
+				inputSchema: setHumanParticipationSchema,
+			},
+			async (args) => {
+				try {
+					const result = await setHumanParticipation.execute({
+						meetingId: asMeetingId(args.meetingId),
+						participantId: args.participantId,
+						enabled: args.enabled,
+						...(args.jobId !== undefined ? { jobId: asJobId(args.jobId) } : {}),
+					});
+					return textResult(result);
+				} catch (err) {
+					return errorResult(err);
+				}
+			},
+		);
+
+		this.server.registerTool(
+			"submit_synthesis",
+			{
+				description:
+					"Store the facilitator's final synthesis for a terminal discussion job.",
+				inputSchema: submitSynthesisSchema,
+			},
+			async (args) => {
+				try {
+					const result = await submitSynthesis.execute({
+						jobId: asJobId(args.jobId),
+						text: args.text,
 					});
 					return textResult(result);
 				} catch (err) {

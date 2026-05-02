@@ -28,8 +28,8 @@ Side effect: `round.started`, zero or more `message.posted`, zero or more `parti
 
 ## Flow
 
-1. Select active Members:
-   - 1a. `activeMembers = Participants with role=member AND status=active AND id NOT IN droppedThisJob`.
+1. Select active Model Members:
+   - 1a. `activeMembers = Participants with role=member AND participantKind=model AND status=active AND id NOT IN droppedThisJob`.
    - 1b. If `activeMembers` is empty → return `state` with `terminationReason = 'no-active-members'`. (The loop exits without running a Round.)
 2. Increment `state.roundNumber`.
 3. `MeetingStorePort.appendSystemEvent('round.started', { roundNumber, activeParticipantIds: activeMembers })`.
@@ -47,8 +47,14 @@ Side effect: `round.started`, zero or more `message.posted`, zero or more `parti
    - 7b. **TurnOutcome.kind = 'pass'** → `appendMessage({ meetingId, message: { round, author: participantId, kind: 'pass', text: '<PASS/>' } })`. `pendingPass.add(participantId)`.
    - 7c. **TurnOutcome.kind = 'failure'** → delegate to [handle-agent-failure](./handle-agent-failure.usecase.md), which updates `droppedThisJob` and emits `participant.dropped`.
 8. `MeetingStorePort.appendSystemEvent('round.completed', { roundNumber, passedParticipantIds: [...pendingPass] })`.
-9. Evaluate termination via [terminate-discussion](./terminate-discussion.usecase.md). If it returns a `terminationReason`, set it on `state`.
-10. Return updated `state`.
+9. The outer discussion loop pauses for a Human Turn when an enabled Human Member exists:
+   - 9a. Emit `human.turn.requested` with a unique `requestId`, the just-completed `roundNumber`, the Human Participant, `agreeTargets`, and strengths `[1, 2, 3]`.
+   - 9b. Set Job status to `waiting_for_human`.
+   - 9c. Poll/refetch store state until the request has a valid submission, cancellation is observed, or the Human Participant is toggled disabled. Browser submissions from `veche watch` and MCP submissions are both observed through the same event log.
+   - 9d. `agree` appends a readable Human speech Message naming the target + strength. `skip` appends a Human pass Message with `<PASS/>`. `steer` appends the Human text as speech and clears `pendingPass` so another model Round can run when the cap permits it.
+   - 9e. First valid submission for the `requestId` wins. Later duplicate submissions are rejected at the boundary or ignored by the runner.
+10. Evaluate termination via [terminate-discussion](./terminate-discussion.usecase.md). If it returns a `terminationReason`, set it on `state`.
+11. Return updated `state`.
 
 ## Errors
 
@@ -74,3 +80,4 @@ Side effect: `round.started`, zero or more `message.posted`, zero or more `parti
 - **Cancellation is observed between awaits.** The check happens before dispatch, after dispatch, and after persisting outcomes. A running Turn cannot be synchronously aborted by the loop; the Adapter cooperates with `AbortSignal` inside `dispatchTurn`.
 - **Empty Rounds are impossible.** Step 1b guarantees that `run-round` never starts a Round with zero Members.
 - **`round.started` always pairs with `round.completed`.** Even when every Turn fails, both markers land so the event log remains consistent.
+- **Human Turns are between model Rounds.** Human submissions share the just-completed round number for rendering, but they are not dispatched through `AgentAdapterPort` and are not counted as model pass votes for all-passed termination.

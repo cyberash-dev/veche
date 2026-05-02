@@ -20,9 +20,24 @@ export type {
 } from "./application/SendMessageUseCase.js";
 export { SendMessageUseCase } from "./application/SendMessageUseCase.js";
 export type {
+	SetHumanParticipationCommand,
+	SetHumanParticipationResult,
+} from "./application/SetHumanParticipationUseCase.js";
+export { SetHumanParticipationUseCase } from "./application/SetHumanParticipationUseCase.js";
+export type {
 	StartMeetingCommand,
 	StartMeetingDeps,
 	StartMeetingResult,
 } from "./application/StartMeetingUseCase.js";
 export { StartMeetingUseCase } from "./application/StartMeetingUseCase.js";
+export type {
+	SubmitHumanTurnCommand,
+	SubmitHumanTurnResult,
+} from "./application/SubmitHumanTurnUseCase.js";
+export { SubmitHumanTurnUseCase } from "./application/SubmitHumanTurnUseCase.js";
+export type {
+	SubmitSynthesisCommand,
+	SubmitSynthesisResult,
+} from "./application/SubmitSynthesisUseCase.js";
+export { SubmitSynthesisUseCase } from "./application/SubmitSynthesisUseCase.js";
 export * from "./domain/index.js";

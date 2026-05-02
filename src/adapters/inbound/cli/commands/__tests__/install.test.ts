@@ -63,6 +63,11 @@ const buildDeps = async (
 		path.join(root, "skills", "veche", "SKILL.md"),
 		"---\nname: veche\n---\nbody\n",
 	);
+	await fs.mkdir(path.join(root, "skills", "veche", "agents"), { recursive: true });
+	await fs.writeFile(
+		path.join(root, "skills", "veche", "agents", "openai.yaml"),
+		'interface:\n  display_name: "Veche"\n',
+	);
 	await fs.mkdir(path.join(root, "dist", "bin"), { recursive: true });
 	await fs.writeFile(path.join(root, "dist", "bin", "veche-server.js"), "// stub");
 	await fs.mkdir(path.join(root, "examples"), { recursive: true });
@@ -124,8 +129,17 @@ describe("runInstall", () => {
 
 		const claudeSkill = path.join(depsHandle.home, ".claude", "skills", "veche", "SKILL.md");
 		const codexSkill = path.join(depsHandle.home, ".codex", "skills", "veche", "SKILL.md");
+		const codexMetadata = path.join(
+			depsHandle.home,
+			".codex",
+			"skills",
+			"veche",
+			"agents",
+			"openai.yaml",
+		);
 		expect(await fs.readFile(claudeSkill, "utf8")).toContain("name: veche");
 		expect(await fs.readFile(codexSkill, "utf8")).toContain("name: veche");
+		expect(await fs.readFile(codexMetadata, "utf8")).toContain('display_name: "Veche"');
 
 		const claudeAdd = spawn.calls.find(
 			(c) => c.command === "claude" && c.args[0] === "mcp" && c.args[1] === "add",
@@ -221,6 +235,27 @@ describe("runInstall", () => {
 		expect(code).toBe(0);
 		const claudeSkill = path.join(depsHandle.home, ".claude", "skills", "veche", "SKILL.md");
 		await expect(fs.access(claudeSkill)).rejects.toBeTruthy();
+	});
+
+	it("succeeds when optional UI metadata is absent", async () => {
+		await fs.rm(path.join(depsHandle.root, "skills", "veche", "agents"), {
+			recursive: true,
+			force: true,
+		});
+		const code = await runInstall({ ...baseCommand(), target: "codex" }, depsHandle.deps);
+		expect(code).toBe(0);
+
+		const codexSkill = path.join(depsHandle.home, ".codex", "skills", "veche", "SKILL.md");
+		const codexMetadata = path.join(
+			depsHandle.home,
+			".codex",
+			"skills",
+			"veche",
+			"agents",
+			"openai.yaml",
+		);
+		expect(await fs.readFile(codexSkill, "utf8")).toContain("name: veche");
+		await expect(fs.access(codexMetadata)).rejects.toBeTruthy();
 	});
 
 	it("--dry-run does not write or spawn", async () => {

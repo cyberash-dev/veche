@@ -1,10 +1,11 @@
 import type { ParticipantId } from "../../../shared/types/ids.js";
-import type { ParticipantRole } from "../../meeting/domain/Participant.js";
+import type { DiscussionRole, ParticipantRole } from "../../meeting/domain/Participant.js";
 import type { Session } from "./Session.js";
 
 export interface MessageView {
 	readonly authorId: string;
 	readonly authorRole: ParticipantRole | "system";
+	readonly authorDiscussionRole?: DiscussionRole;
 	readonly round: number;
 	readonly text: string;
 	readonly kind?: "speech" | "pass" | "system";

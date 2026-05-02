@@ -1,5 +1,6 @@
 import type { MeetingStorePort } from "../../../features/persistence/ports/MeetingStorePort.js";
 import type { ClockPort } from "../../../shared/ports/ClockPort.js";
+import type { IdGenPort } from "../../../shared/ports/IdGenPort.js";
 import type { LoggerPort } from "../../../shared/ports/LoggerPort.js";
 import {
 	buildRealInstallDeps,
@@ -15,6 +16,7 @@ import { runWatch, type WatchCommand } from "./commands/watch.js";
 export interface CliDeps {
 	readonly store: MeetingStorePort;
 	readonly clock: ClockPort;
+	readonly ids: IdGenPort;
 	readonly logger: LoggerPort;
 	readonly version: string;
 	readonly argv: readonly string[];
@@ -259,6 +261,7 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 			return runWatch(cmd, {
 				store: deps.store,
 				clock: deps.clock,
+				ids: deps.ids,
 				logger: deps.logger,
 				version: deps.version,
 				stderr: deps.stderr,

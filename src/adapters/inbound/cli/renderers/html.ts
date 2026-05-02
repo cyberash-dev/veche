@@ -75,6 +75,8 @@ h3 { margin: 20px 0 12px; font-size: 15px; font-weight: 600; color: #4b5563; }
   gap: 10px;
 }
 .msg.right { flex-direction: row-reverse; }
+.msg.agent-message { justify-content: flex-start; }
+.msg.human-message { justify-content: flex-end; }
 .msg .author {
   font-size: 12px;
   color: #374151;
@@ -146,6 +148,23 @@ h3 { margin: 20px 0 12px; font-size: 15px; font-weight: 600; color: #4b5563; }
 .msg .bubble th { background: rgba(0,0,0,0.04); font-weight: 600; }
 .msg .col { display: flex; flex-direction: column; min-width: 0; }
 .msg.right .col { align-items: flex-end; }
+.msg.human-message .bubble {
+  background: #fff;
+  border-color: #d1d5db;
+  text-align: right;
+}
+.msg.human-message.previous .bubble {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.msg.human-message.pass-message .bubble {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+.msg.pass-message .bubble {
+  color: #6b7280;
+  font-style: italic;
+}
 .pass {
   text-align: center;
   margin: 8px 0;
@@ -168,6 +187,14 @@ h3 { margin: 20px 0 12px; font-size: 15px; font-weight: 600; color: #4b5563; }
   border-radius: 8px;
   text-align: center;
   font-size: 13px;
+}
+.synthesis {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #1e1b4b;
+  border-radius: 8px;
 }
 .msg.facilitator { flex-direction: column; align-items: stretch; }
 .msg.facilitator .col { align-items: stretch; }
@@ -211,9 +238,20 @@ export const renderHtml: Renderer = (input) => {
 	const { meeting, participants, jobs, messages, events, generatedAt, version } = input;
 	const colorByParticipant = new Map<string, string>();
 	const memberIndexByParticipant = new Map<string, number>();
+	const participantById = new Map<string, Participant>();
 	let memberCounter = 0;
 	const memberCount = participants.filter((p) => p.role === "member").length;
+	const humanMemberIds = new Set<string>(
+		participants
+			.filter((p) => p.role === "member" && p.participantKind === "human")
+			.map((p) => String(p.id)),
+	);
+	const latestTranscriptRound = messages.reduce(
+		(latest, message) => Math.max(latest, message.round),
+		-1,
+	);
 	participants.forEach((p: Participant) => {
+		participantById.set(p.id, p);
 		colorByParticipant.set(p.id, participantColor(p));
 		if (p.role === "member") {
 			memberIndexByParticipant.set(p.id, memberCounter);
@@ -256,11 +294,12 @@ export const renderHtml: Renderer = (input) => {
 	out.push('<div class="p-list">');
 	for (const p of participants) {
 		const swatch = colorByParticipant.get(p.id) ?? "hsl(0, 0%, 93%)";
+		const roleName = p.discussionRole.name;
 		out.push(
 			`<span class="p-item">` +
 				`<span class="swatch" style="background:${escapeHtml(swatch)}"></span>` +
 				`<strong>${escapeHtml(p.id)}</strong>` +
-				`<span class="role">${escapeHtml(p.role)}${
+				`<span class="role">${escapeHtml(roleName)} · ${escapeHtml(p.role)}${
 					p.adapter ? ` · ${escapeHtml(p.adapter)}` : ""
 				}</span>` +
 				(p.status === "dropped"
@@ -302,6 +341,10 @@ export const renderHtml: Renderer = (input) => {
 
 	// Body
 	out.push('<div class="card">');
+	if (input.synthesis !== null && events === null) {
+		out.push("<h2>Synthesis</h2>");
+		out.push(`<div class="synthesis">${renderMarkdownToHtml(input.synthesis.text)}</div>`);
+	}
 	out.push("<h2>Transcript</h2>");
 	if (events !== null) {
 		out.push('<pre style="white-space:pre-wrap;font-size:12px">');
@@ -318,9 +361,17 @@ export const renderHtml: Renderer = (input) => {
 					`<summary>${escapeHtml(label)}</summary>`,
 			);
 			for (const m of group.messages) {
-				if (m.kind === "pass") {
+				const participant = participantById.get(String(m.author));
+				const isHumanMember =
+					participant?.role === "member" && participant.participantKind === "human";
+				const hasHumanMode = humanMemberIds.size > 0;
+				const authorName =
+					participant === undefined
+						? String(m.author)
+						: `${participant.displayName} · ${participant.discussionRole.name}`;
+				if (m.kind === "pass" && !hasHumanMode) {
 					out.push(
-						`<div class="pass"><span class="chip">${escapeHtml(String(m.author))} passed</span></div>`,
+						`<div class="pass"><span class="chip">${escapeHtml(authorName)} passed</span></div>`,
 					);
 					continue;
 				}
@@ -331,14 +382,26 @@ export const renderHtml: Renderer = (input) => {
 				const bg = colorByParticipant.get(String(m.author)) ?? "hsl(0,0%,93%)";
 				// `speech`/`pass` messages: facilitator id is not in the member index.
 				const memberIdx = memberIndexByParticipant.get(String(m.author));
-				const layoutClass = memberIdx === undefined ? "facilitator" : bubbleSide(memberIdx);
-				const body = renderMarkdownToHtml(m.text);
+				const layoutClass =
+					memberIdx === undefined
+						? "facilitator"
+						: hasHumanMode
+							? isHumanMember
+								? `right human-message${m.round < latestTranscriptRound ? " previous" : ""}`
+								: "left agent-message"
+							: bubbleSide(memberIdx);
+				const messageClass = m.kind === "pass" ? " pass-message" : "";
+				const body =
+					m.kind === "pass"
+						? escapeHtml(isHumanMember ? "skipped" : "passed")
+						: renderMarkdownToHtml(m.text);
+				const style = isHumanMember ? "" : ` style="background:${escapeHtml(bg)}"`;
 				out.push(
-					`<div class="msg ${layoutClass}">` +
+					`<div class="msg ${layoutClass}${messageClass}">` +
 						`<div class="col">` +
-						`<div class="author">${escapeHtml(String(m.author))}` +
+						`<div class="author">${escapeHtml(authorName)}` +
 						`<span class="time">${escapeHtml(m.createdAt)}</span></div>` +
-						`<div class="bubble" style="background:${escapeHtml(bg)}">${body}</div>` +
+						`<div class="bubble"${style}>${body}</div>` +
 						`</div>` +
 						`</div>`,
 				);

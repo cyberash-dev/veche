@@ -88,6 +88,8 @@ describe("html renderer", () => {
 		expect(html).toContain(">Round 2</summary>");
 		expect(html).toContain("codex");
 		expect(html).toContain("claude");
+		expect(html).toContain("codex · peer");
+		expect(html).toContain("claude · peer");
 		// Pass pill appears, not raw token
 		expect(html).toContain("passed</span>");
 		expect(html).not.toContain("<PASS/>");

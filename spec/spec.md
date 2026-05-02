@@ -53,8 +53,10 @@ migrated.
   append time. Unique within a Meeting; used as the raw Cursor value.
 - **Event type** — Closed enum: `meeting.created`,
   `participant.joined`, `job.started`, `round.started`,
-  `round.completed`, `message.posted`, `participant.dropped`,
-  `job.completed`, `job.failed`, `job.cancelled`, `meeting.ended`.
+  `round.completed`, `message.posted`, `human.turn.requested`,
+  `human.turn.submitted`, `human.participation.set`,
+  `synthesis.submitted`, `participant.dropped`, `job.completed`,
+  `job.failed`, `job.cancelled`, `meeting.ended`.
 - **Cursor** — Opaque base64url string carrying the `seq` of the last
   Event the caller has seen. Total-ordered within a Meeting; never
   valid across Meetings.
@@ -86,8 +88,9 @@ migrated.
   serialising appends within one process. Not a cross-process file
   lock.
 - **Single writer per process** — Application-layer guarantee that at
-  most one running Job per Meeting performs writes; the store
-  detects violations but does not arbitrate.
+  most one queued, running, or waiting-for-human Job per Meeting
+  performs writes; the store detects violations but does not
+  arbitrate.
 - **Refresh** — Optional `MeetingStorePort.refresh()` operation that
   re-reads the on-disk store so cross-process readers see new state.
 
@@ -175,7 +178,7 @@ lifecycle:
     scope: first-time-approval
 partition_id: persistence
 name: veche/file-store-format
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: public_storage
 members:
   - persistence:CTR-001
@@ -404,13 +407,18 @@ then: |
   updateJob accepts only these patches:
     queued    -> running                 (sets startedAt)
     queued    -> cancelled | failed      (Job never starts)
+    running   -> waiting_for_human       (pauses after a model Round)
     running   -> completed | failed | cancelled (sets finishedAt,
       lastSeq, rounds, terminationReason | error | cancelReason)
+    waiting_for_human -> running         (resumes after a Human Turn)
+    waiting_for_human -> completed | failed | cancelled (sets
+      finishedAt, lastSeq, rounds, terminationReason | error |
+      cancelReason)
   Terminal states (completed, failed, cancelled) are immutable. Any
   other transition raises JobStateTransitionInvalid.
   createJob raises JobStateTransitionInvalid (surfaced as MeetingBusy
   by the application) when any Job for the Meeting is already in
-  status `queued` or `running`.
+  status `queued`, `running`, or `waiting_for_human`.
   createJob raises MeetingAlreadyEnded when the Meeting is `ended`.
 negative_cases:
   - createJob with duplicate jobId          => JobAlreadyExists
@@ -437,11 +445,12 @@ test_obligation:
   predicate: |
     Every legal transition is accepted; every illegal transition is
     rejected with the documented error; terminal states cannot be
-    patched. createJob with any concurrent queued/running Job for the
-    same Meeting is rejected.
+    patched. createJob with any concurrent queued/running/
+    waiting_for_human Job for the same Meeting is rejected.
   test_template: integration
   boundary_classes:
     - happy path (queued → running → completed)
+    - human pause path (running → waiting_for_human → running)
     - cancellation before start
     - failure during run
     - rejected post-terminal patch
@@ -465,7 +474,7 @@ lifecycle:
     change_request: local/spec-migration-persistence-v1
     scope: first-time-approval
 partition_id: persistence
-title: endMeeting appends meeting.ended and rejects subsequent writes
+title: endMeeting appends meeting.ended and rejects subsequent mutating writes
 given: |
   - the Meeting exists with status active
 when: application calls `endMeeting({ meetingId, at })`
@@ -473,8 +482,11 @@ then: |
   the store appends one `meeting.ended` event (empty payload) at the
   next seq, sets `meeting.status = ended` and `endedAt = at`, and
   returns the updated MeetingSnapshot. Subsequent appendMessage,
-  appendSystemEvent, createJob, and endMeeting calls for the same
-  Meeting raise MeetingAlreadyEnded.
+  createJob, endMeeting, and mutating appendSystemEvent calls for the
+  same Meeting raise MeetingAlreadyEnded. appendSystemEvent may append
+  synthesis.submitted after meeting.ended because it records facilitator
+  output for an already-terminal Job and does not mutate the Transcript
+  or Meeting status.
 negative_cases:
   - Meeting unknown                          => MeetingNotFound
   - Meeting already ended                    => MeetingAlreadyEnded
@@ -494,13 +506,14 @@ policy_refs:
   - persistence:POL-001
 test_obligation:
   predicate: |
-    After endMeeting, the Meeting status is ended, the last event is
-    meeting.ended, and every subsequent write call returns
-    MeetingAlreadyEnded with no event added.
+    After endMeeting, the Meeting status is ended, meeting.ended is
+    appended, mutating writes return MeetingAlreadyEnded with no event
+    added, and synthesis.submitted remains appendable for a terminal Job.
   test_template: integration
   boundary_classes:
     - end on Meeting with no Job
     - end after completed Job
+    - synthesis submitted after meeting ended
     - double-end rejected
   failure_scenarios:
     - silent write after end
@@ -533,7 +546,7 @@ then: |
   meetingId)` of the last returned summary; returns
   ListMeetingsResult { summaries, nextCursor }.
   Each summary carries `openJobCount = count of jobs with status in
-  {queued, running}` for that Meeting.
+  {queued, running, waiting_for_human}` for that Meeting.
 negative_cases:
   - cursor cannot be decoded                 => CursorInvalid
   - limit out of range                       => InvalidInput (asserted by application; store treats as ValidationError if applicable)
@@ -890,6 +903,10 @@ schema:
         - round.started
         - round.completed
         - message.posted
+        - human.turn.requested
+        - human.turn.submitted
+        - human.participation.set
+        - synthesis.submitted
         - participant.dropped
         - job.completed
         - job.failed
@@ -911,7 +928,7 @@ postconditions:
     every appended event in seq order
 external_identifiers:
   - JSON field names: seq, type, at, payload
-  - the eleven event-type enum strings (verbatim, lowercase, dotted)
+  - the fifteen event-type enum strings (verbatim, lowercase, dotted)
   - the literal `\n` line terminator
 compatibility_rules:
   - renaming any top-level field (seq/type/at/payload)        => major bump on SUR-001
@@ -975,9 +992,11 @@ schema: |
 
   participant.joined:
     participant        : full Participant record (id, role, adapter,
-                         profile, systemPrompt, workdir, model,
-                         extraFlags, status, ...). Sub-shape owned by
-                         the meeting partition.
+                         participantKind, discussionRole,
+                         isHumanParticipationEnabled, profile,
+                         systemPrompt, workdir, model, extraFlags,
+                         status, ...). Sub-shape owned by the
+                         meeting partition.
 
   job.started:
     jobId              : JobId
@@ -997,6 +1016,36 @@ schema: |
     author    : ParticipantId or the literal string "system"
     kind      : closed enum { speech, pass, system }
     text      : string
+
+  human.turn.requested:
+    jobId         : JobId
+    requestId     : string UUID
+    roundNumber   : integer >= 1
+    participantId : ParticipantId
+    agreeTargets  : array of ParticipantId
+    strengths     : array exactly [1, 2, 3]
+
+  human.turn.submitted:
+    jobId                : JobId
+    requestId            : string UUID
+    roundNumber          : integer >= 1
+    participantId        : ParticipantId
+    action               : closed enum { agree, skip, steer }
+    targetParticipantId? : ParticipantId
+    strength?            : closed enum { 1, 2, 3 }
+    text?                : string
+    messageId            : MessageId
+    messageSeq           : integer
+    auto                 : boolean
+
+  human.participation.set:
+    participantId : ParticipantId
+    enabled       : boolean
+    jobId         : JobId or null
+
+  synthesis.submitted:
+    jobId : JobId
+    text  : string
 
   participant.dropped:
     participantId : ParticipantId
@@ -1027,6 +1076,7 @@ postconditions:
 external_identifiers:
   - every required and optional field name listed above
   - the message kind enum strings (speech / pass / system)
+  - the human turn action enum strings (agree / skip / steer)
 compatibility_rules:
   - renaming any field within any payload                     => major bump on SUR-001
   - widening a closed enum (kind, terminationReason)          => major bump
@@ -2348,7 +2398,7 @@ Boundaries:
   | 'failure', text, error?, providerRef?, durationMs }`.
 - **`Profile`** — Named record in `${VECHE_HOME}/config.json`:
   `{ name, adapter, model?, systemPrompt?, workdir?, extraFlags[],
-  env }`.
+  env, discussionRole? }`.
 - **`PASS_PROTOCOL_SUFFIX`** — Literal text appended to every
   Member's first-Turn system prompt instructing the model that
   `<PASS/>` (alone) means decline-this-Round.
@@ -2463,7 +2513,7 @@ lifecycle:
   status: proposed
 partition_id: agent-integration
 name: veche/profile-config-format
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: public_storage
 members:
   - agent-integration:CTR-004
@@ -2741,7 +2791,7 @@ title: ProfileResolver merges Profile + Member overrides into ResolvedParticipan
 given: |
   - the user config file (UserConfigFile) is loaded or null
   - caller passes MemberInput { profile?, adapter?, systemPrompt?,
-    model?, workdir?, extraFlags?, env? }
+    model?, workdir?, extraFlags?, env?, discussionRole? }
 when: caller invokes `ProfileResolver.resolve(input)`
 then: |
   the resolver:
@@ -2754,13 +2804,15 @@ then: |
        `profile.adapter`; if both absent, raises ProfileNotFound
        with synthetic name `(missing adapter and profile)`.
     4. merges fields with input precedence over profile
-       (systemPrompt, model, workdir, extraFlags); env is shallow
-       union with input keys taking precedence.
+       (systemPrompt, model, workdir, extraFlags, discussionRole);
+       env is shallow union with input keys taking precedence.
     5. validates every effective `extraFlags` entry against the
        adapter's allow-list (regex set per adapter); raises
        AdapterFlagNotAllowed on the first mismatch.
     6. returns ResolvedParticipantConfig with the resolved values
-       plus `profile: input.profile ?? null` for traceability.
+       plus `profile: input.profile ?? null` and
+       `discussionRole: input.discussionRole ?? profile.discussionRole ?? null`
+       for traceability.
 negative_cases:
   - input.profile not in UserConfigFile     => ProfileNotFound
   - input.adapter != profile.adapter        => ProfileAdapterMismatch
@@ -2782,8 +2834,8 @@ test_obligation:
   predicate: |
     For each branch (profile-only, override-only, profile+override,
     mismatching adapter, missing profile, disallowed flag), the
-    resolver returns the documented record or raises the documented
-    error.
+    resolver returns the documented record, including Discussion Role
+    precedence, or raises the documented error.
   test_template: unit
   boundary_classes:
     - profile only (no overrides)
@@ -3340,6 +3392,13 @@ schema:
             type: object
             additionalProperties: { type: string }
             description: keys must match `^[A-Z_][A-Z0-9_]*$`; forbidden keys CODEX_API_KEY, HOME, PATH, CLAUDE_BIN, CODEX_BIN
+          discussionRole:
+            type: object
+            required: [name, description, weight]
+            properties:
+              name: { type: string, minLength: 1, maxLength: 64 }
+              description: { type: string, minLength: 1, maxLength: 400 }
+              weight: { type: number, exclusiveMinimum: 0 }
 preconditions:
   - file is UTF-8 JSON; parses with JSON.parse without errors
   - one profile name appears at most once
@@ -4074,10 +4133,12 @@ partition's gate and contract surface:
 
 The `committee-protocol` partition owns the deterministic
 multi-party discussion loop launched by `send_message`. It runs
-broadcast Rounds until every active Member declines (Pass Signal)
-or `maxRounds` is reached, persisting every Member response, every
-drop incident, and the termination marker through the
-`MeetingStorePort`. It consumes `AgentAdapterPort` from
+model broadcast Rounds until every active Model Member declines
+(Pass Signal) or `maxRounds` is reached. When an enabled Human
+Member is present, it pauses after each model Round for a Human
+Turn before the next termination decision. It persists every Model
+Member response, Human Turn response, drop incident, and termination
+marker through the `MeetingStorePort`. It consumes `AgentAdapterPort` from
 agent-integration and `MeetingStorePort` from persistence; it does
 not own any external Surface.
 
@@ -4092,7 +4153,7 @@ partitions.
 
 - **Round** — One broadcast iteration. Round 0 is the Facilitator
   Message (appended by meeting:BEH-002 before this partition runs);
-  Rounds 1..N are concurrent Member Turns followed by a single
+  Rounds 1..N are concurrent Model Member Turns followed by a single
   `round.completed` marker.
 - **`DiscussionState`** — Ephemeral aggregate `{ jobId, meetingId,
   maxRounds, roundNumber, pendingPass, droppedThisJob,
@@ -4117,6 +4178,10 @@ partitions.
   exact byte sequence, surrounding whitespace ignored). A response
   matching this token alone is classified as `kind: 'pass'`;
   anything else is `kind: 'speech'`.
+- **Human Turn** — A pause after a model Round. The runner emits
+  human.turn.requested, waits by polling/refetching the store, then
+  resumes after submit_human_turn, auto-skip on disabled Human
+  Participation, cancellation, or terminal state.
 
 ### Partition record (committee-protocol)
 
@@ -4184,7 +4249,7 @@ lifecycle:
   status: proposed
 partition_id: committee-protocol
 name: veche/discussion-runtime
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: sdk
 members:
   - committee-protocol:CTR-001
@@ -4214,17 +4279,18 @@ partition_id: committee-protocol
 title: RunRoundUseCase dispatches active Members in parallel and persists outcomes deterministically
 given: |
   - DiscussionState with roundNumber=R-1 and terminationReason=null
-  - at least one active, non-dropped Member exists
+  - at least one active, non-dropped Model Member exists
 when: caller invokes `RunRoundUseCase.execute({ state, cancellationSignal, turnTimeoutMs })`
 then: |
   the use case:
-    1. derives `activeMembers` = Members with role=member AND status=active AND id NOT IN droppedThisJob.
+    1. derives `activeMembers` = Participants with role=member AND participantKind=model AND status=active AND id NOT IN droppedThisJob.
        If empty, sets state.terminationReason='no-active-members' and returns without persisting any new event.
     2. increments state.roundNumber.
     3. appends `round.started` event with payload { roundNumber, activeParticipantIds: <activeMembers> }.
     4. builds per-Member `transcriptPrefix`: every speech/pass/system Message authored by anyone OTHER than this
        Member with `round >= lastRound[member]` (where lastRound[member] is the most recent round in which the
        Member spoke, or -1 before the first Turn). On Round 1 this is exactly the facilitator's Round 0 Message.
+       Each Participant-authored prompt block includes the author's Discussion Role name and weight.
     5. dispatches all Member Turns in parallel via `Promise.allSettled` over DispatchTurnUseCase.
     6. checks cancellationSignal.aborted; if set, sets state.terminationReason='cancelled' and stops persisting
        further events for this Round (the Round-completed marker is NOT appended on cancellation).
@@ -4233,12 +4299,19 @@ then: |
        pass    -> appendMessage(round=R, author=participantId, kind=pass, text='<PASS/>'); pendingPass.add(participantId)
        failure -> delegate to HandleAgentFailureUseCase (BEH-003)
     8. appends `round.completed` event with payload { roundNumber, passedParticipantIds: [...pendingPass] }.
-    9. evaluates termination via TerminateDiscussionUseCase; if it returns a non-null reason, sets state.terminationReason.
-    10. returns the updated state.
+    9. if an enabled Human Member exists, emits human.turn.requested,
+       sets the Job status to waiting_for_human, and polls/refetches the
+       store until the request has a valid submission, the Human Member
+       is disabled, or cancellation is observed. agree and skip preserve
+       pendingPass; steer clears pendingPass so another model Round can
+       run when the maxRounds cap permits it. The first valid submission
+       for requestId wins.
+    10. evaluates termination via TerminateDiscussionUseCase; if it returns a non-null reason, sets state.terminationReason.
+    11. returns the updated state.
 negative_cases:
   - StoreUnavailable from any append    => propagated (Job runner converts to job.failed StoreUnavailable)
 out_of_scope:
-  - retries on individual Member failures (BEH-002 / BEH-007 own retry semantics)
+  - retries on individual Model Member failures (BEH-002 / BEH-007 own retry semantics)
   - cancellation observation between awaits (covered by BEH-001 step 6 + INV-002)
 applicability:
   invariant_to_all_axes: true
@@ -4257,13 +4330,17 @@ test_obligation:
     speech/pass/failure outcomes, RunRoundUseCase appends
     round.started, the Member messages in ascending participantId
     order, zero-or-more participant.dropped events, and exactly
-    one round.completed (or none if cancelled). state.roundNumber
-    is incremented exactly once. activeMembers=∅ short-circuits
-    without any new event.
+    one round.completed (or none if cancelled). With an enabled
+    Human Member, it emits a Human Turn request after the model
+    Round and resumes only after submission, toggle-off auto-skip,
+    or cancellation. state.roundNumber is incremented exactly once.
+    activeMembers=∅ short-circuits without any new event.
   test_template: integration
   boundary_classes:
     - all speech
     - mixed speech + pass
+    - Human Member steer clears pendingPass
+    - Human Member skip preserves pendingPass
     - one fatal failure (drops Member)
     - cancellation between dispatch and persist
     - empty active set (no-active-members termination)
@@ -4399,7 +4476,7 @@ title: TerminateDiscussionUseCase decides termination using a fixed evaluation o
 given: |
   - DiscussionState
   - cancellationSignal
-  - activeMembers list
+  - activeModelMembers list
 when: caller invokes `TerminateDiscussionUseCase.execute({ state, cancellationSignal, activeMembers })`
 then: |
   the use case evaluates these conditions in order; the first
@@ -4407,7 +4484,8 @@ then: |
     1. cancellationSignal.aborted          => { terminationReason: 'cancelled', shouldFinalize: true }
     2. activeMembers.length === 0           => { terminationReason: 'no-active-members', shouldFinalize: true }
     3. state.roundNumber >= state.maxRounds => { terminationReason: 'max-rounds', shouldFinalize: true }
-    4. activeMembers.every(id => state.pendingPass.has(id)) => { terminationReason: 'all-passed', shouldFinalize: true }
+    4. every active Model Member id is present in state.pendingPass
+       and no Human steering cleared that pass state => { terminationReason: 'all-passed', shouldFinalize: true }
     5. otherwise                            => { terminationReason: null, shouldFinalize: false }
   When shouldFinalize=true, the caller (RunRoundUseCase or the Job
   runner) performs finalisation: updateJob({ status: completed |
@@ -4440,7 +4518,7 @@ test_obligation:
   boundary_classes:
     - cancellation wins over max-rounds
     - max-rounds wins over all-passed when both true
-    - all-passed precise (every active Member in pendingPass)
+    - all-passed precise (every active Model Member in pendingPass)
     - no-active-members on first Round
   failure_scenarios:
     - evaluation order drift (e.g. all-passed wins over cancelled)
@@ -4528,7 +4606,7 @@ schema:
     roundNumber: { type: integer, minimum: 0 }
     pendingPass:
       type: object
-      description: "Set<ParticipantId> of Members that emitted <PASS/> in the most recent Round; cleared at Round start"
+      description: "Set<ParticipantId> of Model Members that emitted <PASS/> in the most recent Round; cleared at Round start or by Human steering"
     droppedThisJob:
       type: object
       description: "Set<ParticipantId> of Members dropped during this Job; cumulative for the remainder of the Meeting (the Meeting aggregate carries the dropped status forward, not the per-Job set)"
@@ -5178,12 +5256,20 @@ Boundaries:
 
 - **Meeting** — Aggregate `{ id, title, status, createdAt,
   endedAt, participants[], defaultMaxRounds }`.
-- **Participant** — Aggregate part `{ id, role, adapter, profile,
-  systemPrompt, workdir, model, extraFlags, env, status,
-  droppedAt, droppedReason }`.
+- **Participant** — Aggregate part `{ id, role, participantKind,
+  discussionRole, isHumanParticipationEnabled, adapter, profile,
+  systemPrompt, workdir, model, extraFlags, env, status, droppedAt,
+  droppedReason }`.
 - **Job** — Aggregate part `{ id, meetingId, status, createdAt,
   startedAt, finishedAt, maxRounds, lastSeq, rounds, error,
   cancelReason, terminationReason }`.
+- **Human Turn** — A pause after a model Round where an enabled
+  Human Participant can submit `agree`, `skip`, or `steer`
+  feedback for the current Job. First valid submission for a
+  `requestId` wins.
+- **Synthesis** — A final facilitator-authored result stored after a
+  Job reaches a terminal status. It is rendered separately from
+  the Transcript and is not a Message.
 - **Message** — Persisted record `{ id, meetingId, seq, round,
   author, kind, text, createdAt }`.
 - **`VECHE_MAX_ROUNDS_CAP`** — Server-wide constant (currently
@@ -5297,16 +5383,17 @@ lifecycle:
   status: proposed
 partition_id: meeting
 name: veche/mcp-tools
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: api
 members:
   - meeting:CTR-001
   - meeting:CTR-002
 consumer_compat_policy: semver_per_surface
 notes: |
-  Public MCP tool API: the seven tools (start_meeting,
-  send_message, get_response, get_transcript, list_meetings,
-  end_meeting, cancel_job) advertised by the MCP server, plus the
+    Public MCP tool API: the ten tools (start_meeting,
+    send_message, get_response, get_transcript, list_meetings,
+    end_meeting, cancel_job, submit_human_turn,
+    set_human_participation, submit_synthesis) advertised by the MCP server, plus the
   domain entities (Meeting, Participant, Message, Job) returned in
   their payloads. Renaming a tool, removing a tool, or changing
   the shape of any tool's input / output / error code is a major
@@ -5324,7 +5411,7 @@ lifecycle:
   status: proposed
 partition_id: meeting
 name: veche/cli-readonly
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: cli
 members:
   - meeting:CTR-003
@@ -5362,32 +5449,40 @@ then: |
      match `^[A-Z_][A-Z0-9_]*$`; forbidden env keys CODEX_API_KEY,
      HOME, PATH, CLAUDE_BIN, CODEX_BIN; extraFlags <= 16; env <=
      32 entries; defaultMaxRounds 1..VECHE_MAX_ROUNDS_CAP).
-  2. for each Member entry, resolve via ProfileResolver.resolve;
-     surface ProfileNotFound / ProfileAdapterMismatch /
-     AdapterFlagNotAllowed.
-  3. for each Member with workdir, verify it is absolute, exists,
+  2. for each Member entry, resolve participantKind (omitted
+     means `model`). Human Members MUST NOT carry adapter/profile/
+     model execution fields; they get adapter=null, sessionId=null,
+     participantKind='human', and a default Discussion Role unless
+     overridden.
+  3. for each Model Member entry, resolve via
+     ProfileResolver.resolve; surface ProfileNotFound /
+     ProfileAdapterMismatch / AdapterFlagNotAllowed. The resolved
+     Discussion Role comes from the Member override, the Profile,
+     or the default model role.
+  4. for each Model Member with workdir, verify it is absolute, exists,
      and is readable; otherwise WorkdirUnavailable.
-  4. for each Member, verify the resolved adapter's capabilities
+  5. for each Model Member, verify the resolved adapter's capabilities
      match (supportsWorkdir if workdir set; supportsSystemPrompt
      if systemPrompt set); else AdapterConfigInvalid.
-  5. assemble the Meeting aggregate with status='active', new
+  6. assemble the Meeting aggregate with status='active', new
      MeetingId from IdGenPort, createdAt from ClockPort,
-     facilitator first, members in input order. Each Member
-     carries a fresh sessionId from
-     IdGenPort.newParticipantSessionId.
-  6. call MeetingStorePort.createMeeting; the store appends
+     facilitator first, members in input order. Each Model Member
+     carries a fresh sessionId from IdGenPort.newParticipantSessionId;
+     Human Members carry sessionId=null and
+     isHumanParticipationEnabled=true at creation.
+  7. call MeetingStorePort.createMeeting; the store appends
      meeting.created at seq=0 then participant.joined at seq=1..K
      (one per Participant including the Facilitator).
-  7. for each Member (NOT the Facilitator), call
+  8. for each Model Member (NOT the Facilitator), call
      AgentAdapterPort.openSession with the resolved configuration
-     and the pre-allocated sessionId.
-  8. on any AdapterNotAvailable / AdapterConfigInvalid from
+     and the pre-allocated sessionId. Human Members are skipped.
+  9. on any AdapterNotAvailable / AdapterConfigInvalid from
      openSession, roll back: closeSession every Session opened so
      far; MeetingStorePort.endMeeting(meetingId, at: Clock.now)
      so the partial Meeting is marked ended (it remains visible in
      the event log but is excluded by the default `status=active`
      filter). Surface the original error.
-  9. return { meetingId, title, createdAt, participants[],
+  10. return { meetingId, title, createdAt, participants[],
      defaultMaxRounds, cursor } where cursor points past the last
      participant.joined event.
 negative_cases:
@@ -5395,6 +5490,7 @@ negative_cases:
   - profile name unknown                    => ProfileNotFound (invalid_params)
   - profile adapter mismatch                => ProfileAdapterMismatch (invalid_params)
   - duplicate participant id                => DuplicateParticipantId (invalid_params)
+  - Human Member includes adapter execution field => InvalidInput (invalid_params)
   - workdir absent / not readable           => WorkdirUnavailable (invalid_params)
   - extraFlag outside allow-list            => AdapterFlagNotAllowed (invalid_params)
   - adapter binary missing                  => AdapterNotAvailable (unavailable) — Meeting rolled back per step 8
@@ -5416,15 +5512,17 @@ policy_refs:
 test_obligation:
   predicate: |
     For each happy path (1..8 members; profile-only; override-only;
-    profile+override) the Meeting is persisted with the correct
-    Participant order, every Member has an open Session, and the
-    returned cursor decodes to seq = K (number of Participants
-    plus zero-based meeting.created index = K). For each rollback
-    path, the Meeting ends up with status=ended, all opened
+    profile+override; Human Member; custom Discussion Role) the
+    Meeting is persisted with the correct Participant order, every
+    Model Member has an open Session, every Human Member has no
+    Session, and the returned cursor decodes to seq = K (number of
+    Participants plus zero-based meeting.created index = K). For each
+    rollback path, the Meeting ends up with status=ended, all opened
     Sessions are closed, and the original error class is surfaced.
   test_template: integration
   boundary_classes:
     - 1 member, no overrides
+    - 1 human member with default role metadata
     - 8 members, mixed profiles + overrides
     - duplicate id rejection
     - workdir not readable
@@ -5446,7 +5544,7 @@ partition_id: meeting
 title: send_message creates a Job, appends Round 0 Message, hands off to committee-protocol
 given: |
   - the Meeting exists with status=active
-  - no other Job for this Meeting is queued or running
+  - no other Job for this Meeting is queued, running, or waiting_for_human
   - text passes the 1..32 KiB UTF-8 / non-empty-after-trim check
 when: caller invokes `SendMessageUseCase.execute({ meetingId, text, maxRounds?, turnTimeoutMs?, addressees? })`
 then: |
@@ -5456,7 +5554,7 @@ then: |
   3. compute effective active-Member set; if empty NoActiveMembers.
   4. createJob with status=queued, maxRounds, turnTimeoutMs,
      addressees (or null), createdAt=Clock.now. Store enforces
-     "at most one Job in {queued,running} per Meeting" and raises
+     "at most one Job in {queued,running,waiting_for_human} per Meeting" and raises
      JobStateTransitionInvalid -> surfaced as MeetingBusy.
   5. appendMessage with author=facilitator.id, kind='speech',
      round=0, text=trimmed-text, createdAt=Clock.now. The
@@ -5473,8 +5571,8 @@ negative_cases:
   - schema violation                          => InvalidInput
   - meeting unknown                           => MeetingNotFound
   - meeting ended                             => MeetingAlreadyEnded
-  - all Members dropped or addressees empty   => NoActiveMembers
-  - other Job queued/running                  => MeetingBusy
+  - all Model Members dropped or addressees empty => NoActiveMembers
+  - other Job queued/running/waiting_for_human => MeetingBusy
   - addressees contains unknown id            => AddresseeNotFound
   - store error                               => StoreUnavailable
 out_of_scope:
@@ -5500,7 +5598,7 @@ test_obligation:
     that decodes to the Facilitator Message's seq, and triggers
     Round 1 execution asynchronously (observable via subsequent
     get_response polls). Sending a second send_message while the
-    first Job is queued/running raises MeetingBusy.
+    first Job is queued/running/waiting_for_human raises MeetingBusy.
   test_template: integration
   boundary_classes:
     - happy path
@@ -5534,14 +5632,19 @@ then: |
      readMessagesSince(meetingId, cursor, limit=1) yields no
      events: call MeetingStorePort.watchNewEvents({ meetingId,
      cursor, timeoutMs: waitMs }). Resolves on event or timeout.
+     Jobs in `waiting_for_human` return immediately so callers can
+     surface the pending Human Turn.
   4. read the next page: readMessagesSince({ meetingId, cursor,
      limit }).
   5. reload the Job snapshot for the latest status /
      terminationReason / error.
   6. compose { jobId, meetingId, status, terminationReason,
      error, messages: <speech|pass|system messages from page>,
-     nextCursor, hasMore }. round.started / round.completed and
-     job.* events are NOT surfaced through this tool.
+     humanTurn, synthesis, nextCursor, hasMore }. round.started /
+     round.completed and job.* events are NOT surfaced through this
+     tool. humanTurn is non-null only for the latest unsubmitted
+     Human Turn for this Job while the Human Participant is enabled.
+     synthesis is non-null after submit_synthesis stores a result.
 negative_cases:
   - schema violation                              => InvalidInput
   - job unknown                                   => JobNotFound
@@ -5565,13 +5668,15 @@ test_obligation:
   predicate: |
     Multiple get_response calls with the same cursor return the
     same events. waitMs > 0 unblocks on the first appended event
-    (within tolerance). Terminal Jobs (completed/failed/cancelled)
-    return immediately regardless of waitMs. round.* events are
-    excluded from the messages array. Cross-meeting cursor reuse
-    is rejected.
+    (within tolerance). Jobs in waiting_for_human and terminal Jobs
+    (completed/failed/cancelled) return immediately regardless of
+    waitMs. round.* events are excluded from the messages array.
+    Cross-meeting cursor reuse is rejected. Pending Human Turns and
+    stored Synthesis records are surfaced in their dedicated fields.
   test_template: integration
   boundary_classes:
     - terminal Job (waitMs ignored)
+    - waiting_for_human Job (waitMs ignored, humanTurn returned)
     - blocked wait resolves on append
     - blocked wait times out
     - pagination via nextCursor
@@ -5655,8 +5760,8 @@ then: |
   3. listMeetings({ status, createdAfter, createdBefore, limit,
      cursor }).
   4. each summary carries openJobCount = count of Jobs with
-     status in {queued,running} (computed by the store; no N+1
-     reads).
+     status in {queued,running,waiting_for_human} (computed by the
+     store; no N+1 reads).
   5. return { summaries[], nextCursor: nextCursorOrNull } sorted
      newest createdAt first, ties broken by meetingId ascending.
 negative_cases:
@@ -5988,6 +6093,157 @@ test_obligation:
 ---
 ```
 
+```yaml
+---
+id: meeting:BEH-010
+type: Behavior
+lifecycle:
+  status: proposed
+partition_id: meeting
+title: submit_human_turn accepts the first valid Human Turn submission
+given: |
+  - a Job is in status waiting_for_human
+  - a human.turn.requested event exists for requestId
+  - no accepted human.turn.submitted event exists for requestId
+when: caller invokes `SubmitHumanTurnUseCase.execute(command)`
+then: |
+  The use case validates that the request belongs to the supplied
+  Meeting and Job and that the Human Participant is still enabled.
+  It appends one Transcript Message authored by the Human Participant:
+  agree yields a readable speech Message naming the target and
+  strength; skip yields a pass Message with `<PASS/>`; steer yields a
+  speech Message with the supplied text. It then appends
+  human.turn.submitted with the same requestId and the submitted
+  action. The first valid submission by event seq is authoritative.
+negative_cases:
+  - request unknown / stale                    => HumanTurnNotFound
+  - duplicate submission                       => HumanTurnAlreadySubmitted
+  - agree without valid target or strength     => InvalidInput
+  - steer without non-empty text               => InvalidInput
+out_of_scope:
+  - dispatching Human Participants through AgentAdapterPort
+applicability:
+  invariant_to_all_axes: true
+concurrency_model:
+  actor_concurrency: multi_per_resource
+  read_consistency: read_your_writes
+  idempotency: "exactly_once_with_key:(requestId)"
+  time_source: external
+data_scope: new_writes_only
+policy_refs:
+  - meeting:POL-001
+test_obligation:
+  predicate: |
+    Integration tests cover agree, skip, steer, stale request
+    rejection, duplicate rejection, and the emitted Message plus
+    control-event pair.
+  test_template: integration
+  boundary_classes:
+    - agree
+    - skip
+    - steer
+    - duplicate request
+  failure_scenarios:
+    - second submission accepted
+    - Human Turn stored without transcript Message
+---
+```
+
+```yaml
+---
+id: meeting:BEH-011
+type: Behavior
+lifecycle:
+  status: proposed
+partition_id: meeting
+title: set_human_participation toggles Human Participant availability
+given: |
+  - a Meeting exists
+  - participantId names a Human Member in that Meeting
+when: caller invokes `SetHumanParticipationUseCase.execute({ meetingId, participantId, enabled })`
+then: |
+  The use case appends human.participation.set with the supplied
+  enabled value and returns { participantId, enabled }. Disabling
+  during a pending Human Turn causes the discussion runner to auto-skip
+  that request on its next poll. Model Participants cannot be toggled
+  through this use case.
+negative_cases:
+  - meeting unknown                            => MeetingNotFound
+  - participant unknown or not human           => ParticipantNotFound
+out_of_scope:
+  - changing a Participant's participantKind after Meeting creation
+applicability:
+  invariant_to_all_axes: true
+concurrency_model:
+  actor_concurrency: multi_per_resource
+  read_consistency: read_your_writes
+  idempotency: "at_least_once_with_key:(meetingId,participantId,enabled)"
+  time_source: external
+data_scope: new_writes_only
+policy_refs:
+  - meeting:POL-001
+test_obligation:
+  predicate: |
+    Integration tests toggle a Human Participant off during a pending
+    request and observe the runner auto-skip; toggling a Model
+    Participant is rejected.
+  test_template: integration
+  boundary_classes:
+    - enable
+    - disable while waiting
+    - model participant rejection
+  failure_scenarios:
+    - disabled Human Turn blocks forever
+---
+```
+
+```yaml
+---
+id: meeting:BEH-012
+type: Behavior
+lifecycle:
+  status: proposed
+partition_id: meeting
+title: submit_synthesis stores the final facilitator synthesis
+given: |
+  - a Job exists and is terminal
+when: caller invokes `SubmitSynthesisUseCase.execute({ jobId, text })`
+then: |
+  The use case appends synthesis.submitted with the Job id and text.
+  The stored Synthesis is rendered separately from Transcript Messages
+  by get_response, show, and the web-viewer. It does not mutate the Job
+  terminal state and does not create a Message.
+negative_cases:
+  - job unknown                                => JobNotFound
+  - job non-terminal                           => InvalidInput
+  - synthesis already submitted for Job        => JobAlreadyTerminal
+  - text empty after trim                      => InvalidInput
+out_of_scope:
+  - invoking a hidden summarizer model inside the server
+applicability:
+  invariant_to_all_axes: true
+concurrency_model:
+  actor_concurrency: single_per_resource
+  read_consistency: read_your_writes
+  idempotency: "at_least_once_with_key:(jobId)"
+  time_source: external
+data_scope: new_writes_only
+policy_refs:
+  - meeting:POL-001
+test_obligation:
+  predicate: |
+    Integration tests store a Synthesis for a terminal Job and assert
+    renderers expose it as a separate section, not a Message.
+  test_template: integration
+  boundary_classes:
+    - completed job
+    - failed job
+    - non-terminal job rejected
+  failure_scenarios:
+    - synthesis appears as a speech Message
+---
+```
+
 ### Contracts (meeting)
 
 ```yaml
@@ -5997,7 +6253,7 @@ type: Contract
 lifecycle:
   status: proposed
 partition_id: meeting
-title: MCP tool inputs and outputs (the seven veche/* tools)
+title: MCP tool inputs and outputs (the ten veche/* tools)
 surface_ref: meeting:SUR-001
 schema:
   description: |
@@ -6009,10 +6265,12 @@ schema:
     operational source of truth.
   start_meeting_input: |
     { title: string(1..200 trimmed),
-      facilitator: { id?: string, displayName?: string },
+      facilitator: { id?: string, displayName?: string, discussionRole?: DiscussionRole },
       members: Member[1..8],
       defaultMaxRounds?: integer(1..VECHE_MAX_ROUNDS_CAP) }
     Member: { id: string,
+              participantKind?: 'model'|'human',
+              discussionRole?: DiscussionRole,
               profile?: string,
               adapter?: 'codex-cli'|'claude-code-cli',
               model?: string,
@@ -6033,7 +6291,8 @@ schema:
     { jobId, cursor?: string, limit?: integer(1..500), waitMs?: integer(0..60000) }
   get_response_output: |
     { jobId, meetingId, status, terminationReason, error,
-      messages: Message[], nextCursor, hasMore }
+      messages: Message[], humanTurn: HumanTurn|null,
+      synthesis: Synthesis|null, nextCursor, hasMore }
   get_transcript_input: |
     { meetingId, cursor?: string, limit?: integer(1..500) }
   get_transcript_output: |
@@ -6051,6 +6310,22 @@ schema:
     { jobId, reason?: string(1..200) }
   cancel_job_output: |
     { jobId, status: 'cancelled', cancelledAt, lastSeq }
+  submit_human_turn_input: |
+    { jobId, requestId,
+      action: 'agree'|'skip'|'steer',
+      targetParticipantId?: ParticipantId,
+      strength?: 1|2|3,
+      text?: string(1..32 KiB trimmed) }
+  submit_human_turn_output: |
+    { jobId, requestId, accepted: true, messageId }
+  set_human_participation_input: |
+    { meetingId, participantId, enabled: boolean, jobId?: JobId }
+  set_human_participation_output: |
+    { meetingId, participantId, enabled }
+  submit_synthesis_input: |
+    { jobId, text: string(1..32 KiB trimmed) }
+  submit_synthesis_output: |
+    { jobId, stored: true }
   error_mapping: |
     InvalidInput / DuplicateParticipantId / WorkdirUnavailable /
       ProfileNotFound / ProfileAdapterMismatch /
@@ -6058,7 +6333,8 @@ schema:
       CursorInvalid / AddresseeNotFound -> invalid_params
     MeetingNotFound / JobNotFound -> not_found
     MeetingAlreadyEnded / NoActiveMembers / MeetingBusy /
-      JobAlreadyTerminal -> failed_precondition
+      JobAlreadyTerminal / HumanTurnNotFound /
+      HumanTurnAlreadySubmitted -> failed_precondition
     AdapterNotAvailable -> unavailable
     StoreUnavailable / InternalError -> internal_error
 preconditions:
@@ -6072,7 +6348,7 @@ postconditions:
     failed start_meeting either creates the Meeting (success
     path) or rolls back via endMeeting (failure path)
 external_identifiers:
-  - "tool names: start_meeting, send_message, get_response, get_transcript, list_meetings, end_meeting, cancel_job"
+  - "tool names: start_meeting, send_message, get_response, get_transcript, list_meetings, end_meeting, cancel_job, submit_human_turn, set_human_participation, submit_synthesis"
   - field names listed in each schema block above
   - error class names + MCP code strings listed in error_mapping
 compatibility_rules:
@@ -6139,6 +6415,9 @@ schema:
     Participant {
       id: ParticipantId;
       role: 'facilitator'|'member';
+      participantKind: 'model'|'human';
+      discussionRole: { name: string; description: string; weight: number };
+      isHumanParticipationEnabled: boolean;
       adapter: 'codex-cli'|'claude-code-cli'|null;
       profile: string|null;
       systemPrompt: string|null;
@@ -6155,7 +6434,7 @@ schema:
     Job {
       id: JobId;
       meetingId: MeetingId;
-      status: 'queued'|'running'|'completed'|'failed'|'cancelled';
+      status: 'queued'|'running'|'waiting_for_human'|'completed'|'failed'|'cancelled';
       createdAt: Instant; startedAt: Instant|null;
       finishedAt: Instant|null;
       maxRounds: integer; lastSeq: integer; rounds: integer;
@@ -6170,6 +6449,22 @@ schema:
       seq: integer; round: integer;
       author: ParticipantId|'system';
       kind: 'speech'|'pass'|'system';
+      text: string;
+      createdAt: Instant
+    }
+  human_turn: |
+    HumanTurn {
+      requestId: string;
+      round: integer;
+      participant: { id: ParticipantId; displayName: string; discussionRole: DiscussionRole };
+      agreeTargets: { id: ParticipantId; displayName: string; discussionRole: DiscussionRole }[];
+      strengths: [1, 2, 3];
+      canSkip: true;
+      canSteer: true
+    }
+  synthesis: |
+    Synthesis {
+      jobId: JobId;
       text: string;
       createdAt: Instant
     }
@@ -6189,8 +6484,10 @@ postconditions:
 external_identifiers:
   - field names in each shape above
   - role enum: facilitator, member
+  - participantKind enum: model, human
   - kind enum: speech, pass, system
   - status enums on Meeting / Participant / Job
+  - human turn action enum: agree, skip, steer
   - terminationReason enum
 compatibility_rules:
   - renaming any field                            => major bump on SUR-001
@@ -6938,6 +7235,9 @@ target_ids:
   - meeting:BEH-007
   - meeting:BEH-008
   - meeting:BEH-009
+  - meeting:BEH-010
+  - meeting:BEH-011
+  - meeting:BEH-012
   - meeting:CTR-001
   - meeting:CTR-002
   - meeting:CTR-003
@@ -6960,6 +7260,10 @@ binding:
       - src/features/meeting/application/ListMeetingsUseCase.ts
       - src/features/meeting/application/EndMeetingUseCase.ts
       - src/features/meeting/application/CancelJobUseCase.ts
+      - src/features/meeting/application/SubmitHumanTurnUseCase.ts
+      - src/features/meeting/application/SetHumanParticipationUseCase.ts
+      - src/features/meeting/application/SubmitSynthesisUseCase.ts
+      - src/features/meeting/application/humanTurnState.ts
       - src/features/meeting/application/JobRunner.ts
       - src/features/meeting/application/constants.ts
     domain:
@@ -7155,18 +7459,20 @@ gate and contract surface:
 
 ### Context (web-viewer)
 
-The `web-viewer` partition is a second read-only inbound adapter
-on top of the same `MeetingStorePort` exposed by persistence. It
+The `web-viewer` partition is a second inbound adapter on top of
+the same `MeetingStorePort` exposed by persistence. It
 runs as its own process (independent of the MCP server that writes
 to `${VECHE_HOME}`) and serves a self-contained SPA + two SSE
 channels (Meeting list + per-Meeting transcript) on a loopback
 HTTP listener. Cross-process change detection uses 750-ms
-polling, never `watchNewEvents`.
+polling, never `watchNewEvents`. It has a bounded write surface for
+Human Turn submission and Human Participation toggles only.
 
 Boundaries:
 
-- It does NOT introduce any new MCP tool, NOT extend the public
-  storage Surface, NOT mutate the event log.
+- It does NOT introduce any new MCP tool and does NOT extend the
+  public storage Surface. It mutates the event log only through the
+  meeting partition's Human Turn and Human Participation use cases.
 - It re-uses the meeting partition's domain entities and the
   shared escape-then-transform Markdown converter
   (`src/shared/markdown.ts`) — single source of truth across the
@@ -7190,6 +7496,10 @@ Boundaries:
 - **`MeetingsApi`** — The handler for the JSON endpoints
   (`/api/meetings`, `/api/meetings/:id`,
   `/api/meetings/:id/messages`).
+- **`HumanControlsApi`** — The handler for the two POST endpoints
+  (`/api/meetings/:id/human-turn`,
+  `/api/meetings/:id/human-participation`) that delegate to meeting
+  use cases.
 - **`MessageDto`** — Wire shape consumed by both REST and SSE; for
   `kind === 'speech'` it carries `htmlBody: string` (computed
   server-side via the shared converter); for `pass` / `system`
@@ -7269,7 +7579,7 @@ lifecycle:
   status: proposed
 partition_id: web-viewer
 name: veche/watch-http
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: api
 members:
   - web-viewer:CTR-001
@@ -7282,7 +7592,9 @@ notes: |
   curl / a browser at the loopback URL. Renaming an endpoint,
   removing a query param, or changing an SSE event name / payload
   shape is a major bump. Adding a new endpoint or a new optional
-  query param is a minor bump.
+  query param is a minor bump. Adding a bounded POST endpoint for
+  human-control writes is a minor bump because existing read clients
+  continue to operate unchanged.
 ---
 ```
 
@@ -7665,6 +7977,62 @@ test_obligation:
 ---
 ```
 
+```yaml
+---
+id: web-viewer:BEH-007
+type: Behavior
+lifecycle:
+  status: proposed
+partition_id: web-viewer
+title: POST human-control routes submit Human Turns and participation toggles
+given: |
+  - WatchServer is listening on the same loopback origin as the SPA
+when: client issues `POST /api/meetings/:id/human-turn` or
+  `POST /api/meetings/:id/human-participation`
+then: |
+  The server validates Content-Type application/json and caps the body
+  at 32 KiB. /human-turn delegates to SubmitHumanTurnUseCase and
+  returns 200 { requestId, accepted: true } on success, 409
+  { error: "human turn conflict" } for stale or duplicate requestId,
+  and 400 for invalid payloads. /human-participation delegates to
+  SetHumanParticipationUseCase and returns 200 { participantId,
+  enabled } on success. The same Host-header DNS-rebind guard and
+  no-CORS policy apply to POST routes.
+negative_cases:
+  - invalid JSON body                         => 400
+  - body larger than 32 KiB                   => 400
+  - stale or duplicate Human Turn request     => 409
+  - wrong Host header on loopback binding     => 421
+out_of_scope:
+  - arbitrary store writes outside the two meeting use cases
+applicability:
+  invariant_to_all_axes: true
+concurrency_model:
+  actor_concurrency: multi_per_resource
+  read_consistency: read_your_writes
+  idempotency: "exactly_once_with_key:(requestId)"
+  time_source: external
+data_scope: new_writes_only
+policy_refs:
+  - web-viewer:POL-001
+  - web-viewer:POL-002
+test_obligation:
+  predicate: |
+    WatchServer tests exercise successful Human Turn submission,
+    participation toggle, malformed payload rejection, conflict
+    mapping, Host-header rejection, and no CORS headers.
+  test_template: integration
+  boundary_classes:
+    - submit Human Turn
+    - toggle participation
+    - conflict
+    - malformed JSON
+  failure_scenarios:
+    - POST route bypasses Human use case
+    - stale Human Turn accepted
+---
+```
+
 ### Contracts (web-viewer)
 
 ```yaml
@@ -7686,6 +8054,8 @@ schema:
     GET  /api/meetings?status=&limit=&cursor=       -> 200 application/json { summaries[], nextCursor }
     GET  /api/meetings/:id                          -> 200 application/json { meeting, participants, openJobs, lastSeq }
     GET  /api/meetings/:id/messages?cursor=&limit=  -> 200 application/json { messages[], nextCursor, hasMore }
+    POST /api/meetings/:id/human-turn               -> 200 application/json { requestId, accepted: true }
+    POST /api/meetings/:id/human-participation      -> 200 application/json { participantId, enabled }
     GET  /api/stream                                -> 200 text/event-stream (Meeting list channel)
     GET  /api/stream/:id                            -> 200 text/event-stream (Transcript channel)
     *                                               -> 404 application/json { error: "not found" }
@@ -7697,10 +8067,12 @@ schema:
       keep-alive; X-Accel-Buffering no.
     - Every response: X-Content-Type-Options: nosniff.
     - No Access-Control-Allow-* headers (single-origin loopback).
+    - POST routes accept Content-Type application/json and reject
+      bodies larger than 32 KiB.
 external_identifiers:
   - route paths and the literal segments (/api/meetings, /api/stream)
   - JSON response field names
-  - HTTP status codes (200, 404, 421, 500)
+  - HTTP status codes (200, 400, 404, 409, 421, 500)
 compatibility_rules:
   - renaming a route or query param           => major bump on SUR-001
   - changing a status code                    => major bump
@@ -7758,6 +8130,8 @@ schema:
     GET /api/stream/:id
       hello           { meeting, participants, openJobs, lastSeq, messages: MessageDto[] }
       message.posted  { message: MessageDto }                        new speech/pass/system; id: <seq>
+      human.turn      { humanTurn: HumanTurn|null }                   pending Human Turn changed
+      synthesis.submitted { synthesis: Synthesis }                    final synthesis stored
       meeting.updated { summary: MeetingSummary }                    summary tuple changed
       error           { code: string, message: string }              followed by close()
     Last-Event-ID resume: integer parse; if valid and <= current
@@ -7771,7 +8145,7 @@ schema:
       - kind='pass'   -> null
       - kind='system' -> null
 external_identifiers:
-  - SSE event names: hello, meeting.added, meeting.updated, message.posted, error
+  - SSE event names: hello, meeting.added, meeting.updated, message.posted, human.turn, synthesis.submitted, error
   - constants: KEEPALIVE_MS=15000, WATCH_POLL_MS=750, MAX_BACKOFF_MS=8000
 compatibility_rules:
   - renaming an event name                    => major bump on SUR-001
@@ -7840,6 +8214,10 @@ schema:
       deterministic participant colours (sha1(participantId) →
       HSL hue, saturation 60%, lightness 86%; facilitator
       neutral #ededed).
+    - With a Human Participant, the transcript includes a pinned
+      bottom composer with a participation toggle and mutually
+      exclusive agree / pass / steer actions. Human Participant
+      bubbles are right-aligned; Model Member bubbles are left-aligned.
 external_identifiers:
   - count rules: ≤ 1 inline <script>, ≤ 1 inline <style>, 0 remote href/src
   - colour function: hue = sha1(participantId)[0..3] % 360, saturation 60, lightness 86
@@ -8137,17 +8515,20 @@ type: Policy
 lifecycle:
   status: proposed
 partition_id: web-viewer
-title: web-viewer is read-only against the store and bounded to documented HTTP I/O
+title: web-viewer is read-only except bounded human-control writes
 policy_kind: io_scope
 applicability:
   applies_to: |
-    every BEH in this partition (BEH-001..006). Includes the
+    every BEH in this partition (BEH-001..007). Includes the
     WatchServer / SseChannel / MeetingPoller / handlers /
     spa/index.html.ts modules.
 predicate: |
   - The partition MUST NOT call MeetingStorePort.{createMeeting,
-    appendMessage, appendSystemEvent, markParticipantDropped,
-    createJob, updateJob, endMeeting, watchNewEvents}.
+    markParticipantDropped, createJob, updateJob, endMeeting,
+    watchNewEvents}.
+  - The partition is permitted to call appendMessage and appendSystemEvent only
+    through SubmitHumanTurnUseCase and SetHumanParticipationUseCase.
+    JSON/SSE read handlers remain read-only.
   - I/O surfaces: bind a TCP listener on <host>:<port>; spawn at
     most one platform-opener subprocess (`open`/`xdg-open`/`start`)
     per `start()` call when --no-open is absent; emit logs to
@@ -8159,8 +8540,9 @@ predicate: |
     bodies (carries forward meeting:INV-005 to the SSE / JSON
     channels).
 negative_test_obligations:
-  - inject a throwing mock for every store write method; assert
+  - inject a throwing mock for forbidden store write methods; assert
     no BEH path trips one
+  - assert Human-control POST paths reach only the two allowed use cases
   - assert the only spawned binary is the platform opener (and
     only on --no-open absent)
   - regex probe over the SPA + JSON / SSE responses confirms no
@@ -8190,7 +8572,7 @@ title: SPA + JSON / SSE responses preserve the escape-then-transform invariant
 policy_kind: security_boundary
 applicability:
   applies_to: |
-    BEH-002..006 + the SPA module (spa/index.html.ts).
+    BEH-002..007 + the SPA module (spa/index.html.ts).
 predicate: |
   - The SPA assigns store-derived strings to the DOM via
     `textContent` / attribute setters EXCEPT
@@ -8279,6 +8661,7 @@ target_ids:
   - web-viewer:BEH-004
   - web-viewer:BEH-005
   - web-viewer:BEH-006
+  - web-viewer:BEH-007
   - web-viewer:CTR-001
   - web-viewer:CTR-002
   - web-viewer:CTR-003
@@ -8296,6 +8679,7 @@ binding:
     apis:
       - src/adapters/inbound/web/MeetingsApi.ts
       - src/adapters/inbound/web/StreamApi.ts
+      - src/adapters/inbound/web/HumanControlsApi.ts
     dto: src/adapters/inbound/web/dto.ts
     spa: src/adapters/inbound/web/spa/index.html.ts
     cli: src/adapters/inbound/cli/commands/watch.ts
@@ -8475,6 +8859,7 @@ discovery_scope:
   - src/adapters/inbound/cli/commands/install.ts
   - src/adapters/inbound/cli/commands/__tests__/install.test.ts
   - skills/veche/SKILL.md
+  - skills/veche/agents/openai.yaml
   - examples/config.json.example
 coverage_evidence:
   - kind: git_tree_hash_v1
@@ -8510,7 +8895,7 @@ lifecycle:
   status: proposed
 partition_id: install
 name: veche/install-cli
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: cli
 members:
   - install:CTR-001
@@ -8533,19 +8918,19 @@ lifecycle:
   status: proposed
 partition_id: install
 name: veche/skill-artefact
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: generated_published_artifact
 members:
   - install:CTR-003
 consumer_compat_policy: semver_per_surface
 notes: |
-  Published artefact: the canonical
-  `<package-root>/skills/<mcp-name>/SKILL.md` shipped via npm
-  `files`. Both Claude Code and Codex consume byte-identical
-  copies. A semantic-breaking diff (e.g. removing the front-matter
-  `name` field, retiring an MCP tool reference) is a major bump
-  on this Surface AND requires a coordinated bump on
-  meeting:SUR-001.
+  Published artefact: the canonical skill directory shipped via npm
+  `files`, including `<package-root>/skills/<mcp-name>/SKILL.md`
+  and optional `<package-root>/skills/<mcp-name>/agents/openai.yaml`.
+  Both Claude Code and Codex consume byte-identical copies. A
+  semantic-breaking diff (e.g. removing the front-matter `name`
+  field, retiring an MCP tool reference) is a major bump on this
+  Surface AND requires a coordinated bump on meeting:SUR-001.
 ---
 ```
 
@@ -8569,6 +8954,9 @@ then: |
   2. resolve canonical sources:
      - skill: <package-root>/skills/<mcp-name>/SKILL.md (exit 2
        on miss)
+     - optional skill metadata:
+       <package-root>/skills/<mcp-name>/agents/openai.yaml (copied
+       when present)
      - server-bin: --server-bin || <package-root>/dist/bin/veche-server.js
        (exit 2 on miss)
      - config template: <package-root>/examples/config.json.example
@@ -8727,11 +9115,16 @@ then: |
   1. compute path = `<skillsRoot>/<mcp-name>/SKILL.md` where
      skillsRoot is `${HOME}/.claude/skills` for claude-code or
      `${HOME}/.codex/skills` for codex.
-  2. mkdir -p the parent directory.
-  3. atomic write: write to `<path>.tmp-<pid>-<ts>` mode 0o600;
+  2. compute optional metadata path =
+     `<skillsRoot>/<mcp-name>/agents/openai.yaml` when the package
+     contains the canonical metadata source.
+  3. mkdir -p the parent directories.
+  4. atomic write: write each destination to
+     `<path>.tmp-<pid>-<ts>` mode 0o600;
      fsync; rename to `<path>`.
-  4. log `[<host>] writing skill file → <path>` to stderr.
-  5. on write failure: best-effort delete of the .tmp file; log
+  5. log `[<host>] writing skill file → <path>` to stderr; when
+     metadata is present, log `[<host>] writing skill metadata → <path>`.
+  6. on write failure: best-effort delete of the .tmp file; log
      `[<host>] error: cannot write <path>: <message>`; return
      exit 2 from the orchestrator (BEH-001 step 7 routes).
 negative_cases:
@@ -8753,9 +9146,10 @@ policy_refs:
 test_obligation:
   predicate: |
     Happy path produces a destination file byte-identical to the
-    canonical source under skills/. Mode is 0o600. A reader
-    polling the destination during repeated installs never
-    observes a partial / truncated file. Failed rename leaves no
+    canonical source under skills/. When metadata exists, its
+    destination is byte-identical too. Mode is 0o600. A reader
+    polling the destination during repeated installs never observes
+    a partial / truncated file. Failed rename leaves no
     `<path>.tmp-*` orphan in the parent directory.
   test_template: integration
   boundary_classes:
@@ -9010,14 +9404,13 @@ type: Contract
 lifecycle:
   status: proposed
 partition_id: install
-title: SKILL.md artefact (front-matter + body shape)
+title: skill artefacts (SKILL.md + optional host UI metadata)
 surface_ref: install:SUR-002
 schema:
   description: |
-    The canonical skill file shipped under
-    skills/<mcp-name>/SKILL.md and copied byte-identically to
-    each host. Both hosts expect a Markdown document with a YAML
-    front-matter envelope.
+    The canonical skill directory shipped under skills/<mcp-name>/
+    and copied byte-identically to each host. SKILL.md is required.
+    agents/openai.yaml is optional host UI metadata.
   front_matter: |
     ---
     name: veche
@@ -9031,14 +9424,21 @@ schema:
       - "hold a meeting"
     ---
   body_summary: |
-    The body documents the seven veche/* MCP tools (start_meeting,
+    The body documents the ten veche/* MCP tools (start_meeting,
     send_message, get_response, get_transcript, list_meetings,
-    end_meeting, cancel_job), the Profile system, and operator
+    end_meeting, cancel_job, submit_human_turn,
+    set_human_participation, submit_synthesis), the Profile system,
+    Human Participant launch choices, role customization, and operator
     expectations. Both hosts surface the front-matter `name` +
-    `description` to the user agent; the body is consumed when
-    the agent invokes the skill.
+    `description` to the user agent; the body is consumed when the
+    agent invokes the skill.
+  optional_metadata: |
+    agents/openai.yaml, when present, is copied to both host skill
+    directories with byte-identical content. It contains host UI
+    metadata only; SKILL.md remains the behavioural source of truth.
 external_identifiers:
   - "front-matter field names: name, description, triggers"
+  - "optional metadata path: agents/openai.yaml"
   - >-
     the literal `name: veche` (the `name` MUST equal the `mcp-name`
     flag default to keep the host-agent invocation aligned with the
@@ -9058,9 +9458,10 @@ policy_refs:
   - install:POL-001
 test_obligation:
   predicate: |
-    install.test.ts asserts the destination SKILL.md is
-    byte-identical to the package source, the front-matter
-    parses, and `name === 'veche'` (or the supplied --mcp-name).
+    install.test.ts asserts the destination SKILL.md and optional
+    agents/openai.yaml are byte-identical to the package sources,
+    the front-matter parses, and `name === 'veche'` (or the supplied
+    --mcp-name).
   test_template: contract
   boundary_classes:
     - default mcp-name
@@ -9178,6 +9579,8 @@ title: filesystem writes are bounded to two paths and atomic
 always: |
   install writes ONLY to:
     - `<host-skills-root>/<mcp-name>/SKILL.md` per requested host
+    - `<host-skills-root>/<mcp-name>/agents/openai.yaml` per
+      requested host when the package contains optional metadata
     - `${VECHE_HOME}/config.json` (only when absent or --force)
   Every write uses `<path>.tmp-<pid>-<ts>` mode 0o600 followed
   by `rename`; on rename failure the .tmp file is best-effort
@@ -9197,15 +9600,15 @@ concurrency_model:
   reason: tmp suffix uses Clock-supplied timestamp for determinism in tests
 negative_cases:
   - install writes to ~/.claude.json directly       => contract violation
-  - install writes to a path outside the two allow-listed targets => contract violation
+  - install writes to a path outside the allow-listed targets => contract violation
 out_of_scope:
   - host CLI's own writes (the host's `mcp add` writes its own
     config; install delegates and never reads or asserts on it)
 test_obligation:
   predicate: |
     install.test.ts captures every fs.writeFile / fs.rename call
-    and asserts the destination path matches one of the two
-    allow-listed templates. Mode is 0o600 on both kinds.
+    and asserts the destination path matches one of the allow-listed
+    templates. Mode is 0o600 on all file writes.
   test_template: integration
   boundary_classes:
     - SKILL.md write
@@ -9293,7 +9696,7 @@ applicability:
     helper modules under src/adapters/inbound/cli/lib used by
     install.
 predicate: |
-  - Filesystem writes ONLY to the two allow-listed targets per
+  - Filesystem writes ONLY to the allow-listed targets per
     INV-003.
   - Filesystem reads MAY include the canonical skill source,
     canonical config template, server-bin existence check, and
@@ -9432,6 +9835,7 @@ binding:
     - src/adapters/inbound/cli/commands/__tests__/install.test.ts
   artefacts:
     skill_source: skills/veche/SKILL.md
+    skill_metadata: skills/veche/agents/openai.yaml
     config_template: examples/config.json.example
 authority: code_annotation
 verification_method: |

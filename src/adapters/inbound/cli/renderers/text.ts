@@ -61,6 +61,13 @@ export const renderText: Renderer = (input) => {
 	// Body
 	lines.push("");
 	lines.push(HR);
+	if (input.synthesis !== null && input.events === null) {
+		lines.push("");
+		lines.push(c.bold("Synthesis"));
+		for (const ln of input.synthesis.text.split("\n")) {
+			lines.push(`  ${ln}`);
+		}
+	}
 	if (input.events !== null) {
 		for (const ev of input.events) {
 			lines.push(`${c.dim(`seq=${ev.seq} ${ev.type} @${ev.at}`)}`);

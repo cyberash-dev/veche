@@ -79,7 +79,7 @@ export class SendMessageUseCase {
 		}
 
 		const activeMembers = snap.participants.filter(
-			(p) => p.role === "member" && p.status === "active",
+			(p) => p.role === "member" && p.participantKind === "model" && p.status === "active",
 		);
 		if (activeMembers.length === 0) {
 			throw new NoActiveMembers(command.meetingId);
@@ -90,7 +90,7 @@ export class SendMessageUseCase {
 			const set = new Set<string>();
 			for (const a of command.addressees) {
 				const match = snap.participants.find((p) => p.id === a);
-				if (!match || match.role !== "member") {
+				if (!match || match.role !== "member" || match.participantKind !== "model") {
 					throw new AddresseeNotFound(command.meetingId, a);
 				}
 				set.add(match.id);

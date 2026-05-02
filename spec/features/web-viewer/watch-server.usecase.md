@@ -38,6 +38,8 @@ GET  /                                         → 200 text/html        (SPA)
 GET  /api/meetings?status=…                    → 200 application/json { summaries: MeetingSummary[] }
 GET  /api/meetings/:id                         → 200 application/json { meeting, participants, openJobs, lastSeq }
 GET  /api/meetings/:id/messages?cursor=&limit= → 200 application/json { messages, nextCursor, hasMore }
+POST /api/meetings/:id/human-turn              → 200 application/json { requestId, accepted: true }
+POST /api/meetings/:id/human-participation     → 200 application/json { participantId, enabled }
 GET  /api/stream                               → 200 text/event-stream (Meeting list channel)
 GET  /api/stream/:id                           → 200 text/event-stream (transcript channel)
 *                                              → 404 application/json { error: "not found" }
@@ -49,6 +51,7 @@ Common response rules:
 - All SSE responses set `Content-Type: text/event-stream; charset=utf-8`, `Cache-Control: no-cache, no-transform`, `Connection: keep-alive`, `X-Accel-Buffering: no`.
 - All responses include `X-Content-Type-Options: nosniff`.
 - The server emits no `Access-Control-Allow-*` headers — it is a single-origin loopback service. Cross-origin requests from a browser are blocked by the same-origin policy by design.
+- POST routes accept `Content-Type: application/json`, cap request bodies at 32 KiB, and are available only through the same loopback origin guarded by the existing Host-header check.
 
 ### `GET /` — SPA
 
@@ -90,6 +93,24 @@ Query parameters:
 
 Response: a direct projection of `MessagePage` — `{ "messages": Message[], "nextCursor": string, "hasMore": boolean }`. Used by the SPA only as a fallback if the SSE stream cannot establish; in normal operation the SSE channel covers both initial snapshot and deltas.
 
+### `POST /api/meetings/:id/human-turn`
+
+Body:
+
+| Field | Values | Rules |
+|-------|--------|-------|
+| `requestId` | string | Must match the current pending Human Turn for the Meeting. |
+| `action` | `agree` \| `skip` \| `steer` | Required. |
+| `targetParticipantId` | string | Required for `agree`; must be in `agreeTargets`. |
+| `strength` | `1` \| `2` \| `3` | Required for `agree`. |
+| `text` | string | Required for `steer`; 1..32 KiB after trim. |
+
+Response `200` when accepted. Duplicate or stale submissions return `409 application/json { "error": "human turn conflict" }`. Invalid payloads return `400`.
+
+### `POST /api/meetings/:id/human-participation`
+
+Body: `{ "participantId": string, "enabled": boolean }`. The participant must be a Human Participant in the Meeting. Disabling during a pending Human Turn causes the model runner to auto-skip that request on its next poll.
+
 ### `GET /api/stream` — Meeting list channel
 
 A long-lived SSE stream that delivers the current sidebar state and announces every change.
@@ -121,6 +142,8 @@ Events:
 |----------|---------|------|
 | `hello` | `{ meeting, participants, openJobs, lastSeq, messages: Message[] }` | First frame after connect. The server pages `readMessagesSince(meetingId, undefined, 500)` until `hasMore === false` and packs the full transcript into the snapshot. The snapshot's `lastSeq` is the maximum message `seq` observed (or `-1` for an empty transcript). |
 | `message.posted` | `{ message: Message }` | A new `speech`/`pass`/`system` message appeared with `seq > lastEmitted`. The event's `id:` is the message's `seq`. |
+| `human.turn` | `{ humanTurn: HumanTurn \| null }` | A Human Turn request, submission, or toggle changed the currently actionable Human Turn. |
+| `synthesis.submitted` | `{ synthesis }` | A final facilitator synthesis was stored. |
 | `meeting.updated` | `{ summary: MeetingSummary }` | The meeting's own summary changed (status flip, openJobCount, lastSeq). Lets the SPA update the transcript header without resubscribing. |
 | `error` | `{ code: string, message: string }` | Unknown id (404 for the channel — emitted before close), unrecoverable poll error. Followed by `close()`. |
 
@@ -188,17 +211,18 @@ The `lastEventId` cursor for the list channel is the max `lastSeq` across the em
 Layout (CSS Grid, two columns):
 
 - Left column: sidebar with the Meeting list. Each card shows a status dot (green for `active`, grey for `ended`), the truncated title (≤ 32 chars), a second line `<idPrefix>… · Nm · Jj` (member count, open-job count), and a fade-in animation for newly-added cards. The currently-selected card has a left-border accent. A non-selected card that receives a `message.posted` event shows a small unread badge with a 700 ms pulse animation; the badge is cleared when the user clicks the card.
-- Right column: transcript pane. Header shows the meeting title, id, status pill, created/ended timestamps, and participants. Body is a vertical stack of round dividers and chat bubbles. Bubbles use the same deterministic palette as `renderers/html.ts` — `hue = sha1(participantId)[0..3] % 360`, `saturation = 60%`, `lightness = 86%`, facilitator neutral `#ededed`. Member bubbles alternate left/right by member index; the facilitator's opening bubble is centered full-width. `pass` renders as a small grey pill `passed`; `system` renders as a centered `⚠` divider with the incident text.
+- Right column: transcript pane. Header shows the meeting title, a right-aligned Round progress indicator (`Round current / maxRounds`) with a progress bar, id, status pill, created/ended timestamps, and participants with their Discussion Role names. Body is a vertical stack of round dividers and chat bubbles. Bubble headers show both participant display name/id and Discussion Role name. Bubbles use the same deterministic palette as `renderers/html.ts` — `hue = sha1(participantId)[0..3] % 360`, `saturation = 60%`, `lightness = 86%`, facilitator neutral `#ededed`. Without a Human Participant, Member bubbles alternate left/right by member index. With a Human Participant, model Member bubbles are left-aligned and Human Participant bubbles, including `pass`/skip responses, are right-aligned. Human Participant bubble text is right-aligned. Human Participant speech bubbles use a neutral white background; Human Participant skip bubbles use a distinct grey background; previous Human Participant bubbles become grey-tinted once a later Human Participant response exists. The facilitator's opening bubble is centered full-width. `system` renders as a centered `⚠` divider with the incident text.
 - A toggle pinned to the top-right of the transcript pane: `auto-scroll on/off`. Default `on`. With `on`, the transcript scrolls to the bottom whenever a new `message.posted` is appended; with `off`, the scroll position is preserved.
+- When a Human Participant exists, a bottom composer stays pinned below the transcript. It has a labelled participation toggle (`Participating` / `Observing`) and, during a pending Human Turn while participation is enabled, exactly one send button. The user selects one of three mutually exclusive actions before sending: agree with a target and strength, pass, or steer with text. Selecting or editing an action makes that action visually active and leaves the other two inactive. The send button submits only the selected action. Disabling participation posts `set_human_participation` and leaves the viewer in observing mode while the job runner auto-skips pending turns.
 
-Rounds are NOT collapsible (`<details>` would conflict with live appends). The transcript renders all rounds inline with `── Round N ──` separator rows.
+Rounds are NOT collapsible (`<details>` would conflict with live appends). The transcript renders all rounds inline with one wide `── Round N ──` separator row per round. No separator is inserted between messages that share the same `round`.
 
 The SPA receives initial state and deltas via two `EventSource` subscriptions:
 
 1. On load: open `EventSource('/api/stream')`. Render sidebar from `hello`. Append cards on `meeting.added`; update existing card content on `meeting.updated`.
 2. On click of a sidebar card: close the current `EventSource('/api/stream/:id')` if any, open a new one for the clicked meeting. Render header + transcript from `hello`. Append bubbles on `message.posted`. Update the header on `meeting.updated`.
 
-The SPA performs no `fetch()` calls in v1. The SSE channels carry both bootstrap and deltas. The JSON endpoints are documented for tooling and tests, not consumed by the SPA itself.
+The SPA uses `fetch()` only for the two same-origin POST routes documented above. Read state still flows through SSE bootstrap and deltas.
 
 ### Markdown rendering — parity with `show --format=html`
 
@@ -228,14 +252,14 @@ Per-channel SSE errors do NOT affect the exit code. They close the affected stre
 
 ## Side Effects
 
-- Reads `$VECHE_HOME/meetings/<meetingId>/events.jsonl` and per-meeting `manifest.json` files via `MeetingStorePort`. No writes.
+- Reads `$VECHE_HOME/meetings/<meetingId>/events.jsonl` and per-meeting `manifest.json` files via `MeetingStorePort`. Writes are limited to accepted Human Turn submissions, Human Participation toggles, and the Transcript Message representing an accepted Human Turn.
 - Binds a TCP listener on `<host>:<port>` until shutdown.
 - With opener spawn enabled and a platform opener available, spawns a detached child process: `open <url>` (macOS), `xdg-open <url>` (Linux), `cmd.exe /c start "" <url>` (Windows). The child is detached and not awaited.
 - Logs JSON lines to stderr (using the same `StructuredLogger` instance as the rest of the CLI). No log goes to stdout.
 
 ## Rules
 
-- **Read-only against the store.** The viewer MUST NOT call `createMeeting`, `appendMessage`, `appendSystemEvent`, `markParticipantDropped`, `createJob`, `updateJob`, or `endMeeting`. The integration test injects a mock store that throws on these methods and asserts no SSE channel or JSON handler trips them.
+- **Bounded write surface.** The viewer MUST NOT call `createMeeting`, `markParticipantDropped`, `createJob`, `updateJob`, or `endMeeting`. It may call `appendMessage` and `appendSystemEvent` only through the Human Turn submission and Human Participation use cases. JSON/SSE read handlers remain read-only.
 - **No use of `watchNewEvents`.** Cross-process notification is incorrect with that primitive (see *Cross-process change detection*). Reviewers should reject any PR that wires `watchNewEvents` into the watch path.
 - **Loopback-only by default.** When `--host` is unspecified, the server binds `127.0.0.1`. When the operator passes a non-loopback `--host`, the server prints `warn: binding to <host>; this exposes the unauthenticated viewer beyond loopback` to stderr and continues. v1 has no auth — exposing the port wider is the operator's explicit choice.
 - **DNS rebind guard.** When the bound address is loopback (`127.0.0.0/8`, `::1`), every HTTP request is rejected with `421 application/json { "error": "wrong host" }` unless its `Host:` header is `localhost`, `localhost:<port>`, `127.0.0.1`, `127.0.0.1:<port>`, `[::1]`, or `[::1]:<port>`. This blocks DNS-rebind attacks against a browser tab on the same machine. When the operator binds to a non-loopback address, the guard is disabled (the operator has already accepted the threat model).

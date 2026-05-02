@@ -1,7 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+	pendingHumanTurn,
+	type SynthesisView,
+} from "../../../features/meeting/application/humanTurnState.js";
 import { encodeCursor } from "../../../features/meeting/domain/Cursor.js";
 import { MeetingNotFound } from "../../../features/meeting/domain/errors.js";
 import type { Message } from "../../../features/meeting/domain/Message.js";
+import type { AnyEvent } from "../../../features/persistence/domain/Event.js";
 import type {
 	MeetingStorePort,
 	MeetingSummary,
@@ -58,6 +63,19 @@ const attachLifecycle = (
 	const keepalive = setInterval(() => channel.writeKeepalive(), WATCH_KEEPALIVE_MS);
 	keepalive.unref();
 	return { signal: controller.signal, keepalive };
+};
+
+const latestSynthesis = (events: readonly AnyEvent[]): SynthesisView | null => {
+	for (const event of [...events].reverse()) {
+		if (event.type === "synthesis.submitted") {
+			return {
+				jobId: event.payload.jobId,
+				text: event.payload.text,
+				createdAt: event.at,
+			};
+		}
+	}
+	return null;
 };
 
 export const streamMeetings = async (
@@ -128,6 +146,7 @@ export const streamMeeting = async (
 	const meetingId = asMeetingId(rawId);
 	let snapshotSent = false;
 	let cursor: string | undefined;
+	let eventSeq = -1;
 	let lastSummaryKey = "";
 	let delay = WATCH_POLL_MS;
 
@@ -138,6 +157,11 @@ export const streamMeeting = async (
 			await deps.store.refresh?.();
 			if (!snapshotSent) {
 				const snapshot = await deps.store.loadMeeting(meetingId);
+				const events = deps.store.readAllEvents
+					? await deps.store.readAllEvents(meetingId)
+					: [];
+				eventSeq = snapshot.lastSeq;
+				const currentJob = snapshot.openJobs[0] ?? null;
 
 				const messages: Message[] = [];
 				let snapCursor: string | undefined;
@@ -161,7 +185,17 @@ export const streamMeeting = async (
 				channel.writeEvent(
 					"hello",
 					{
-						...snapshotDto(snapshot),
+						...snapshotDto(snapshot, {
+							humanTurn:
+								currentJob === null
+									? null
+									: pendingHumanTurn(
+											events,
+											snapshot.participants,
+											currentJob.id,
+										),
+							synthesis: latestSynthesis(events),
+						}),
 						messages: messages.map(messageDto),
 					},
 					String(snapshot.lastSeq),
@@ -191,6 +225,41 @@ export const streamMeeting = async (
 
 				const list = await deps.store.listMeetings({ limit: WATCH_LIST_LIMIT });
 				const current = list.summaries.find((s) => s.meetingId === rawId);
+				if (deps.store.readAllEvents) {
+					const snapshot = await deps.store.loadMeeting(meetingId);
+					const events = await deps.store.readAllEvents(meetingId);
+					const unseen = events.filter((event) => event.seq > eventSeq);
+					eventSeq = events.reduce((acc, event) => Math.max(acc, event.seq), eventSeq);
+					const currentJob = snapshot.openJobs[0] ?? null;
+					for (const event of unseen) {
+						if (
+							event.type === "human.turn.requested" ||
+							event.type === "human.turn.submitted" ||
+							event.type === "human.participation.set"
+						) {
+							channel.writeEvent(
+								"human.turn",
+								{
+									humanTurn:
+										currentJob === null
+											? null
+											: pendingHumanTurn(
+													events,
+													snapshot.participants,
+													currentJob.id,
+												),
+								},
+								String(event.seq),
+							);
+						} else if (event.type === "synthesis.submitted") {
+							channel.writeEvent(
+								"synthesis.submitted",
+								{ synthesis: latestSynthesis(events) },
+								String(event.seq),
+							);
+						}
+					}
+				}
 				if (current !== undefined) {
 					const key = `${current.status}|${current.lastSeq}|${current.openJobCount}`;
 					if (key !== lastSummaryKey) {

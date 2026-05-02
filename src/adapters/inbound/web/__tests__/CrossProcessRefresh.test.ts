@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_FACILITATOR_DISCUSSION_ROLE } from "../../../../features/meeting/domain/Participant.js";
 import { FileMeetingStore } from "../../../../features/persistence/adapters/file/FileMeetingStore.js";
 import { asMeetingId, asMessageId, asParticipantId } from "../../../../shared/types/ids.js";
 import { asInstant } from "../../../../shared/types/instant.js";
@@ -145,6 +146,9 @@ describe("watch server picks up cross-process meeting changes", () => {
 					{
 						id: asParticipantId("alice"),
 						role: "facilitator",
+						participantKind: "human",
+						discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+						isHumanParticipationEnabled: false,
 						displayName: "alice",
 						adapter: null,
 						profile: null,

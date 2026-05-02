@@ -4,6 +4,7 @@ import { FileMeetingStore } from "../features/persistence/adapters/file/FileMeet
 import { loadConfig } from "../infra/config.js";
 import { StructuredLogger } from "../infra/StructuredLogger.js";
 import { SystemClock } from "../infra/SystemClock.js";
+import { UuidIdGen } from "../infra/UuidIdGen.js";
 
 const VERSION = "0.1.0";
 
@@ -29,11 +30,13 @@ const main = async (): Promise<void> => {
 	const rootDir = override ?? config.home;
 	const logger = new StructuredLogger("error", { svc: "veche-cli" });
 	const clock = new SystemClock();
+	const ids = new UuidIdGen();
 	const store = new FileMeetingStore({ clock, logger }, { rootDir });
 
 	const exit = await runCli({
 		store,
 		clock,
+		ids,
 		logger,
 		version: VERSION,
 		argv,

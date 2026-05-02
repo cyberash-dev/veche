@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const discussionRoleSchema = z.object({
+	name: z.string().min(1).max(64),
+	description: z.string().min(1).max(400),
+	weight: z.number().positive(),
+});
+
 export const startMeetingSchema = {
 	title: z.string().min(1).max(200),
 	facilitator: z
@@ -9,12 +15,15 @@ export const startMeetingSchema = {
 				.regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/)
 				.optional(),
 			displayName: z.string().min(1).max(64).optional(),
+			discussionRole: discussionRoleSchema.optional(),
 		})
 		.optional(),
 	members: z
 		.array(
 			z.object({
 				id: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/),
+				participantKind: z.enum(["model", "human"]).optional(),
+				discussionRole: discussionRoleSchema.optional(),
 				profile: z.string().optional(),
 				adapter: z.enum(["codex-cli", "claude-code-cli"]).optional(),
 				model: z.string().min(1).optional(),
@@ -42,6 +51,27 @@ export const getResponseSchema = {
 	cursor: z.string().optional(),
 	limit: z.number().int().min(1).max(500).optional(),
 	waitMs: z.number().int().min(0).max(60_000).optional(),
+};
+
+export const submitHumanTurnSchema = {
+	jobId: z.string().min(1),
+	requestId: z.string().min(1),
+	action: z.enum(["agree", "skip", "steer"]),
+	targetParticipantId: z.string().optional(),
+	strength: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+	text: z.string().optional(),
+};
+
+export const setHumanParticipationSchema = {
+	meetingId: z.string().min(1),
+	participantId: z.string().min(1),
+	enabled: z.boolean(),
+	jobId: z.string().min(1).optional(),
+};
+
+export const submitSynthesisSchema = {
+	jobId: z.string().min(1),
+	text: z.string().min(1),
 };
 
 export const listMeetingsSchema = {

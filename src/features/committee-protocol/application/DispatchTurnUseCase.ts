@@ -36,9 +36,7 @@ export class DispatchTurnUseCase {
 	async execute(input: DispatchTurnInput): Promise<TurnResult> {
 		const adapter = this.deps.adapterFor(input.participant.id);
 		const systemPrompt =
-			input.session.providerRef === null
-				? this.composeSystemPrompt(input.participant.systemPrompt)
-				: null;
+			input.session.providerRef === null ? this.composeSystemPrompt(input.participant) : null;
 
 		const prompt = this.buildPrompt(input);
 		const turn: Turn = {
@@ -129,25 +127,39 @@ export class DispatchTurnUseCase {
 
 	private buildPrompt(input: DispatchTurnInput): string {
 		const blocks: string[] = [];
-		blocks.push(`[meeting-round=${input.roundNumber} self=${input.participant.id}]`);
+		blocks.push(
+			`[meeting-round=${input.roundNumber} self=${input.participant.id} selfDiscussionRole=${input.participant.discussionRole.name} selfWeight=${input.participant.discussionRole.weight}]`,
+		);
 		for (const m of input.transcriptPrefix) {
 			const kind = m.kind ?? "speech";
+			const discussionRole = m.authorDiscussionRole;
+			const roleSuffix =
+				discussionRole === undefined
+					? ""
+					: ` discussionRole=${discussionRole.name} weight=${discussionRole.weight}`;
 			if (m.authorRole === "facilitator") {
-				blocks.push(`[facilitator=${m.authorId} round=${m.round}]\n${m.text}`);
+				blocks.push(`[facilitator=${m.authorId}${roleSuffix} round=${m.round}]\n${m.text}`);
 			} else if (m.authorRole === "system") {
 				blocks.push(`[system round=${m.round}]\n${m.text}`);
 			} else {
 				blocks.push(
-					`[author=${m.authorId} role=${m.authorRole} round=${m.round} kind=${kind}]\n${m.text}`,
+					`[author=${m.authorId} role=${m.authorRole}${roleSuffix} round=${m.round} kind=${kind}]\n${m.text}`,
 				);
 			}
 		}
 		return blocks.join("\n\n");
 	}
 
-	private composeSystemPrompt(userPrompt: string | null): string {
-		const base = userPrompt?.trim() ?? "";
-		return base.length > 0 ? `${base}\n\n${PASS_PROTOCOL_SUFFIX}` : PASS_PROTOCOL_SUFFIX;
+	private composeSystemPrompt(participant: Participant): string {
+		const base = participant.systemPrompt?.trim() ?? "";
+		const roleBlock = [
+			`Your discussion role is "${participant.discussionRole.name}".`,
+			`Role description: ${participant.discussionRole.description}`,
+			`Role weight: ${participant.discussionRole.weight}. Use weights as influence priors; do not ignore lower-weight arguments.`,
+		].join("\n");
+		return base.length > 0
+			? `${base}\n\n${roleBlock}\n\n${PASS_PROTOCOL_SUFFIX}`
+			: `${roleBlock}\n\n${PASS_PROTOCOL_SUFFIX}`;
 	}
 
 	private failureResult(error: TurnError): TurnResult {

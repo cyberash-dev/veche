@@ -91,6 +91,20 @@ export class JobAlreadyTerminal extends DomainError {
 	}
 }
 
+export class HumanTurnNotFound extends DomainError {
+	constructor(requestId: string) {
+		super("HumanTurnNotFound", `Human turn ${requestId} not found`, { requestId });
+	}
+}
+
+export class HumanTurnAlreadySubmitted extends DomainError {
+	constructor(requestId: string) {
+		super("HumanTurnAlreadySubmitted", `Human turn ${requestId} already has a submission`, {
+			requestId,
+		});
+	}
+}
+
 export class CursorInvalid extends DomainError {
 	constructor(reason: string) {
 		super("CursorInvalid", reason);

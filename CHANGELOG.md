@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-05-02
+
+### Added
+
+- **Human Participant flow** — meetings can pause after model rounds for human `agree`,
+  `skip`, or `steer` feedback, including MCP tools and web viewer controls for submitting
+  human turns.
+- **Per-launch role customization** — the installed skill can collect role description,
+  weight, and system-prompt overrides for Codex and Claude without persisting them.
+- **Skill UI metadata install** — `veche install` now copies optional
+  `skills/veche/agents/openai.yaml` metadata alongside `SKILL.md`.
+- **Install config bootstrap** — `veche install` can seed
+  `examples/config.json.example` into `$VECHE_HOME/config.json` without overwriting an
+  existing config unless `--force` is supplied.
+
 ## [0.1.1] — 2026-04-25
 
 First release published with **npm provenance** via GitHub Actions OIDC. No runtime
@@ -80,5 +95,6 @@ Initial public release.
 - Read-only invariant: `list` / `show` / `watch` never mutate the store; `install` never
   opens the store.
 
+[0.2.0]: https://github.com/cyberash-dev/veche/releases/tag/v0.2.0
 [0.1.1]: https://github.com/cyberash-dev/veche/releases/tag/v0.1.1
 [0.1.0]: https://github.com/cyberash-dev/veche/releases/tag/v0.1.0

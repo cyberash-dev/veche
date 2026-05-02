@@ -1,4 +1,4 @@
-import type { AdapterKind } from "../../meeting/domain/Participant.js";
+import type { AdapterKind, DiscussionRole } from "../../meeting/domain/Participant.js";
 import {
 	AdapterFlagNotAllowed,
 	ProfileAdapterMismatch,
@@ -10,6 +10,7 @@ export interface ResolvedParticipantConfig {
 	readonly adapter: AdapterKind;
 	readonly profile: string | null;
 	readonly systemPrompt: string | null;
+	readonly discussionRole: DiscussionRole | null;
 	readonly model: string | null;
 	readonly workdir: string | null;
 	readonly extraFlags: readonly string[];
@@ -20,6 +21,7 @@ export interface MemberInput {
 	readonly profile?: string;
 	readonly adapter?: AdapterKind;
 	readonly systemPrompt?: string;
+	readonly discussionRole?: DiscussionRole;
 	readonly model?: string;
 	readonly workdir?: string;
 	readonly extraFlags?: readonly string[];
@@ -83,6 +85,7 @@ export class ProfileResolver {
 			adapter,
 			profile: input.profile ?? null,
 			systemPrompt: input.systemPrompt ?? profile?.systemPrompt ?? null,
+			discussionRole: input.discussionRole ?? profile?.discussionRole ?? null,
 			model: input.model ?? profile?.model ?? null,
 			workdir: input.workdir ?? profile?.workdir ?? null,
 			extraFlags,

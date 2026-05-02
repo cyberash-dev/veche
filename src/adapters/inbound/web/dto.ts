@@ -1,7 +1,15 @@
+import type {
+	HumanTurnView,
+	SynthesisView,
+} from "../../../features/meeting/application/humanTurnState.js";
 import type { Job } from "../../../features/meeting/domain/Job.js";
 import type { Meeting } from "../../../features/meeting/domain/Meeting.js";
 import type { Message } from "../../../features/meeting/domain/Message.js";
-import type { Participant } from "../../../features/meeting/domain/Participant.js";
+import type {
+	DiscussionRole,
+	Participant,
+	ParticipantKind,
+} from "../../../features/meeting/domain/Participant.js";
 import type {
 	MeetingSnapshot,
 	MeetingSummary,
@@ -11,6 +19,9 @@ import { renderMarkdownToHtml } from "../../../shared/markdown/markdownToHtml.js
 export interface ParticipantDto {
 	readonly id: string;
 	readonly role: "facilitator" | "member";
+	readonly participantKind: ParticipantKind;
+	readonly discussionRole: DiscussionRole;
+	readonly isHumanParticipationEnabled: boolean;
 	readonly displayName: string;
 	readonly adapter: "codex-cli" | "claude-code-cli" | null;
 	readonly status: "active" | "dropped";
@@ -19,6 +30,7 @@ export interface ParticipantDto {
 export interface SummaryParticipantDto {
 	readonly id: string;
 	readonly role: "facilitator" | "member";
+	readonly participantKind: ParticipantKind;
 	readonly adapter: "codex-cli" | "claude-code-cli" | null;
 	readonly status: "active" | "dropped";
 }
@@ -35,7 +47,13 @@ export interface MeetingDto {
 export interface JobDto {
 	readonly id: string;
 	readonly meetingId: string;
-	readonly status: "queued" | "running" | "completed" | "failed" | "cancelled";
+	readonly status:
+		| "queued"
+		| "running"
+		| "waiting_for_human"
+		| "completed"
+		| "failed"
+		| "cancelled";
 	readonly createdAt: string;
 	readonly startedAt: string | null;
 	readonly finishedAt: string | null;
@@ -79,6 +97,8 @@ export interface SnapshotDto {
 	readonly participants: readonly ParticipantDto[];
 	readonly openJobs: readonly JobDto[];
 	readonly lastSeq: number;
+	readonly humanTurn: HumanTurnView | null;
+	readonly synthesis: SynthesisView | null;
 }
 
 export const meetingDto = (meeting: Meeting): MeetingDto => ({
@@ -93,6 +113,9 @@ export const meetingDto = (meeting: Meeting): MeetingDto => ({
 export const participantDto = (participant: Participant): ParticipantDto => ({
 	id: participant.id,
 	role: participant.role,
+	participantKind: participant.participantKind,
+	discussionRole: participant.discussionRole,
+	isHumanParticipationEnabled: participant.isHumanParticipationEnabled,
 	displayName: participant.displayName,
 	adapter: participant.adapter,
 	status: participant.status,
@@ -134,6 +157,7 @@ export const summaryDto = (summary: MeetingSummary): SummaryDto => ({
 	participants: summary.participants.map((p) => ({
 		id: p.id,
 		role: p.role,
+		participantKind: p.participantKind,
 		adapter: p.adapter,
 		status: p.status,
 	})),
@@ -141,9 +165,17 @@ export const summaryDto = (summary: MeetingSummary): SummaryDto => ({
 	openJobCount: summary.openJobCount,
 });
 
-export const snapshotDto = (snapshot: MeetingSnapshot): SnapshotDto => ({
+export const snapshotDto = (
+	snapshot: MeetingSnapshot,
+	extras: {
+		readonly humanTurn?: HumanTurnView | null;
+		readonly synthesis?: SynthesisView | null;
+	} = {},
+): SnapshotDto => ({
 	meeting: meetingDto(snapshot.meeting),
 	participants: snapshot.participants.map(participantDto),
 	openJobs: snapshot.openJobs.map(jobDto),
 	lastSeq: snapshot.lastSeq,
+	humanTurn: extras.humanTurn ?? null,
+	synthesis: extras.synthesis ?? null,
 });

@@ -18,7 +18,10 @@ import {
 	JobRunner,
 	ListMeetingsUseCase,
 	SendMessageUseCase,
+	SetHumanParticipationUseCase,
 	StartMeetingUseCase,
+	SubmitHumanTurnUseCase,
+	SubmitSynthesisUseCase,
 } from "../features/meeting/index.js";
 import { FileMeetingStore } from "../features/persistence/adapters/file/FileMeetingStore.js";
 import { InMemoryMeetingStore } from "../features/persistence/adapters/in-memory/InMemoryMeetingStore.js";
@@ -102,7 +105,7 @@ export const bootstrap = async (): Promise<BootstrapResult> => {
 		dispatch,
 		handleFailure,
 	});
-	const discussion = new DiscussionRunner({ store, clock, logger, runRound, terminate });
+	const discussion = new DiscussionRunner({ store, clock, ids, logger, runRound, terminate });
 
 	// Populate adapterByParticipant from a meeting's participants when the runner starts.
 	const instrumentedRunner = {
@@ -138,6 +141,9 @@ export const bootstrap = async (): Promise<BootstrapResult> => {
 	const getResponse = new GetResponseUseCase({ store });
 	const listMeetings = new ListMeetingsUseCase({ store });
 	const getTranscript = new GetTranscriptUseCase({ store });
+	const submitHumanTurn = new SubmitHumanTurnUseCase({ store, clock, ids });
+	const setHumanParticipation = new SetHumanParticipationUseCase({ store, clock });
+	const submitSynthesis = new SubmitSynthesisUseCase({ store, clock });
 	const cancelJob = new CancelJobUseCase({ store, clock, jobRunner });
 	const endMeeting = new EndMeetingUseCase({ store, clock, logger, adapters, cancelJob });
 	// Seed adapter lookup for any previously-joined participants so start_meeting's rollback
@@ -152,6 +158,9 @@ export const bootstrap = async (): Promise<BootstrapResult> => {
 		getResponse,
 		listMeetings,
 		getTranscript,
+		submitHumanTurn,
+		setHumanParticipation,
+		submitSynthesis,
 		endMeeting,
 		cancelJob,
 	});

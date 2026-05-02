@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_FACILITATOR_DISCUSSION_ROLE } from "../../../../features/meeting/domain/Participant.js";
 import type { MeetingSummary } from "../../../../features/persistence/ports/MeetingStorePort.js";
 import { asMeetingId, asParticipantId } from "../../../../shared/types/ids.js";
 import { asInstant } from "../../../../shared/types/instant.js";
@@ -21,6 +22,9 @@ const summary = (overrides: Partial<MeetingSummary> = {}): MeetingSummary => ({
 		{
 			id: asParticipantId("alice"),
 			role: "facilitator",
+			participantKind: "human",
+			discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+			isHumanParticipationEnabled: false,
 			adapter: null,
 			status: "active",
 		},

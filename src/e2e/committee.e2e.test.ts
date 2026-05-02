@@ -18,7 +18,10 @@ import {
 	JobRunner,
 	ListMeetingsUseCase,
 	SendMessageUseCase,
+	SetHumanParticipationUseCase,
 	StartMeetingUseCase,
+	SubmitHumanTurnUseCase,
+	SubmitSynthesisUseCase,
 } from "../features/meeting/index.js";
 import { InMemoryMeetingStore } from "../features/persistence/adapters/in-memory/InMemoryMeetingStore.js";
 import { SystemClock } from "../infra/SystemClock.js";
@@ -76,7 +79,7 @@ const setup = () => {
 		dispatch,
 		handleFailure,
 	});
-	const discussion = new DiscussionRunner({ store, clock, logger, runRound, terminate });
+	const discussion = new DiscussionRunner({ store, clock, ids, logger, runRound, terminate });
 	const instrumented = {
 		async run(input: Parameters<DiscussionRunner["run"]>[0]): Promise<void> {
 			const snap = await store.loadMeeting(input.meetingId);
@@ -110,6 +113,9 @@ const setup = () => {
 	const getResponse = new GetResponseUseCase({ store });
 	const listMeetings = new ListMeetingsUseCase({ store });
 	const getTranscript = new GetTranscriptUseCase({ store });
+	const submitHumanTurn = new SubmitHumanTurnUseCase({ store, clock, ids });
+	const setHumanParticipation = new SetHumanParticipationUseCase({ store, clock });
+	const submitSynthesis = new SubmitSynthesisUseCase({ store, clock });
 	const cancelJob = new CancelJobUseCase({ store, clock, jobRunner });
 	const endMeeting = new EndMeetingUseCase({
 		store,
@@ -126,6 +132,9 @@ const setup = () => {
 		getResponse,
 		listMeetings,
 		getTranscript,
+		submitHumanTurn,
+		setHumanParticipation,
+		submitSynthesis,
 		endMeeting,
 		cancelJob,
 	});

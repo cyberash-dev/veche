@@ -1,7 +1,11 @@
 import type { Job } from "../../../../features/meeting/domain/Job.js";
 import type { Meeting } from "../../../../features/meeting/domain/Meeting.js";
 import type { Message } from "../../../../features/meeting/domain/Message.js";
-import type { Participant } from "../../../../features/meeting/domain/Participant.js";
+import {
+	DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+	DEFAULT_MODEL_DISCUSSION_ROLE,
+	type Participant,
+} from "../../../../features/meeting/domain/Participant.js";
 import {
 	asJobId,
 	asMeetingId,
@@ -28,6 +32,9 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 	const facilitator: Participant = {
 		id: asParticipantId("facilitator"),
 		role: "facilitator",
+		participantKind: "human",
+		discussionRole: DEFAULT_FACILITATOR_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "facilitator",
 		adapter: null,
 		profile: null,
@@ -46,6 +53,9 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		...facilitator,
 		id: asParticipantId("codex"),
 		role: "member",
+		participantKind: "model",
+		discussionRole: DEFAULT_MODEL_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "codex",
 		adapter: "codex-cli",
 		sessionId: asSessionId("00000000-0000-4000-8000-000000000001"),
@@ -54,6 +64,9 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		...facilitator,
 		id: asParticipantId("claude"),
 		role: "member",
+		participantKind: "model",
+		discussionRole: DEFAULT_MODEL_DISCUSSION_ROLE,
+		isHumanParticipationEnabled: false,
 		displayName: "claude",
 		adapter: "claude-code-cli",
 		sessionId: asSessionId("00000000-0000-4000-8000-000000000002"),
@@ -136,5 +149,6 @@ export const fixtureInput = (overrides: Partial<RenderInput> = {}): RenderInput 
 		useColor: false,
 		version: "0.1.0",
 		...overrides,
+		synthesis: overrides.synthesis ?? null,
 	};
 };
