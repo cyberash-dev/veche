@@ -1,8 +1,10 @@
-import { type ChildProcess, spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { realSpawner } from "../lib/hostSpawner.js";
 import { findPackageRoot } from "../lib/packageRoot.js";
+
+export { realSpawner };
 
 export type InstallTarget = "claude-code" | "codex";
 export type InstallTargetSelection = InstallTarget | "both";
@@ -133,37 +135,6 @@ const claudeMcpListContains = (stdout: string, mcpName: string): boolean => {
 const isNotFoundStderr = (stderr: string): boolean =>
 	/no such mcp server/i.test(stderr) || /not found/i.test(stderr);
 
-export const realSpawner: SpawnFn = (command, args) =>
-	new Promise<SpawnResult>((resolve) => {
-		let child: ChildProcess;
-		try {
-			child = spawn(command, [...args], { stdio: ["ignore", "pipe", "pipe"] });
-		} catch {
-			resolve({ code: -1, stdout: "", stderr: "", missing: true });
-			return;
-		}
-		let stdout = "";
-		let stderr = "";
-		child.stdout?.setEncoding("utf8");
-		child.stderr?.setEncoding("utf8");
-		child.stdout?.on("data", (chunk: string) => {
-			stdout += chunk;
-		});
-		child.stderr?.on("data", (chunk: string) => {
-			stderr += chunk;
-		});
-		child.on("error", (err: NodeJS.ErrnoException) => {
-			if (err.code === "ENOENT") {
-				resolve({ code: -1, stdout, stderr, missing: true });
-				return;
-			}
-			resolve({ code: -1, stdout, stderr: stderr + (err.message ?? ""), missing: false });
-		});
-		child.on("close", (code) => {
-			resolve({ code: code ?? 1, stdout, stderr, missing: false });
-		});
-	});
-
 interface RunStepResult {
 	readonly outcome: "ok" | "skipped" | "error";
 	readonly message?: string;
@@ -232,6 +203,17 @@ const runHost = async (
 				return { outcome: "skipped" };
 			}
 			return { outcome: "error", message: "host-cli-missing" };
+		}
+		if (probe.code !== 0) {
+			const detail = probe.stderr.trim() || probe.stdout.trim() || `exit ${probe.code}`;
+			stderr(
+				`${tag} error: ${plan.cli} resolved but spawn failed: ${detail}; pass --force to skip this host\n`,
+			);
+			if (cmd.force) {
+				stderr(`${tag} skipped\n`);
+				return { outcome: "skipped" };
+			}
+			return { outcome: "error", message: "host-cli-spawn-failed" };
 		}
 	}
 

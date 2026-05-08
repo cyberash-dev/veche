@@ -8895,7 +8895,7 @@ lifecycle:
   status: proposed
 partition_id: install
 name: veche/install-cli
-version: "0.2.0"
+version: "0.3.0"
 boundary_type: cli
 members:
   - install:CTR-001
@@ -8907,6 +8907,13 @@ notes: |
   Adding a new flag (default-off) or a new opt-in argument is a
   minor bump. The host-CLI argv templates (CTR-002) are part of
   this Surface — operators script around them.
+
+  0.3.0 adds the host-CLI binary resolution rule (PATHEXT-aware on
+  Windows) and the `cmd.exe /d /s /c` wrapper-launch form for
+  resolved `.cmd`/`.bat` host CLIs (npm shim shape on Windows).
+  Operators get a usable Windows install flow without an explicit
+  `CLAUDE_BIN`/`CODEX_BIN` override; the argv templates over the
+  wire are unchanged.
 ---
 ```
 
@@ -8984,7 +8991,8 @@ negative_cases:
   - skill source missing                              => SkillSourceMissing, exit 2
   - config source missing (without --skip-config)     => ConfigSourceMissing, exit 2
   - server-bin missing                                => ServerBinMissing, exit 2
-  - host CLI missing without --force                  => HostCliMissing, exit 2
+  - host CLI missing on PATH without --force          => HostCliMissing, exit 2
+  - host CLI resolved but spawn failed                => HostCliSpawnFailed, exit 2
   - host CLI non-zero exit                            => HostCliFailed, exit 2
   - skill / config write failure                      => WriteFailed, exit 2
   - any unhandled exception                           => InternalError, exit 1
@@ -9198,9 +9206,16 @@ then: |
        Non-zero exit -> exit 2.
     2. log lines as above.
   Probe step (BEFORE step 1 of either path):
-    - spawn `<host-cli> --version`. ENOENT classifies the host
-      CLI as missing (BEH-001 step 6 routes to exit 2 or skip
-      under --force).
+    - resolve the host CLI per CTR-002 `binary_resolution` (env
+      override or PATH; PATHEXT honoured on win32).
+    - spawn `<host-cli> --version` via the platform launcher
+      (CTR-002 `windows_wrapper_launch` on win32 for `.cmd`/`.bat`
+      wrappers; direct spawn elsewhere). Resolver returning null
+      classifies the host CLI as missing on PATH (BEH-001 step 6
+      routes to exit 2 or skip under --force). Spawn failure on
+      a resolved path is reported separately as
+      HostCliSpawnFailed (BEH-001 step 7) so the operator can
+      tell PATH-miss from wrapper-launch failure.
   Argv MUST be constructed in code; no user-supplied string is
   interpolated unquoted. The mcp-name is validated against
   `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$` before any subprocess uses it.
@@ -9278,8 +9293,8 @@ schema:
     0   success / opener-warn-only
     1   InternalError (any unhandled exception)
     2   SkillSourceMissing / ConfigSourceMissing /
-        ServerBinMissing / HostCliMissing / HostCliFailed /
-        WriteFailed
+        ServerBinMissing / HostCliMissing / HostCliSpawnFailed /
+        HostCliFailed / WriteFailed
     64  UsageError (unknown flag, bad value, contradictory combo)
 external_identifiers:
   - "command name: install"
@@ -9348,10 +9363,30 @@ schema:
   binary_resolution: |
     claude binary: env CLAUDE_BIN || PATH('claude')
     codex  binary: env CODEX_BIN  || PATH('codex')
+    On Windows (process.platform === 'win32') the resolver MUST
+    honour PATHEXT (e.g. .CMD, .BAT, .EXE) when the env override
+    is a bare command name; it MUST also accept an absolute path
+    that points directly at a `.cmd` / `.bat` / `.exe` wrapper.
+    Resolution failure (no candidate accessible as a file) is the
+    sole signal classified as "host CLI missing on PATH".
+  windows_wrapper_launch: |
+    When the resolved binary path ends with `.cmd` or `.bat` AND
+    process.platform === 'win32', install MUST launch the host
+    CLI via `cmd.exe /d /s /c <resolved-bin> <args...>` (Node's
+    documented safe form for batch wrappers post CVE-2024-27980).
+    Each argument is quoted using the standard Windows argv
+    rule (double-quote wrapping, `"` -> `\"`, trailing backslash
+    doubling). On non-Windows, or when the resolved binary is a
+    plain executable, install spawns it directly with no shell.
+    The argv content the host CLI observes is identical across
+    platforms; only the launch primitive differs.
   forbidden: |
     install MUST NOT spawn any binary outside { <claude>, <codex>,
     <opener> for show --open path which is owned by the meeting
-    partition }. install never spawns an opener.
+    partition }. install never spawns an opener. The single
+    permitted use of `cmd.exe` is the wrapper-launch form
+    described in `windows_wrapper_launch`; `cmd.exe /c <free-form>`
+    or any shell-prefixed string is forbidden.
   argv_construction_rules: |
     - mcp-name validated against ^[a-zA-Z][a-zA-Z0-9_-]{0,63}$ BEFORE
       it appears in any argv
@@ -9359,7 +9394,10 @@ schema:
       appears in any argv
     - no shell interpolation: argv is passed as an array to
       child_process.spawn; no `bash -c`, no `sh -c`, no template
-      strings into a shell
+      strings into a shell. The Windows wrapper-launch form keeps
+      the same array shape (cmd.exe + fixed flags + resolved bin
+      + per-argument-quoted args); no free-form shell string is
+      ever constructed.
 external_identifiers:
   - "argv literals: mcp, list, add, remove, --scope, user, -e, --env, --, node"
   - "env literal: VECHE_LOG_LEVEL=info"
@@ -9532,11 +9570,17 @@ partition_id: install
 title: only allow-listed binaries are spawned with fixed argv shapes
 always: |
   install spawns ONLY `<claude>` and `<codex>` (resolved via
-  CLAUDE_BIN / CODEX_BIN env or PATH). It NEVER spawns `bash`,
-  `sh`, `npm`, `node` (other than as the `node <server-bin>`
-  argv tail forwarded to a host CLI), or any other binary. Argv
-  is constructed in code as a string array; no user input is
-  interpolated unquoted; no shell is invoked.
+  CLAUDE_BIN / CODEX_BIN env or PATH; PATHEXT honoured on
+  win32). The single permitted use of `cmd.exe` is the
+  Windows wrapper-launch form `cmd.exe /d /s /c <resolved-bin>
+  <args...>` defined in CTR-002 (`windows_wrapper_launch`),
+  used only when the resolved host CLI is a `.cmd`/`.bat`
+  wrapper on win32. install NEVER spawns `bash`, `sh`, `npm`,
+  `node` (other than as the `node <server-bin>` argv tail
+  forwarded to a host CLI), or any other binary. Argv is
+  constructed in code as a string array; no user input is
+  interpolated unquoted; no free-form shell string is ever
+  passed to a shell.
 scope: install (entire partition)
 evidence: public_api
 stability: contractual
@@ -9554,17 +9598,24 @@ out_of_scope:
 test_obligation:
   predicate: |
     install.test.ts captures every spawn invocation and asserts
-    argv[0] is in the documented set { '<claude>', '<codex>' }.
-    A regex probe over install.ts rejects `child_process.exec(`,
-    `bash -c`, `sh -c`, `cmd.exe /c`.
+    argv[0] is in the documented set { '<claude>', '<codex>' }
+    OR is the Windows wrapper-launch form `cmd.exe /d /s /c
+    <resolved-bin>` where `<resolved-bin>` ends with `.cmd` or
+    `.bat`. A regex probe over install.ts rejects
+    `child_process.exec(`, `bash -c`, `sh -c`. A separate test
+    (fake win32 platform + fake which resolving to
+    `C:\\fake\\codex.cmd`) asserts the wrapper-launch form is
+    used and that args are individually quoted.
   test_template: integration
   boundary_classes:
     - claude-code path (probe + list + remove + add)
     - codex path (probe + add)
     - --dry-run (no spawn)
+    - win32 wrapper-launch (.cmd resolved bin)
   failure_scenarios:
     - shell interpolation introduced
     - bash invocation
+    - cmd.exe used with /c <free-form-string>
 ---
 ```
 
