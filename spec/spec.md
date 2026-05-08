@@ -2446,7 +2446,13 @@ unmodeled_budget:
 id: agent-integration:BL-001
 type: BrownfieldBaseline
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 discovery_scope:
   - src/features/agent-integration
@@ -2480,7 +2486,13 @@ notes: |
 id: agent-integration:SUR-001
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 name: veche/agent-adapter-port
 version: "0.1.0"
@@ -2510,7 +2522,13 @@ notes: |
 id: agent-integration:SUR-002
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 name: veche/profile-config-format
 version: "0.2.0"
@@ -2534,7 +2552,13 @@ notes: |
 id: agent-integration:BEH-001
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: capabilities returns the static adapter capability record
 given: |
@@ -2580,7 +2604,13 @@ test_obligation:
 id: agent-integration:BEH-002
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: openSession constructs a Session and never spawns a subprocess
 given: |
@@ -2646,7 +2676,13 @@ test_obligation:
 id: agent-integration:BEH-003
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: sendTurn dispatches one subprocess per attempt and parses one outcome
 given: |
@@ -2726,7 +2762,13 @@ test_obligation:
 id: agent-integration:BEH-004
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: closeSession transitions Session to closed and terminates in-flight subprocess
 given: |
@@ -2785,7 +2827,13 @@ test_obligation:
 id: agent-integration:BEH-005
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: ProfileResolver merges Profile + Member overrides into ResolvedParticipantConfig
 given: |
@@ -2855,7 +2903,13 @@ test_obligation:
 id: agent-integration:BEH-006
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: codex-cli emits Turn-1 vs resume argv shapes per CTR-001
 given: |
@@ -2918,7 +2972,13 @@ test_obligation:
 id: agent-integration:BEH-007
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: claude-code-cli emits --session-id on Turn 1 and --resume thereafter per CTR-002
 given: |
@@ -2984,7 +3044,13 @@ test_obligation:
 id: agent-integration:BEH-008
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: codex-cli captures provider thread_id on Turn 1 from the JSONL stream
 given: |
@@ -3035,7 +3101,13 @@ test_obligation:
 id: agent-integration:CTR-001
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: codex-cli subprocess argv and exit-code contract
 surface_ref: agent-integration:SUR-001
@@ -3136,7 +3208,13 @@ test_obligation:
 id: agent-integration:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: claude-code-cli subprocess argv and exit-code contract
 surface_ref: agent-integration:SUR-001
@@ -3244,7 +3322,13 @@ test_obligation:
 id: agent-integration:CTR-003
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: AgentAdapterPort method shapes and error taxonomy
 surface_ref: agent-integration:SUR-001
@@ -3350,7 +3434,13 @@ test_obligation:
 id: agent-integration:CTR-004
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: UserConfigFile JSON schema (${VECHE_HOME}/config.json)
 surface_ref: agent-integration:SUR-002
@@ -3446,7 +3536,13 @@ test_obligation:
 id: agent-integration:INV-001
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: every Adapter is a port-conformant black box
 always: |
@@ -3490,7 +3586,13 @@ test_obligation:
 id: agent-integration:INV-002
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: Recursion Guard is present on every claude-code-cli spawn
 always: |
@@ -3536,7 +3638,13 @@ test_obligation:
 id: agent-integration:INV-003
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: forbidden env keys are filtered from every spawned subprocess
 always: |
@@ -3585,7 +3693,13 @@ test_obligation:
 id: agent-integration:INV-004
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: extraFlags are validated against per-adapter allow-lists
 always: |
@@ -3628,7 +3742,13 @@ test_obligation:
 id: agent-integration:INV-005
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: sendTurn never performs internal retries
 always: |
@@ -3676,7 +3796,13 @@ test_obligation:
 id: agent-integration:EXT-001
 type: ExternalDependency
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 provider: Codex CLI (`codex` binary)
 provider_surface: "codex@>=0.21"
@@ -3730,7 +3856,13 @@ test_obligation:
 id: agent-integration:EXT-002
 type: ExternalDependency
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 provider: Claude Code CLI (`claude` binary)
 provider_surface: "claude-code@>=1.0"
@@ -3790,7 +3922,13 @@ test_obligation:
 id: agent-integration:POL-001
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: agent-integration spawns only allow-listed binaries with bounded env
 policy_kind: io_scope
@@ -3833,7 +3971,13 @@ test_obligation:
 id: agent-integration:POL-002
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 title: claude-code-cli enforces the Recursion Guard on every spawn
 policy_kind: security_boundary
@@ -3876,7 +4020,13 @@ test_obligation:
 id: agent-integration:CST-001
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 constraint: |
   v1 supports exactly two adapters: `codex-cli` and
@@ -3907,7 +4057,13 @@ test_obligation:
 id: agent-integration:CST-002
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 constraint: |
   Adapter implementations MUST use only Node built-ins (`node:child_process`,
@@ -3940,7 +4096,13 @@ test_obligation:
 id: agent-integration:IMP-001
 type: ImplementationBinding
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 target_ids:
   - agent-integration:BEH-001
@@ -3995,7 +4157,13 @@ verification_method: |
 id: agent-integration:OQ-001
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 question: |
   Should the adapter expose a probe method that pre-validates
@@ -4028,7 +4196,13 @@ default_if_unresolved: a
 id: agent-integration:OQ-002
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 question: |
   Should the adapter's `MAX_ATTEMPTS_PER_TURN` and backoff schedule
@@ -4061,7 +4235,13 @@ default_if_unresolved: a
 id: agent-integration:ASM-001
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 assumption: |
   The `codex` and `claude` CLI binaries continue to honour the argv
@@ -4083,7 +4263,13 @@ tests:
 id: agent-integration:ASM-002
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: agent-integration
 assumption: |
   Auth credentials for both providers are managed out-of-band by
@@ -4214,7 +4400,13 @@ unmodeled_budget:
 id: committee-protocol:BL-001
 type: BrownfieldBaseline
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 discovery_scope:
   - src/features/committee-protocol
@@ -4246,7 +4438,13 @@ notes: |
 id: committee-protocol:SUR-001
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 name: veche/discussion-runtime
 version: "0.2.0"
@@ -4274,7 +4472,13 @@ notes: |
 id: committee-protocol:BEH-001
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: RunRoundUseCase dispatches active Members in parallel and persists outcomes deterministically
 given: |
@@ -4356,7 +4560,13 @@ test_obligation:
 id: committee-protocol:BEH-002
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: ParsePassSignalUseCase deterministically classifies adapter output
 given: |
@@ -4406,7 +4616,13 @@ test_obligation:
 id: committee-protocol:BEH-003
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: HandleAgentFailureUseCase drops the Member, emits events, closes the Session
 given: |
@@ -4470,7 +4686,13 @@ test_obligation:
 id: committee-protocol:BEH-004
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: TerminateDiscussionUseCase decides termination using a fixed evaluation order
 given: |
@@ -4531,7 +4753,13 @@ test_obligation:
 id: committee-protocol:BEH-005
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: DiscussionRunner advances the loop until termination and emits the terminal Job event
 given: |
@@ -4590,7 +4818,13 @@ test_obligation:
 id: committee-protocol:CTR-001
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: DiscussionState shape and termination enum
 surface_ref: committee-protocol:SUR-001
@@ -4659,7 +4893,13 @@ test_obligation:
 id: committee-protocol:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: TurnOutcome shape and dispatcher / drop boundary
 surface_ref: committee-protocol:SUR-001
@@ -4728,7 +4968,13 @@ test_obligation:
 id: committee-protocol:INV-001
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: Members within a Round are dispatched in parallel; Rounds are strictly serial
 always: |
@@ -4776,7 +5022,13 @@ test_obligation:
 id: committee-protocol:INV-002
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: cancellation is observed only at explicit checkpoints
 always: |
@@ -4828,7 +5080,13 @@ test_obligation:
 id: committee-protocol:INV-003
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: pendingPass resets at Round start; speech in current Round invalidates other passes for termination check
 always: |
@@ -4876,7 +5134,13 @@ test_obligation:
 id: committee-protocol:INV-004
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: Member outcomes are appended in ascending participantId order for replay determinism
 always: |
@@ -4921,7 +5185,13 @@ test_obligation:
 id: committee-protocol:INV-005
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: dropped Members stay dropped for the rest of the Meeting
 always: |
@@ -4967,7 +5237,13 @@ test_obligation:
 id: committee-protocol:INV-006
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: "dispatcher retry policy is fixed: MAX_ATTEMPTS_PER_TURN=3, exponential backoff capped at 5000ms"
 always: |
@@ -5025,7 +5301,13 @@ test_obligation:
 id: committee-protocol:POL-001
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 title: committee-protocol writes only Round / Job markers and Member messages; never bypasses the store
 policy_kind: io_scope
@@ -5068,7 +5350,13 @@ test_obligation:
 id: committee-protocol:CST-001
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 constraint: |
   All cross-Member parallelism uses `Promise.allSettled` (or
@@ -5103,7 +5391,13 @@ test_obligation:
 id: committee-protocol:IMP-001
 type: ImplementationBinding
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 target_ids:
   - committee-protocol:BEH-001
@@ -5151,7 +5445,13 @@ verification_method: |
 id: committee-protocol:OQ-001
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 question: |
   Should a Member dropped in Job J be re-admitted on a future Job
@@ -5186,7 +5486,13 @@ default_if_unresolved: a
 id: committee-protocol:ASM-001
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: committee-protocol
 assumption: |
   An adapter's TurnResult.providerRef remains valid across at
@@ -5332,7 +5638,13 @@ unmodeled_budget:
 id: meeting:BL-001
 type: BrownfieldBaseline
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 discovery_scope:
   - src/features/meeting
@@ -5380,7 +5692,13 @@ notes: |
 id: meeting:SUR-001
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 name: veche/mcp-tools
 version: "0.2.0"
@@ -5408,7 +5726,13 @@ notes: |
 id: meeting:SUR-002
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 name: veche/cli-readonly
 version: "0.2.0"
@@ -5436,7 +5760,13 @@ notes: |
 id: meeting:BEH-001
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: start_meeting validates input, persists Meeting, opens Member Sessions
 given: |
@@ -5539,7 +5869,13 @@ test_obligation:
 id: meeting:BEH-002
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: send_message creates a Job, appends Round 0 Message, hands off to committee-protocol
 given: |
@@ -5617,7 +5953,13 @@ test_obligation:
 id: meeting:BEH-003
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: get_response polls a Job's status and Transcript deltas with optional bounded wait
 given: |
@@ -5692,7 +6034,13 @@ test_obligation:
 id: meeting:BEH-004
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: get_transcript reads a Meeting's Messages without blocking
 given: |
@@ -5746,7 +6094,13 @@ test_obligation:
 id: meeting:BEH-005
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: list_meetings filters, sorts, paginates Meeting summaries
 given: |
@@ -5803,7 +6157,13 @@ test_obligation:
 id: meeting:BEH-006
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: end_meeting closes Sessions, optionally cancels in-flight Job, persists meeting.ended
 given: |
@@ -5870,7 +6230,13 @@ test_obligation:
 id: meeting:BEH-007
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: cancel_job cooperatively cancels then forces terminal status within VECHE_CANCEL_TIMEOUT_MS
 given: |
@@ -5936,7 +6302,13 @@ test_obligation:
 id: meeting:BEH-008
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: veche list (CLI) prints Meeting summaries from FileMeetingStore as text or json
 given: |
@@ -6004,7 +6376,13 @@ test_obligation:
 id: meeting:BEH-009
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: veche show (CLI) renders one Meeting in text|html|markdown|json
 given: |
@@ -6098,7 +6476,13 @@ test_obligation:
 id: meeting:BEH-010
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: submit_human_turn accepts the first valid Human Turn submission
 given: |
@@ -6154,7 +6538,13 @@ test_obligation:
 id: meeting:BEH-011
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: set_human_participation toggles Human Participant availability
 given: |
@@ -6202,7 +6592,13 @@ test_obligation:
 id: meeting:BEH-012
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: submit_synthesis stores the final facilitator synthesis
 given: |
@@ -6251,7 +6647,13 @@ test_obligation:
 id: meeting:CTR-001
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: MCP tool inputs and outputs (the ten veche/* tools)
 surface_ref: meeting:SUR-001
@@ -6393,7 +6795,13 @@ test_obligation:
 id: meeting:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: Meeting / Participant / Job / Message domain shapes (wire-stable subset)
 surface_ref: meeting:SUR-001
@@ -6527,7 +6935,13 @@ test_obligation:
 id: meeting:CTR-003
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: veche list / show CLI argv shapes and exit codes
 surface_ref: meeting:SUR-002
@@ -6602,7 +7016,13 @@ test_obligation:
 id: meeting:CTR-004
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: HTML / Markdown rendering pipeline (escape-then-transform + inline-tag allowlist)
 surface_ref: meeting:SUR-002
@@ -6689,7 +7109,13 @@ test_obligation:
 id: meeting:CTR-005
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: --out atomic write semantics (`show --out <path>` writes via tmp + rename)
 surface_ref: meeting:SUR-002
@@ -6749,7 +7175,13 @@ test_obligation:
 id: meeting:INV-001
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: at most one Job per Meeting in {queued, running}
 always: |
@@ -6795,7 +7227,13 @@ test_obligation:
 id: meeting:INV-002
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: send_message returns within the MCP tool-call SLA
 always: |
@@ -6843,7 +7281,13 @@ test_obligation:
 id: meeting:INV-003
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: Meeting.status is monotonic (active -> ended; never the other way)
 always: |
@@ -6888,7 +7332,13 @@ test_obligation:
 id: meeting:INV-004
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: CLI commands never call MeetingStorePort write methods
 always: |
@@ -6938,7 +7388,13 @@ test_obligation:
 id: meeting:INV-005
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: secrets (env, raw API keys) never reach output channels
 always: |
@@ -6988,7 +7444,13 @@ test_obligation:
 id: meeting:INV-006
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: HTML output document is self-contained and loads zero remote resources
 always: |
@@ -7039,7 +7501,13 @@ test_obligation:
 id: meeting:POL-001
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: meeting use cases delegate I/O to MeetingStorePort and AgentAdapterPort exclusively
 policy_kind: io_scope
@@ -7083,7 +7551,13 @@ test_obligation:
 id: meeting:POL-002
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: CLI commands restrict store access to the read-only port subset
 policy_kind: io_scope
@@ -7129,7 +7603,13 @@ test_obligation:
 id: meeting:POL-003
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 title: HTML rendering MUST escape every interpolated string and apply the inline-tag allowlist
 policy_kind: security_boundary
@@ -7183,7 +7663,13 @@ test_obligation:
 id: meeting:CST-001
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 constraint: |
   The CLI (`veche list`, `veche show`, `veche watch`, `veche
@@ -7223,7 +7709,13 @@ test_obligation:
 id: meeting:IMP-001
 type: ImplementationBinding
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 target_ids:
   - meeting:BEH-001
@@ -7320,7 +7812,13 @@ verification_method: |
 id: meeting:OQ-001
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 question: |
   Should an MCP server crash mid-Job recover the in-flight Job on
@@ -7356,7 +7854,13 @@ default_if_unresolved: a
 id: meeting:OQ-002
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 question: |
   Should `list_meetings` expose cursor pagination through the
@@ -7389,7 +7893,13 @@ default_if_unresolved: a
 id: meeting:ASM-001
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 assumption: |
   The MCP tool-call SLA (the bound used by INV-002) is
@@ -7413,7 +7923,13 @@ tests:
 id: meeting:ASM-002
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: meeting
 assumption: |
   An operator's filesystem is local (not NFS / SMB). The CLI's
@@ -7542,7 +8058,13 @@ unmodeled_budget:
 id: web-viewer:BL-001
 type: BrownfieldBaseline
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 discovery_scope:
   - src/adapters/inbound/web
@@ -7576,7 +8098,13 @@ notes: |
 id: web-viewer:SUR-001
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 name: veche/watch-http
 version: "0.2.0"
@@ -7603,7 +8131,13 @@ notes: |
 id: web-viewer:SUR-002
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 name: veche/watch-cli
 version: "0.1.0"
@@ -7625,7 +8159,13 @@ notes: |
 id: web-viewer:BEH-001
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: veche watch CLI binds the listener, optionally opens a browser, runs until SIGINT/SIGTERM
 given: |
@@ -7687,7 +8227,13 @@ test_obligation:
 id: web-viewer:BEH-002
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: GET /api/meetings returns a single page of MeetingSummary records
 given: |
@@ -7741,7 +8287,13 @@ test_obligation:
 id: web-viewer:BEH-003
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: GET /api/meetings/:id returns the Meeting snapshot or 404
 given: |
@@ -7789,7 +8341,13 @@ test_obligation:
 id: web-viewer:BEH-004
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: GET /api/meetings/:id/messages returns one page of speech/pass/system Messages
 given: |
@@ -7840,7 +8398,13 @@ test_obligation:
 id: web-viewer:BEH-005
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: GET /api/stream emits the Meeting-list snapshot then meeting.added/updated diffs at WATCH_POLL_MS
 given: |
@@ -7909,7 +8473,13 @@ test_obligation:
 id: web-viewer:BEH-006
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: GET /api/stream/:id streams the Transcript with hello + message.posted + meeting.updated
 given: |
@@ -7982,7 +8552,13 @@ test_obligation:
 id: web-viewer:BEH-007
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: POST human-control routes submit Human Turns and participation toggles
 given: |
@@ -8040,7 +8616,13 @@ test_obligation:
 id: web-viewer:CTR-001
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: HTTP routing and JSON endpoints
 surface_ref: web-viewer:SUR-001
@@ -8111,7 +8693,13 @@ test_obligation:
 id: web-viewer:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: SSE event names, payloads, and Last-Event-ID semantics
 surface_ref: web-viewer:SUR-001
@@ -8188,7 +8776,13 @@ test_obligation:
 id: web-viewer:CTR-003
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: SPA structure (one inline script, one inline style, no remote refs)
 surface_ref: web-viewer:SUR-001
@@ -8257,7 +8851,13 @@ test_obligation:
 id: web-viewer:CTR-004
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: veche watch CLI argv shapes and exit codes
 surface_ref: web-viewer:SUR-002
@@ -8321,7 +8921,13 @@ test_obligation:
 id: web-viewer:INV-001
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: loopback-only by default + DNS-rebind guard for loopback bindings
 always: |
@@ -8375,7 +8981,13 @@ test_obligation:
 id: web-viewer:INV-002
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: no use of MeetingStorePort.watchNewEvents; cross-process changes are observed via 750ms polling
 always: |
@@ -8422,7 +9034,13 @@ test_obligation:
 id: web-viewer:INV-003
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: same source-of-truth Markdown converter as the static HTML report
 always: |
@@ -8468,7 +9086,13 @@ test_obligation:
 id: web-viewer:INV-004
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: no Access-Control-Allow-* headers; same-origin loopback by design
 always: |
@@ -8513,7 +9137,13 @@ test_obligation:
 id: web-viewer:POL-001
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: web-viewer is read-only except bounded human-control writes
 policy_kind: io_scope
@@ -8566,7 +9196,13 @@ test_obligation:
 id: web-viewer:POL-002
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 title: SPA + JSON / SSE responses preserve the escape-then-transform invariant
 policy_kind: security_boundary
@@ -8614,7 +9250,13 @@ test_obligation:
 id: web-viewer:CST-001
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 constraint: |
   The HTTP server uses `node:http` directly. No framework
@@ -8652,7 +9294,13 @@ test_obligation:
 id: web-viewer:IMP-001
 type: ImplementationBinding
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 target_ids:
   - web-viewer:BEH-001
@@ -8707,7 +9355,13 @@ verification_method: |
 id: web-viewer:OQ-001
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 question: |
   Should the watch server expose an authenticated multi-user mode
@@ -8739,7 +9393,13 @@ default_if_unresolved: a
 id: web-viewer:ASM-001
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: web-viewer
 assumption: |
   Operator browsers honour SSE keepalives at 15 s and EventSource
@@ -8853,7 +9513,13 @@ unmodeled_budget:
 id: install:BL-001
 type: BrownfieldBaseline
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 discovery_scope:
   - src/adapters/inbound/cli/commands/install.ts
@@ -8892,7 +9558,13 @@ notes: |
 id: install:SUR-001
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 name: veche/install-cli
 version: "0.3.0"
@@ -8922,7 +9594,13 @@ notes: |
 id: install:SUR-002
 type: Surface
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 name: veche/skill-artefact
 version: "0.2.0"
@@ -8948,7 +9626,13 @@ notes: |
 id: install:BEH-001
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: install parses argv, resolves package paths, runs the deploy plan in order
 given: |
@@ -9041,7 +9725,13 @@ test_obligation:
 id: install:BEH-002
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: config bootstrap seeds ${VECHE_HOME}/config.json once, preserves on subsequent runs
 given: |
@@ -9112,7 +9802,13 @@ test_obligation:
 id: install:BEH-003
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: skill artefact placement is atomic per host
 given: |
@@ -9177,7 +9873,13 @@ test_obligation:
 id: install:BEH-004
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: "MCP register: claude-code probes-then-removes-then-adds; codex single-add (overwrites)"
 given: |
@@ -9269,7 +9971,13 @@ test_obligation:
 id: install:CTR-001
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: veche install CLI argv shape and exit codes
 surface_ref: install:SUR-001
@@ -9343,7 +10051,13 @@ test_obligation:
 id: install:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: host-CLI argv templates (`claude mcp …`, `codex mcp …`)
 surface_ref: install:SUR-001
@@ -9440,7 +10154,13 @@ test_obligation:
 id: install:CTR-003
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: skill artefacts (SKILL.md + optional host UI metadata)
 surface_ref: install:SUR-002
@@ -9517,7 +10237,13 @@ test_obligation:
 id: install:INV-001
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: install never opens MeetingStorePort and never reads ${VECHE_HOME}/meetings/
 always: |
@@ -9565,7 +10291,13 @@ test_obligation:
 id: install:INV-002
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: only allow-listed binaries are spawned with fixed argv shapes
 always: |
@@ -9624,7 +10356,13 @@ test_obligation:
 id: install:INV-003
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: filesystem writes are bounded to two paths and atomic
 always: |
@@ -9677,7 +10415,13 @@ test_obligation:
 id: install:INV-004
 type: Invariant
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: install is idempotent across runs with the same flags
 always: |
@@ -9737,7 +10481,13 @@ test_obligation:
 id: install:POL-001
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: install I/O is bounded to documented files, host CLIs, and stderr
 policy_kind: io_scope
@@ -9785,7 +10535,13 @@ test_obligation:
 id: install:POL-002
 type: Policy
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 title: argv to host CLIs is constructed in code; no shell, no string interpolation
 policy_kind: security_boundary
@@ -9832,7 +10588,13 @@ test_obligation:
 id: install:CST-001
 type: Constraint
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 constraint: |
   install uses ONLY Node built-ins (`node:fs/promises`, `node:os`,
@@ -9866,7 +10628,13 @@ test_obligation:
 id: install:IMP-001
 type: ImplementationBinding
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 target_ids:
   - install:BEH-001
@@ -9905,7 +10673,13 @@ verification_method: |
 id: install:OQ-001
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 question: |
   Should install ship a `veche uninstall` command that removes
@@ -9937,7 +10711,13 @@ default_if_unresolved: a
 id: install:OQ-002
 type: Open-Q
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 question: |
   Should install detect a Claude Code `mcp list` output schema
@@ -9971,7 +10751,13 @@ default_if_unresolved: a
 id: install:ASM-001
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 assumption: |
   The host CLIs (`claude`, `codex`) honour the documented
@@ -9994,7 +10780,13 @@ tests:
 id: install:ASM-002
 type: ASSUMPTION
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: update old behavior
+    scope: first-time-approval
 partition_id: install
 assumption: |
   Operators run `veche install` from the same machine where the

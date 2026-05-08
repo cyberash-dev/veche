@@ -1,0 +1,38 @@
+plan_id: 2026-05-08T223947Z-vrgz3
+created_at: 2026-05-08T22:39:47.925Z
+pending_attestations:
+  - id: agent-integration:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:47.924Z
+    change_request: "update old behavior"
+    scope: first-time-approval
+    target_status: approved
+  - id: committee-protocol:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.125Z
+    change_request: "update old behavior"
+    scope: first-time-approval
+    target_status: approved
+  - id: install:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.324Z
+    change_request: "update old behavior"
+    scope: first-time-approval
+    target_status: approved
+  - id: meeting:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.519Z
+    change_request: "update old behavior"
+    scope: first-time-approval
+    target_status: approved
+  - id: web-viewer:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-05-08T22:39:48.715Z
+    change_request: "update old behavior"
+    scope: first-time-approval
+    target_status: approved
