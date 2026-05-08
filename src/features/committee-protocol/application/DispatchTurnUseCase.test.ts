@@ -1,17 +1,33 @@
 // @covers committee-protocol:BEH-001
 import { describe, expect, it } from "vitest";
+import { asMeetingId, asParticipantId, asSessionId } from "../../../shared/types/ids.js";
+import { instantFromDate } from "../../../shared/types/instant.js";
 import { FakeClock } from "../../../test-utils/FakeClock.js";
 import { SilentLogger } from "../../../test-utils/SilentLogger.js";
 import { FakeAgentAdapter } from "../../agent-integration/adapters/fake/FakeAgentAdapter.js";
 import type { Session } from "../../agent-integration/domain/Session.js";
+import type { Turn, TurnResult } from "../../agent-integration/domain/Turn.js";
 import {
 	DEFAULT_MODEL_DISCUSSION_ROLE,
 	type Participant,
 } from "../../meeting/domain/Participant.js";
-import { asMeetingId, asParticipantId, asSessionId } from "../../../shared/types/ids.js";
-import { instantFromDate } from "../../../shared/types/instant.js";
 import { PASS_PROTOCOL_REMINDER, PASS_PROTOCOL_SUFFIX } from "../domain/PassSignal.js";
 import { DispatchTurnUseCase } from "./DispatchTurnUseCase.js";
+
+const getOnlyTurn = (adapter: FakeAgentAdapter): { turn: Turn; result: TurnResult } => {
+	const entry = adapter.turns[0];
+	if (!entry) {
+		throw new Error("expected exactly one turn dispatched");
+	}
+	return entry;
+};
+
+const requireSystemPrompt = (sys: string | null): string => {
+	if (sys === null) {
+		throw new Error("expected systemPrompt to be present");
+	}
+	return sys;
+};
 
 const buildParticipant = (overrides: Partial<Participant> = {}): Participant => ({
 	id: asParticipantId("alice"),
@@ -66,7 +82,7 @@ describe("DispatchTurnUseCase prompt assembly", () => {
 			cancellationSignal: new AbortController().signal,
 		});
 
-		const sentPrompt = adapter.turns[0]!.turn.prompt;
+		const sentPrompt = getOnlyTurn(adapter).turn.prompt;
 		const [header, reminder] = sentPrompt.split("\n\n");
 		expect(header).toMatch(/^\[meeting-round=1 self=alice/);
 		expect(reminder).toBe(PASS_PROTOCOL_REMINDER);
@@ -93,7 +109,7 @@ describe("DispatchTurnUseCase prompt assembly", () => {
 			cancellationSignal: new AbortController().signal,
 		});
 
-		const turn = adapter.turns[0]!.turn;
+		const turn = getOnlyTurn(adapter).turn;
 		expect(turn.systemPrompt).toBeNull();
 		const lines = turn.prompt.split("\n\n");
 		expect(lines[0]).toMatch(/^\[meeting-round=4 self=alice/);
@@ -119,11 +135,10 @@ describe("DispatchTurnUseCase prompt assembly", () => {
 			cancellationSignal: new AbortController().signal,
 		});
 
-		const sys = adapter.turns[0]!.turn.systemPrompt;
-		expect(sys).not.toBeNull();
-		const suffixIdx = sys!.indexOf(PASS_PROTOCOL_SUFFIX);
-		const roleIdx = sys!.indexOf("Your discussion role is");
-		const baseIdx = sys!.indexOf("BASE_PROMPT_MARKER");
+		const sys = requireSystemPrompt(getOnlyTurn(adapter).turn.systemPrompt);
+		const suffixIdx = sys.indexOf(PASS_PROTOCOL_SUFFIX);
+		const roleIdx = sys.indexOf("Your discussion role is");
+		const baseIdx = sys.indexOf("BASE_PROMPT_MARKER");
 		expect(suffixIdx).toBeGreaterThanOrEqual(0);
 		expect(roleIdx).toBeGreaterThan(suffixIdx);
 		expect(baseIdx).toBeGreaterThan(roleIdx);
