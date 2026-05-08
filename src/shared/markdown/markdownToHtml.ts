@@ -1,7 +1,7 @@
 /**
  * Shared Markdown → HTML converter used by both the static `show --format=html` report and
  * the live `watch` SPA. Single source of truth — see
- * `spec/features/meeting/show-meeting-cli.usecase.md` → *Markdown rendering* for the
+ * `spec/spec.md` → *Markdown rendering* for the
  * authoritative subset.
  *
  * Pipeline: escape every character of the source first, then introduce a fixed allowlist of
@@ -122,7 +122,7 @@ const splitTableCells = (line: string): string[] => {
 
 /**
  * Block-level Markdown → HTML for the small subset documented in
- * `spec/features/meeting/show-meeting-cli.usecase.md`. The converter only emits tags it
+ * `spec/spec.md`. The converter only emits tags it
  * recognises; everything else passes through `escapeHtml` first.
  */
 export const renderMarkdownToHtml = (raw: string): string => {

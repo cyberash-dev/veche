@@ -205,7 +205,7 @@ export class RunRoundUseCase {
 	 * `round >= R` authored by anyone else. On the first Turn (`lastRound = -1`) this is the
 	 * facilitator's opening Message (round 0). On Round N+1 this is every other Member's
 	 * reply from Round N. Older context is retained by the adapter's provider session — see
-	 * spec `spec/features/committee-protocol/run-round.usecase.md` step 4a.
+	 * spec `spec/spec.md` step 4a.
 	 */
 	private buildPrefixForParticipant(
 		self: ParticipantId,

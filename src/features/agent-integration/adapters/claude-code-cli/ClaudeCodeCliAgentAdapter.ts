@@ -33,7 +33,7 @@ const DEFAULT_DISALLOWED = ["Bash", "Edit", "Write", "NotebookEdit"];
 const FORBIDDEN_ENV = new Set(["HOME", "PATH", "CLAUDE_BIN", "CODEX_BIN"]);
 
 /**
- * Adapter for `claude -p`. See spec/features/agent-integration/claude-code-cli-adapter.usecase.md.
+ * Adapter for `claude -p`. See spec/spec.md.
  * Enforces the recursion guard: `--bare --strict-mcp-config --mcp-config {"mcpServers":{}}`.
  */
 export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {

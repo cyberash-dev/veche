@@ -57,7 +57,7 @@ Navigation: from `system.md` any use case is reachable in ≤ 3 file reads.
 - Adapters implement a port. They never import another adapter.
 - `infra/` is the composition root; it may import anything.
 
-Dependency table lives in `spec/containers/veche-server.md` → *Dependency Rules*.
+Dependency table lives in [`spec/spec.md`](spec/spec.md) (the monolithic spec, partitioned by feature).
 
 ## Naming conventions
 
@@ -144,7 +144,7 @@ The `veche` CLI is a second inbound adapter (alongside MCP) that reads the event
 - **Exit codes are part of the contract.** `0` success · `1` unhandled · `2` store or
   filesystem error · `3` meeting not found · `64` usage error. `cli.integration.test.ts`
   exercises each. If you add a failure mode, pick one of these and document it in
-  `spec/features/meeting/show-meeting-cli.usecase.md` *first*.
+  [`spec/spec.md`](spec/spec.md) → *Partition: meeting* (CLI behaviours) *first*.
 
 ## WatchServer invariants (`src/adapters/inbound/web/`)
 
@@ -197,7 +197,7 @@ invariants intact:
   host CLI.
 - **Bounded subprocess surface.** The install command spawns ONLY `claude` and `codex`
   (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH), and only with the argv
-  shapes documented in `spec/features/install/install-cli.usecase.md` → *Side Effects*.
+  shapes documented in [`spec/spec.md`](spec/spec.md) → *Partition: install* (Behaviours / Contracts).
   Reviewers must reject a PR that introduces any other binary spawn from this command.
 - **Idempotent.** Re-running with the same flags reaches the same end state. Claude Code's
   `mcp add` is not idempotent — the install command probes via `mcp list`, removes the
@@ -215,7 +215,7 @@ invariants intact:
 
 Every `claude -p` invocation from the adapter MUST include
 `--strict-mcp-config --mcp-config '{"mcpServers":{}}'`. This is a load-bearing invariant
-documented in `spec/features/agent-integration/claude-code-cli-adapter.usecase.md`. If you
+documented in [`spec/spec.md`](spec/spec.md) → *Partition: agent-integration*. If you
 refactor the adapter, preserve these flags and add a test asserting they appear in the argv.
 
 Rationale: a Claude Code orchestrator can spawn a Claude Code member; without the guard, the
@@ -242,8 +242,7 @@ prompt. Always pass it as `--disallowedTools=<csv>` (single argv token with `=`)
 
 ## How to extend with a new adapter
 
-Walkthrough lives in
-`spec/features/agent-integration/agent-integration.md`. Short version:
+Walkthrough lives in [`spec/spec.md`](spec/spec.md) → *Partition: agent-integration*. Short version:
 
 1. Add the new `AdapterKind` literal to
    `src/features/meeting/domain/Participant.ts` and re-check every union switch the compiler
@@ -253,8 +252,8 @@ Walkthrough lives in
 3. Add it to the registry in `src/infra/bootstrap.ts`.
 4. Add a `capabilities()` entry + allow-listed `extraFlags` in `ProfileResolver`.
 5. Write an opt-in e2e test under `src/e2e/<new>.e2e.test.ts` gated on `VECHE_E2E`.
-6. Update `spec/features/agent-integration/agent-integration.md` and write a dedicated
-   `spec/features/agent-integration/<new>-adapter.usecase.md`.
+6. Update *Partition: agent-integration* in [`spec/spec.md`](spec/spec.md) — add the new
+   adapter's CTR/BEH/INV records alongside the existing codex/claude-code entries.
 
 ## Memory
 

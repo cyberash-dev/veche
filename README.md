@@ -138,8 +138,7 @@ If a member's adapter fails irrecoverably, that member is **dropped** and the di
 continues. The drop is recorded in the transcript as a `system` message so remaining
 members can acknowledge the missing voice.
 
-Full rules:
-[`spec/features/committee-protocol/`](spec/features/committee-protocol/committee-protocol.md).
+Full rules: [`spec/spec.md`](spec/spec.md) → *Partition: committee-protocol*.
 
 ## MCP tool surface
 
@@ -156,8 +155,7 @@ Full rules:
 | `set_human_participation` | Enable or disable a Human Participant for future pauses. |
 | `submit_synthesis` | Store the facilitator's final synthesis for a terminal Job. |
 
-Schemas and per-tool behaviour:
-[`spec/features/meeting/*.usecase.md`](spec/features/meeting/).
+Schemas and per-tool behaviour: [`spec/spec.md`](spec/spec.md) → *Partition: meeting*.
 
 ## CLI: `veche`
 
@@ -201,11 +199,7 @@ controls only.
 Exit codes: `0` ok · `2` store unavailable / write failed · `3` meeting not found ·
 `64` usage error · `1` unhandled internal error.
 
-Full CLI specs:
-[`show-meeting-cli`](spec/features/meeting/show-meeting-cli.usecase.md),
-[`list-meetings-cli`](spec/features/meeting/list-meetings-cli.usecase.md),
-[`watch-server`](spec/features/web-viewer/watch-server.usecase.md),
-[`install-cli`](spec/features/install/install-cli.usecase.md).
+Full CLI specs: [`spec/spec.md`](spec/spec.md) — *Partition: meeting* (list / show), *Partition: web-viewer* (watch), *Partition: install* (install).
 
 ## Configuration
 
@@ -284,7 +278,7 @@ src/
     └── veche.ts                 # human-operator CLI entrypoint
 ```
 
-Full specification: [`spec/system.md`](spec/system.md) → containers/features/use cases.
+Full specification: [`spec/spec.md`](spec/spec.md) — single monolithic spec, partitioned by feature (`## Partition: <name>`).
 
 ## Development
 

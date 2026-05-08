@@ -6,7 +6,7 @@ export interface PassClassification {
 const PASS_TOKEN = "<PASS/>";
 
 /**
- * Deterministic classifier per spec/features/committee-protocol/parse-pass-signal.usecase.md.
+ * Deterministic classifier per spec/spec.md.
  * A response counts as `pass` only when, stripped of whitespace, it equals exactly `<PASS/>`.
  */
 export const classifyResponse = (raw: string): PassClassification => {

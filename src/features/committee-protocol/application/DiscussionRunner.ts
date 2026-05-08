@@ -70,7 +70,7 @@ export class DiscussionRunner {
 
 		// `priorMessages` is the full transcript-so-far (including the facilitator's opening
 		// Message). RunRoundUseCase narrows it per Member via `participantLastSeen` + drop-own
-		// — see spec `spec/features/committee-protocol/run-round.usecase.md` step 4a.
+		// — see spec `spec/spec.md` step 4a.
 		const priorMessages: Message[] = [input.facilitatorMessage];
 
 		// Tracks the round in which each Participant most recently spoke. -1 means "has never

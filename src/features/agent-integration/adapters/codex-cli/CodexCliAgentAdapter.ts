@@ -40,7 +40,7 @@ export interface CodexCliAdapterOptions {
 }
 
 /**
- * Adapter for `codex exec`. See spec/features/agent-integration/codex-cli-adapter.usecase.md.
+ * Adapter for `codex exec`. See spec/spec.md.
  */
 export class CodexCliAgentAdapter implements AgentAdapterPort {
 	private readonly sessions = new Map<SessionId, RegistryEntry>();
@@ -108,7 +108,7 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 		// Auto-injected: the host cwd is not guaranteed to be a Git repo or a
 		// codex-trusted directory; without this flag codex aborts with
 		// "Not inside a trusted directory" before doing any work. See
-		// spec/features/agent-integration/codex-cli-adapter.usecase.md.
+		// spec/spec.md.
 		args.push("--skip-git-repo-check");
 		if (entry.model) {
 			args.push("--model", entry.model);

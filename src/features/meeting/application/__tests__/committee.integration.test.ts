@@ -206,7 +206,7 @@ describe("committee integration", () => {
 		// other member's Round 1 speech — the facilitator's opening Message is already in the
 		// member's provider session from Round 1 and must not be re-sent. The member's own
 		// Round 1 speech is also excluded. Per
-		// spec/features/committee-protocol/run-round.usecase.md step 4a.
+		// spec/spec.md step 4a.
 		const coderRound2 = t.codex.turns.find(
 			(x) => x.turn.participantId === "coder" && x.turn.roundNumber === 2,
 		);

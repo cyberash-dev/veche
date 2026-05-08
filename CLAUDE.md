@@ -17,16 +17,20 @@ context.
 
 ## Where to look
 
+The spec is now a single file: [`spec/spec.md`](spec/spec.md). It is partitioned by
+top-level headings (`## Partition: <name>`); jump to the partition that owns the area
+you're touching.
+
 | I want to… | Read this |
 |---|---|
-| Understand the system | [`spec/system.md`](spec/system.md) |
-| Find the MCP tool schema for `send_message` | [`spec/features/meeting/send-message.usecase.md`](spec/features/meeting/send-message.usecase.md) |
-| See how a round is actually executed | [`spec/features/committee-protocol/run-round.usecase.md`](spec/features/committee-protocol/run-round.usecase.md) |
-| Add a new LLM adapter | [`spec/features/agent-integration/agent-integration.md`](spec/features/agent-integration/agent-integration.md) |
-| Change the CLI output format / add a renderer | [`spec/features/meeting/show-meeting-cli.usecase.md`](spec/features/meeting/show-meeting-cli.usecase.md) |
+| Understand the system at a glance | [`spec/spec.md`](spec/spec.md) — sections 1–4 |
+| MCP tool schemas (`send_message` etc.) | [`spec/spec.md`](spec/spec.md) — *Partition: meeting* |
+| How a round is actually executed | [`spec/spec.md`](spec/spec.md) — *Partition: committee-protocol* |
+| Add a new LLM adapter | [`spec/spec.md`](spec/spec.md) — *Partition: agent-integration* |
+| Change the CLI output format / add a renderer | [`spec/spec.md`](spec/spec.md) — *Partition: meeting* (CLI behaviours) |
 | Touch `list` or `show` command logic | `src/adapters/inbound/cli/commands/{list,show}.ts` |
-| Touch the live web viewer (`veche watch`) | [`spec/features/web-viewer/watch-server.usecase.md`](spec/features/web-viewer/watch-server.usecase.md) and `src/adapters/inbound/web/*` |
-| Touch the install / setup command (`veche install`) | [`spec/features/install/install-cli.usecase.md`](spec/features/install/install-cli.usecase.md), `src/adapters/inbound/cli/commands/install.ts`, canonical skill at `skills/veche/SKILL.md` |
+| Touch the live web viewer (`veche watch`) | [`spec/spec.md`](spec/spec.md) — *Partition: web-viewer*, plus `src/adapters/inbound/web/*` |
+| Touch the install / setup command (`veche install`) | [`spec/spec.md`](spec/spec.md) — *Partition: install*, `src/adapters/inbound/cli/commands/install.ts`, canonical skill at `skills/veche/SKILL.md` |
 | Touch HTML / text / markdown / json rendering | `src/adapters/inbound/cli/renderers/*.ts` (pure functions) |
 | See the DI wiring | `src/infra/bootstrap.ts` (MCP) or `src/bin/veche.ts` (CLI) |
 | Launch an e2e against real CLIs | `src/e2e/*.e2e.test.ts` (opt-in via `VECHE_E2E=1`) |
@@ -34,7 +38,7 @@ context.
 ## Claude-Code-specific conventions
 
 - **`claude-code-cli-adapter` is sensitive to CLI flag shapes.** If you change the adapter,
-  re-read [`spec/features/agent-integration/claude-code-cli-adapter.usecase.md`](spec/features/agent-integration/claude-code-cli-adapter.usecase.md)
+  re-read the *Partition: agent-integration* section of [`spec/spec.md`](spec/spec.md)
   for the known landmines (`--session-id` vs `--resume`, `--disallowedTools=` with `=`,
   recursion guard flags).
 - **Don't set `--bare` by default.** `--bare` in the adapter breaks OAuth login for most
@@ -97,7 +101,7 @@ them by trial and error:
 - `WatchServer` runs in a **different process** from the MCP server, so it MUST NOT call
   `MeetingStorePort.watchNewEvents` (an in-process notification primitive). Cross-process
   change detection in the watch path is via 750 ms polling of `listMeetings` and
-  `readMessagesSince`. See `spec/features/web-viewer/watch-server.usecase.md` →
+  `readMessagesSince`. See [`spec/spec.md`](spec/spec.md) → *Partition: web-viewer* →
   *Cross-process change detection*.
 - The CLI hand-rolls argv parsing (no `yargs` / `commander` / `minimist`). If you think you
   need one of those, you probably don't. Same applies to the watch path — `node:http` and
