@@ -19,7 +19,7 @@ import type {
 	AgentAdapterPort,
 	OpenSessionInput,
 } from "../../ports/AgentAdapterPort.js";
-import { runSubprocess } from "../shared/SubprocessRunner.js";
+import { runSubprocess, SpawnBlockedError } from "../shared/SubprocessRunner.js";
 import which from "./which.js";
 
 interface RegistryEntry {
@@ -141,14 +141,33 @@ export class CodexCliAgentAdapter implements AgentAdapterPort {
 		args.push(turn.prompt);
 
 		const env = this.buildEnv(entry.env);
-		const outcome = await runSubprocess({
-			bin: this.bin,
-			args,
-			env,
-			...(cwd !== null ? { cwd } : {}),
-			timeoutMs: turn.timeoutMs,
-			cancellationSignal: turn.cancellationSignal,
-		});
+		let outcome: Awaited<ReturnType<typeof runSubprocess>>;
+		try {
+			outcome = await runSubprocess({
+				bin: this.bin,
+				args,
+				env,
+				...(cwd !== null ? { cwd } : {}),
+				timeoutMs: turn.timeoutMs,
+				cancellationSignal: turn.cancellationSignal,
+			});
+		} catch (err) {
+			if (err instanceof SpawnBlockedError) {
+				return this.failure(
+					{
+						code: "codex-spawn-blocked",
+						message:
+							"codex CLI refused to spawn (errno " +
+							err.errno +
+							"). This typically happens when veche is hosted by a Codex session and tries to launch a nested codex-cli participant; the host OS sandbox blocks the nested spawn. Use claude-code-cli members in this topology, or run veche from a non-Codex host.",
+						retryable: false,
+					},
+					0,
+					entry.session.providerRef,
+				);
+			}
+			throw err;
+		}
 
 		try {
 			if (outcome.cancelled) {

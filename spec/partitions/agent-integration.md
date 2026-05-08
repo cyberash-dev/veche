@@ -139,7 +139,7 @@ lifecycle:
     scope: first-time-approval
 partition_id: agent-integration
 name: veche/agent-adapter-port
-version: "0.1.0"
+version: "0.2.0"
 boundary_type: sdk
 members:
   - agent-integration:CTR-001
@@ -366,6 +366,7 @@ then: |
 negative_cases:
   - sendTurn called on closed Session       => AdapterNotAvailable with code 'codex-session-closed' or 'claude-session-closed'
   - subprocess spawn fails (ENOENT on rerun) => AdapterNotAvailable
+  - subprocess spawn fails (EPERM/EACCES — host sandbox blocks nested spawn) => failure TurnResult with error.code 'codex-spawn-blocked' or 'claude-spawn-blocked', retryable=false
 out_of_scope:
   - prompt assembly (committee-protocol:BEH-007)
   - retry loop (committee-protocol:BEH-007)
@@ -783,6 +784,16 @@ schema:
       <promptText>
     ]
   outcome_parsing: |
+    On spawn failure with errno EPERM or EACCES (OS refuses to
+    launch the binary; typically nested-Codex topology where the
+    parent Codex session blocks nested `codex exec` via OS sandbox
+    on Windows):
+      AdapterInvocationError code 'codex-spawn-blocked',
+      retryable=false. Message names the nested-Codex topology and
+      directs the operator to use claude-code-cli members or run
+      veche from a non-Codex host. Other errno values keep the
+      pre-existing classification (ENOENT after openSession ->
+      AdapterNotAvailable code 'codex-binary-not-found').
     On exit 0:
       1. read final assistant message from <tmpPath> (atomic write
          by the CLI).
@@ -808,7 +819,7 @@ postconditions:
   - tmpPath cleaned up on success (best-effort); retained 10 minutes on failure
 external_identifiers:
   - "argv strings: exec, resume, --json, -o, --skip-git-repo-check, --model, --sandbox, --cd, -c, instructions=<json>"
-  - "error code strings: codex-binary-not-found, codex-session-closed, codex-generic, codex-usage, codex-parse-empty, codex-cancelled, codex-exit-<N>, AdapterTurnTimeout"
+  - "error code strings: codex-binary-not-found, codex-session-closed, codex-generic, codex-usage, codex-parse-empty, codex-cancelled, codex-spawn-blocked, codex-exit-<N>, AdapterTurnTimeout"
 compatibility_rules:
   - removing or renaming any argv form (e.g. dropping --skip-git-repo-check) => major bump on SUR-001
   - widening exit-code -> error mapping (e.g. classifying exit 2 as retryable) => major bump
@@ -841,9 +852,11 @@ test_obligation:
     - exit 2 (usage)
     - timeout
     - cancellation
+    - spawn fails with EPERM/EACCES -> codex-spawn-blocked, retryable=false
   failure_scenarios:
     - argv string drift unbumped
     - exit 2 silently classified retryable
+    - spawn EPERM surfaced as raw codex-generic instead of codex-spawn-blocked
 ---
 ```
 
@@ -897,6 +910,14 @@ schema:
       <promptText>
     ]
   outcome_parsing: |
+    On spawn failure with errno EPERM or EACCES (OS refuses to
+    launch the binary; nested-host topology where the parent
+    session blocks nested CLI spawn via OS sandbox):
+      AdapterInvocationError code 'claude-spawn-blocked',
+      retryable=false. Message names the nested-host topology.
+      Other errno values keep the pre-existing classification
+      (ENOENT after openSession -> AdapterNotAvailable code
+      'claude-binary-not-found').
     On exit 0:
       Parse stdout as a single JSON object.
       Expect `{ type: 'result', subtype: 'success', result: <string>,
@@ -920,7 +941,7 @@ postconditions:
 external_identifiers:
   - "argv strings: -p, --output-format, json, --input-format, text, --strict-mcp-config, --mcp-config, --mcp-config-payload-empty-mcpServers-object, --permission-mode, default, --disallowedTools=<csv>, --session-id, --resume, --model, --append-system-prompt, --add-dir"
   - "default disallowedTools list members: Bash, Edit, Write, NotebookEdit"
-  - "error code strings: claude-binary-not-found, claude-parse-json, claude-parse-empty, claude-runtime, claude-session-mismatch, claude-usage, claude-sigint, claude-cancelled, claude-exit-<N>"
+  - "error code strings: claude-binary-not-found, claude-parse-json, claude-parse-empty, claude-runtime, claude-session-mismatch, claude-usage, claude-sigint, claude-cancelled, claude-spawn-blocked, claude-exit-<N>"
 compatibility_rules:
   - removing the Recursion Guard pair (`--strict-mcp-config`, `--mcp-config '{"mcpServers":{}}'`) => major bump on SUR-001 + critical-security review
   - dropping the `=` form on --disallowedTools => major bump (CLI breaks with variadic parsing)
@@ -928,6 +949,7 @@ compatibility_rules:
   - widening default disallowedTools list (e.g. adding 'Read') => minor bump
   - tightening default disallowedTools list (removing an entry) => major bump
   - adding a new allow-listed extraFlag => minor bump
+  - adding a new error code value => minor bump
 applicability:
   invariant_to_all_axes: true
 concurrency_model:
@@ -954,10 +976,12 @@ test_obligation:
     - exit 0 with subtype=error_during_execution -> claude-runtime
     - exit 2 (usage)
     - exit 130 (sigint)
+    - spawn fails with EPERM/EACCES -> claude-spawn-blocked, retryable=false
   failure_scenarios:
     - Recursion Guard missing
     - --disallowedTools without `=`
     - claude-runtime classified as non-retryable
+    - spawn EPERM surfaced as raw claude-exit-<N> instead of claude-spawn-blocked
 ---
 ```
 

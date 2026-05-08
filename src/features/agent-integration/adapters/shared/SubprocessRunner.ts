@@ -1,5 +1,30 @@
 import { type ChildProcess, spawn } from "node:child_process";
 
+/**
+ * Raised when the OS refuses to launch the binary with EPERM/EACCES.
+ * Adapters classify this as `*-spawn-blocked` (retryable=false) — typically
+ * surfaces when veche runs under a host sandbox that blocks nested CLI spawns
+ * (Codex CLI on Windows is the known case; see issue #3).
+ */
+export class SpawnBlockedError extends Error {
+	readonly errno: string;
+
+	constructor(errno: string, cause: Error) {
+		super(`spawn blocked by OS (errno ${errno}): ${cause.message}`);
+		this.name = "SpawnBlockedError";
+		this.errno = errno;
+		this.cause = cause;
+	}
+}
+
+const isSpawnBlocked = (err: unknown): err is NodeJS.ErrnoException => {
+	if (!(err instanceof Error)) {
+		return false;
+	}
+	const code = (err as NodeJS.ErrnoException).code;
+	return code === "EPERM" || code === "EACCES";
+};
+
 export interface SpawnOptions {
 	readonly bin: string;
 	readonly args: readonly string[];
@@ -33,7 +58,11 @@ export const runSubprocess = async (opts: SpawnOptions): Promise<SpawnOutcome> =
 				stdio: ["ignore", "pipe", "pipe"],
 			});
 		} catch (err) {
-			reject(err);
+			if (isSpawnBlocked(err)) {
+				reject(new SpawnBlockedError(err.code as string, err));
+			} else {
+				reject(err);
+			}
 			return;
 		}
 
@@ -95,7 +124,11 @@ export const runSubprocess = async (opts: SpawnOptions): Promise<SpawnOutcome> =
 			if (stderrBuffer && opts.onStderrLine) {
 				opts.onStderrLine(stderrBuffer);
 			}
-			reject(err);
+			if (isSpawnBlocked(err)) {
+				reject(new SpawnBlockedError((err as NodeJS.ErrnoException).code as string, err));
+			} else {
+				reject(err);
+			}
 		});
 		child.on("close", (code, signal) => {
 			clearTimeout(timeoutTimer);
