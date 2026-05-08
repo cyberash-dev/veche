@@ -1,3 +1,11 @@
+// @covers committee-protocol:BEH-001 @covers committee-protocol:BEH-002
+// @covers committee-protocol:BEH-003 @covers committee-protocol:BEH-004
+// @covers committee-protocol:BEH-005 @covers committee-protocol:CTR-001
+// @covers committee-protocol:CTR-002 @covers committee-protocol:INV-001
+// @covers committee-protocol:INV-002 @covers committee-protocol:INV-003
+// @covers committee-protocol:INV-004 @covers committee-protocol:INV-005
+// @covers committee-protocol:INV-006 @covers committee-protocol:POL-001
+// @covers committee-protocol:CST-001
 import { describe, expect, it } from "vitest";
 import { ParsePassSignalUseCase } from "./ParsePassSignalUseCase.js";
 

@@ -1,3 +1,15 @@
+// @covers agent-integration:BEH-001 @covers agent-integration:BEH-002
+// @covers agent-integration:BEH-003 @covers agent-integration:BEH-004
+// @covers agent-integration:BEH-005 @covers agent-integration:BEH-006
+// @covers agent-integration:BEH-007 @covers agent-integration:BEH-008
+// @covers agent-integration:CTR-001 @covers agent-integration:CTR-002
+// @covers agent-integration:CTR-003 @covers agent-integration:CTR-004
+// @covers agent-integration:INV-001 @covers agent-integration:INV-002
+// @covers agent-integration:INV-003 @covers agent-integration:INV-004
+// @covers agent-integration:INV-005 @covers agent-integration:EXT-001
+// @covers agent-integration:EXT-002 @covers agent-integration:POL-001
+// @covers agent-integration:POL-002 @covers agent-integration:CST-001
+// @covers agent-integration:CST-002
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { CodexCliAgentAdapter } from "../features/agent-integration/adapters/codex-cli/CodexCliAgentAdapter.js";

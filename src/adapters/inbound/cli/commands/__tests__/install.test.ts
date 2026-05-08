@@ -1,3 +1,8 @@
+// @covers install:BEH-001 @covers install:BEH-002 @covers install:BEH-003
+// @covers install:BEH-004 @covers install:CTR-001 @covers install:CTR-002
+// @covers install:CTR-003 @covers install:INV-001 @covers install:INV-002
+// @covers install:INV-003 @covers install:INV-004 @covers install:POL-001
+// @covers install:POL-002 @covers install:CST-001
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";

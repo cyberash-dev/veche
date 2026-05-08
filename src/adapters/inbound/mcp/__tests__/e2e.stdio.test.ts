@@ -1,3 +1,12 @@
+// @covers meeting:BEH-001 @covers meeting:BEH-002 @covers meeting:BEH-003
+// @covers meeting:BEH-004 @covers meeting:BEH-005 @covers meeting:BEH-006
+// @covers meeting:BEH-007 @covers meeting:BEH-008 @covers meeting:BEH-009
+// @covers meeting:BEH-010 @covers meeting:BEH-011 @covers meeting:BEH-012
+// @covers meeting:CTR-001 @covers meeting:CTR-002 @covers meeting:CTR-003
+// @covers meeting:CTR-004 @covers meeting:CTR-005 @covers meeting:INV-001
+// @covers meeting:INV-002 @covers meeting:INV-003 @covers meeting:INV-004
+// @covers meeting:INV-005 @covers meeting:INV-006 @covers meeting:POL-001
+// @covers meeting:POL-002 @covers meeting:POL-003 @covers meeting:CST-001
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

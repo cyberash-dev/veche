@@ -1,3 +1,9 @@
+// @covers web-viewer:BEH-001 @covers web-viewer:BEH-002 @covers web-viewer:BEH-003
+// @covers web-viewer:BEH-004 @covers web-viewer:BEH-005 @covers web-viewer:BEH-006
+// @covers web-viewer:BEH-007 @covers web-viewer:CTR-001 @covers web-viewer:CTR-002
+// @covers web-viewer:CTR-003 @covers web-viewer:CTR-004 @covers web-viewer:INV-001
+// @covers web-viewer:INV-002 @covers web-viewer:INV-003 @covers web-viewer:INV-004
+// @covers web-viewer:POL-001 @covers web-viewer:POL-002 @covers web-viewer:CST-001
 import { request as httpRequest } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SilentLogger } from "../../../../test-utils/SilentLogger.js";
