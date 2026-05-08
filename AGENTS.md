@@ -5,8 +5,8 @@ This file is the single source of truth; `CLAUDE.md` points here.
 
 ## The non-negotiable rule
 
-**Spec-Driven Development.** The specification in `spec/` is the contract. Code that diverges
-from the spec is a bug.
+**Spec-Driven Development.** The specification in [`spec/spec.md`](spec/spec.md) is the contract.
+Code that diverges from the spec is a bug.
 
 The workflow for any non-trivial change is:
 
@@ -22,28 +22,31 @@ change the spec first.
 
 ```
 veche/
-├── spec/                  ← authoritative contract (C4-inspired 4 levels)
-│   ├── system.md          L1 — system overview, key decisions
-│   ├── glossary.md        domain terms (every term used anywhere else must be here)
-│   ├── c4-model.md        mermaid C4 diagrams (Context/Container/Component)
-│   ├── containers/
-│   │   └── veche-server.md   L2 — stack, conventions, env vars, tool catalog
-│   └── features/
-│       ├── meeting/       7 MCP tools + 2 CLI commands (list, show)
-│       ├── committee-protocol/   round algorithm, pass, terminate, drop
-│       ├── agent-integration/    AgentAdapterPort + Codex CLI + Claude Code CLI
-│       └── persistence/          MeetingStorePort + in-memory + file
-├── src/                   ← implementation (mirrors spec/)
+├── spec/
+│   └── spec.md            ← single monolithic contract; sections 1–19 +
+│                            `## Partition: <name>` per feature
+│                            (persistence, agent-integration,
+│                            committee-protocol, meeting, web-viewer, install)
+├── src/                   ← implementation, hexagonal + vertical slices
+│   ├── features/<slice>/  ← one folder per Partition
 │   ├── adapters/inbound/mcp/     ← MCP server (stdio)
-│   ├── adapters/inbound/cli/     ← human-operator CLI (list, show) + renderers
+│   ├── adapters/inbound/cli/     ← human-operator CLI (list, show, watch, install)
+│   │                               + renderers + lib helpers
+│   ├── adapters/inbound/web/     ← `veche watch` HTTP/SSE server
+│   ├── infra/             ← composition root (DI wiring)
 │   ├── bin/veche-server.ts  ← stdio MCP entrypoint
 │   └── bin/veche.ts         ← CLI entrypoint
+├── skills/veche/          ← canonical SKILL.md + optional UI metadata
 ├── examples/              ← sample .mcp.json, config.json
-├── dist/                  ← build output (committed in CI, not locally)
+├── scripts/               ← repo helpers (e.g. sdd-approve-all.sh)
+├── .sdd/                  ← SDD config + finalised approval plans
+├── dist/                  ← build output (not committed locally)
 └── node_modules/
 ```
 
-Navigation: from `system.md` any use case is reachable in ≤ 3 file reads.
+Navigation: jump straight to `## Partition: <name>` in `spec/spec.md` for the
+slice you're touching. Sections 1–19 cover cross-cutting concerns (Surfaces,
+Invariants, Policies, Constraints, Migrations, Open questions, Assumptions).
 
 ## Architecture
 
