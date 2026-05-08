@@ -9,7 +9,7 @@ Project-level guidance for Claude Code sessions on this repository.
 
 ## Tools to prefer in this repo
 
-The spec is large (~10k lines in `spec/spec.md`) and the source tree is
+The spec is large (~10k lines, sharded across `spec/partitions/*.md`) and the source tree is
 hexagonal with deep slices. Lean on semantic navigation rather than `Read`:
 
 - `mcp__code-skeleton__get_outline` — file outline before reading.

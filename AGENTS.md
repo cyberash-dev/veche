@@ -44,9 +44,11 @@ veche/
 └── node_modules/
 ```
 
-Navigation: jump straight to `## Partition: <name>` in `spec/spec.md` for the
-slice you're touching. Sections 1–19 cover cross-cutting concerns (Surfaces,
-Invariants, Policies, Constraints, Migrations, Open questions, Assumptions).
+Navigation: open `spec/partitions/<name>.md` for the slice you're touching.
+Each partition file is self-contained (Context, Glossary, Surfaces,
+Behaviours, Contracts, Invariants, Policies, Constraints, Migrations,
+Deltas, Open questions, Assumptions, Out-of-scope). The thin
+[`spec/spec.md`](spec/spec.md) is just an index.
 
 ## Architecture
 
@@ -60,7 +62,7 @@ Invariants, Policies, Constraints, Migrations, Open questions, Assumptions).
 - Adapters implement a port. They never import another adapter.
 - `infra/` is the composition root; it may import anything.
 
-Dependency table lives in [`spec/spec.md`](spec/spec.md) (the monolithic spec, partitioned by feature).
+Dependency table lives in [`spec/partitions/`](spec/partitions/) — one file per feature; the [`spec/spec.md`](spec/spec.md) index lists them.
 
 ## Naming conventions
 
@@ -147,7 +149,7 @@ The `veche` CLI is a second inbound adapter (alongside MCP) that reads the event
 - **Exit codes are part of the contract.** `0` success · `1` unhandled · `2` store or
   filesystem error · `3` meeting not found · `64` usage error. `cli.integration.test.ts`
   exercises each. If you add a failure mode, pick one of these and document it in
-  [`spec/spec.md`](spec/spec.md) → *Partition: meeting* (CLI behaviours) *first*.
+  [`spec/partitions/meeting.md`](spec/partitions/meeting.md) (CLI behaviours) *first*.
 
 ## WatchServer invariants (`src/adapters/inbound/web/`)
 
@@ -200,7 +202,7 @@ invariants intact:
   host CLI.
 - **Bounded subprocess surface.** The install command spawns ONLY `claude` and `codex`
   (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH), and only with the argv
-  shapes documented in [`spec/spec.md`](spec/spec.md) → *Partition: install* (Behaviours / Contracts).
+  shapes documented in [`spec/partitions/install.md`](spec/partitions/install.md) (Behaviours / Contracts).
   Reviewers must reject a PR that introduces any other binary spawn from this command.
 - **Idempotent.** Re-running with the same flags reaches the same end state. Claude Code's
   `mcp add` is not idempotent — the install command probes via `mcp list`, removes the
@@ -218,7 +220,7 @@ invariants intact:
 
 Every `claude -p` invocation from the adapter MUST include
 `--strict-mcp-config --mcp-config '{"mcpServers":{}}'`. This is a load-bearing invariant
-documented in [`spec/spec.md`](spec/spec.md) → *Partition: agent-integration*. If you
+documented in [`spec/partitions/agent-integration.md`](spec/partitions/agent-integration.md). If you
 refactor the adapter, preserve these flags and add a test asserting they appear in the argv.
 
 Rationale: a Claude Code orchestrator can spawn a Claude Code member; without the guard, the
@@ -245,7 +247,7 @@ prompt. Always pass it as `--disallowedTools=<csv>` (single argv token with `=`)
 
 ## How to extend with a new adapter
 
-Walkthrough lives in [`spec/spec.md`](spec/spec.md) → *Partition: agent-integration*. Short version:
+Walkthrough lives in [`spec/partitions/agent-integration.md`](spec/partitions/agent-integration.md). Short version:
 
 1. Add the new `AdapterKind` literal to
    `src/features/meeting/domain/Participant.ts` and re-check every union switch the compiler
@@ -255,8 +257,9 @@ Walkthrough lives in [`spec/spec.md`](spec/spec.md) → *Partition: agent-integr
 3. Add it to the registry in `src/infra/bootstrap.ts`.
 4. Add a `capabilities()` entry + allow-listed `extraFlags` in `ProfileResolver`.
 5. Write an opt-in e2e test under `src/e2e/<new>.e2e.test.ts` gated on `VECHE_E2E`.
-6. Update *Partition: agent-integration* in [`spec/spec.md`](spec/spec.md) — add the new
-   adapter's CTR/BEH/INV records alongside the existing codex/claude-code entries.
+6. Update [`spec/partitions/agent-integration.md`](spec/partitions/agent-integration.md)
+   — add the new adapter's CTR/BEH/INV records alongside the existing
+   codex/claude-code entries.
 
 ## Memory
 

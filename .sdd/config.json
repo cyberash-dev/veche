@@ -1,24 +1,31 @@
 {
   "$schema": "https://github.com/cyberash-dev/sdd-cli/blob/main/schema/sdd.config.schema.json",
-  "spec_file": "spec/spec.md",
+  "spec_file": "spec/partitions/persistence.md",
   "baseline_id": "persistence:BL-001",
   "discovery_scope": [
     "src/features/persistence"
   ],
   "mechanism": "git_tree_hash_v1",
   "lint": {
-    "spec_files": ["spec/spec.md"]
+    "spec_files": [
+      "spec/spec.md",
+      "spec/partitions/*.md"
+    ]
   },
   "partitions": {
     "persistence": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/persistence.md"
+      ],
       "test_paths": [
         "src/features/persistence/**/*.test.ts"
       ],
       "sandbox_paths": []
     },
     "agent-integration": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/agent-integration.md"
+      ],
       "test_paths": [
         "src/features/agent-integration/**/*.test.ts",
         "src/features/meeting/application/__tests__/committee.integration.test.ts",
@@ -29,7 +36,9 @@
       "sandbox_paths": []
     },
     "committee-protocol": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/committee-protocol.md"
+      ],
       "test_paths": [
         "src/features/committee-protocol/**/*.test.ts",
         "src/features/meeting/application/__tests__/committee.integration.test.ts"
@@ -37,7 +46,9 @@
       "sandbox_paths": []
     },
     "meeting": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/meeting.md"
+      ],
       "test_paths": [
         "src/features/meeting/**/*.test.ts",
         "src/adapters/inbound/mcp/__tests__/**/*.test.ts",
@@ -46,14 +57,18 @@
       "sandbox_paths": []
     },
     "web-viewer": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/web-viewer.md"
+      ],
       "test_paths": [
         "src/adapters/inbound/web/__tests__/**/*.test.ts"
       ],
       "sandbox_paths": []
     },
     "install": {
-      "spec_paths": ["spec/spec.md"],
+      "spec_paths": [
+        "spec/partitions/install.md"
+      ],
       "test_paths": [
         "src/adapters/inbound/cli/commands/__tests__/install.test.ts"
       ],
