@@ -40,7 +40,18 @@ partitions.
   kind: 'speech' | 'pass' | 'failure', text?, error? }`.
 - **`PASS_PROTOCOL_SUFFIX`** — Literal block appended to every
   Member's first-Turn system prompt (defined here, used by
-  agent-integration:BEH-007).
+  agent-integration:BEH-007). The exact wording lives in code
+  (`src/features/committee-protocol/domain/PassSignal.ts`); rewriting
+  the wording is non-normative as long as the block continues to
+  instruct the Member that the only termination signal is a reply
+  consisting solely of the literal token `<PASS/>`.
+- **`PASS_PROTOCOL_REMINDER`** — Single-line literal that
+  `DispatchTurnUseCase` prepends to every per-Turn prompt (Turn 1
+  inclusive), placed immediately after the `[meeting-round=…]`
+  header block and before transcriptPrefix. Reinforces the
+  termination protocol on every Round so the instruction does not
+  decay across resumed CLI sessions. Defined here, materialised
+  in `src/features/committee-protocol/domain/PassSignal.ts`.
 - **`MAX_ATTEMPTS_PER_TURN`** — Global constant `3`; the dispatcher
   attempts at most this many subprocess calls per Member per Round.
 - **`VECHE_CANCEL_TIMEOUT_MS`** — Constant `30_000`; how long
@@ -184,6 +195,11 @@ then: |
        Member with `round >= lastRound[member]` (where lastRound[member] is the most recent round in which the
        Member spoke, or -1 before the first Turn). On Round 1 this is exactly the facilitator's Round 0 Message.
        Each Participant-authored prompt block includes the author's Discussion Role name and weight.
+    4a. assembles the per-Turn prompt as
+       `[meeting-round=R self=… selfDiscussionRole=… selfWeight=…]\n\n<PASS_PROTOCOL_REMINDER>\n\n<transcriptPrefix blocks…>`.
+       PASS_PROTOCOL_REMINDER is prepended on every Round (including Round 1)
+       so the termination instruction stays visible after the underlying CLI
+       session is resumed and the original system prompt has decayed in context.
     5. dispatches all Member Turns in parallel via `Promise.allSettled` over DispatchTurnUseCase.
     6. checks cancellationSignal.aborted; if set, sets state.terminationReason='cancelled' and stops persisting
        further events for this Round (the Round-completed marker is NOT appended on cancellation).
@@ -237,10 +253,12 @@ test_obligation:
     - one fatal failure (drops Member)
     - cancellation between dispatch and persist
     - empty active set (no-active-members termination)
+    - per-Turn prompt contains PASS_PROTOCOL_REMINDER on Round 1 and on every subsequent Round
   failure_scenarios:
     - non-deterministic append order across runs
     - round.completed missing after partial failure
     - second run-round increments roundNumber twice
+    - PASS_PROTOCOL_REMINDER missing from per-Turn prompt on any Round
 ---
 ```
 

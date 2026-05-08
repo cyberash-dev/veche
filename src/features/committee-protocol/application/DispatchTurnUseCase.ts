@@ -10,7 +10,11 @@ import type {
 } from "../../agent-integration/domain/Turn.js";
 import type { AgentAdapterPort } from "../../agent-integration/ports/AgentAdapterPort.js";
 import type { Participant } from "../../meeting/domain/Participant.js";
-import { classifyResponse, PASS_PROTOCOL_SUFFIX } from "../domain/PassSignal.js";
+import {
+	classifyResponse,
+	PASS_PROTOCOL_REMINDER,
+	PASS_PROTOCOL_SUFFIX,
+} from "../domain/PassSignal.js";
 
 export interface DispatchTurnInput {
 	readonly session: Session;
@@ -130,6 +134,7 @@ export class DispatchTurnUseCase {
 		blocks.push(
 			`[meeting-round=${input.roundNumber} self=${input.participant.id} selfDiscussionRole=${input.participant.discussionRole.name} selfWeight=${input.participant.discussionRole.weight}]`,
 		);
+		blocks.push(PASS_PROTOCOL_REMINDER);
 		for (const m of input.transcriptPrefix) {
 			const kind = m.kind ?? "speech";
 			const discussionRole = m.authorDiscussionRole;
@@ -158,8 +163,8 @@ export class DispatchTurnUseCase {
 			`Role weight: ${participant.discussionRole.weight}. Use weights as influence priors; do not ignore lower-weight arguments.`,
 		].join("\n");
 		return base.length > 0
-			? `${base}\n\n${roleBlock}\n\n${PASS_PROTOCOL_SUFFIX}`
-			: `${roleBlock}\n\n${PASS_PROTOCOL_SUFFIX}`;
+			? `${PASS_PROTOCOL_SUFFIX}\n\n${roleBlock}\n\n${base}`
+			: `${PASS_PROTOCOL_SUFFIX}\n\n${roleBlock}`;
 	}
 
 	private failureResult(error: TurnError): TurnResult {

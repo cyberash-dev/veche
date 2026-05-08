@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-05-09
+
+### Changed
+
+- **PASS protocol stays visible across rounds.** `DispatchTurnUseCase` now
+  prepends a single-line `PASS_PROTOCOL_REMINDER` to every per-Turn prompt
+  (Round 1 inclusive, every resumed CLI session afterwards), so the
+  termination instruction does not decay out of context after the
+  underlying `claude --resume` / `codex exec resume` continuations. The
+  first-turn `PASS_PROTOCOL_SUFFIX` is rewritten as a tighter, imperative
+  block and now leads the system prompt instead of trailing it. Spec
+  updates: `committee-protocol:BEH-001` step 4a + new
+  `PASS_PROTOCOL_REMINDER` glossary term.
+
+### Fixed
+
+- **Fatal nested-spawn errors no longer burn the retry budget.** Host
+  sandboxes (e.g. macOS Seatbelt) can refuse to spawn a child process
+  with EPERM/EACCES after the adapter validated the binary at config
+  time. The Codex and Claude adapters now classify those as a typed
+  failure (`codex-spawn-blocked` / `claude-spawn-blocked`,
+  `retryable=false`), so `DispatchTurnUseCase` short-circuits instead of
+  retrying the same unrecoverable error three times per Round.
+
 ## [0.2.0] — 2026-05-02
 
 ### Added
