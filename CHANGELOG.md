@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-05-09
+
+### Changed
+
+- **`/veche` skill catches up with the 0.3.0 surface.** The Claude Code
+  skill now drives the Human Participant flow (`--human` / `--no-human`,
+  member with `participantKind: "human"`, `submit_human_turn` inside the
+  polling loop, optional `set_human_participation` to silence further
+  pauses), per-launch role overrides (`--custom-roles` /
+  `--default-roles` — `discussionRole` and `systemPrompt` only, no
+  writeback to `~/.veche/config.json`), persists the synthesis via
+  `submit_synthesis` after job termination, surfaces
+  `claude-spawn-blocked` / `codex-spawn-blocked` as a non-retryable
+  failure mode, and reserves the participant id `human` against
+  collisions in the config.
+
 ## [0.3.0] — 2026-05-09
 
 ### Changed
