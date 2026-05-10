@@ -7,10 +7,10 @@
 ### Context (install)
 
 The `install` partition wires the `veche` MCP server and its
-companion skill into Claude Code and Codex hosts, and seeds a
-default `${VECHE_HOME}/config.json` so the operator has a working
-Profile starting point. It is a deployment helper — read-only
-against any meeting data.
+companion skill into Claude Code, Codex, and Hermes Agent hosts,
+and seeds a default `${VECHE_HOME}/config.json` so the operator
+has a working Profile starting point. It is a deployment helper
+— read-only against any meeting data.
 
 Boundaries:
 
@@ -18,8 +18,9 @@ Boundaries:
 - It MAY write under `${VECHE_HOME}` exactly one file
   (`config.json`) and only when absent or `--force` is supplied.
 - Host MCP-server registration goes through the host's own CLI
-  (`claude mcp …`, `codex mcp …`); this partition NEVER edits
-  `~/.claude.json` or `~/.codex/config.toml` directly.
+  (`claude mcp …`, `codex mcp …`, `hermes mcp …`); this partition
+  NEVER edits `~/.claude.json`, `~/.codex/config.toml`, or
+  `~/.hermes/config.yaml` directly.
 
 ### Glossary (install)
 
@@ -27,9 +28,9 @@ Boundaries:
   `<package-root>/skills/<mcp-name>/SKILL.md`; copied byte-
   identically to `<host-skills-root>/<mcp-name>/SKILL.md` per
   requested host.
-- **Host CLI** — `claude` (Claude Code) or `codex` (Codex). The
-  install command spawns ONLY these two binaries and the
-  `--version` probe.
+- **Host CLI** — `claude` (Claude Code), `codex` (Codex), or
+  `hermes` (Hermes Agent). The install command spawns ONLY these
+  three binaries and the `--version` probe.
 - **`mcp-name`** — The MCP server name registered with each host
   AND the directory name under `<host-skills-root>/`. Default
   `veche`. Pattern `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`.
@@ -44,7 +45,10 @@ Boundaries:
   `<package-root>/examples/config.json.example`. Skipped under
   `--skip-config`. Preserves an existing file unless `--force`.
 - **HostTarget** — Per-host record `{ host, skillsRoot, cli,
-  argvAdd, argvList?, argvRemove? }`. Built from `--for`.
+  argvAdd, argvList?, argvRemove? }`. Built from `--for`. `host`
+  ∈ {`claude-code`, `codex`, `hermes`}. `argvList` and
+  `argvRemove` are present only on `claude-code`; `codex` and
+  `hermes` rely on native overwriting `mcp add`.
 
 ### Partition record (install)
 
@@ -131,7 +135,7 @@ lifecycle:
     scope: first-time-approval
 partition_id: install
 name: veche/install-cli
-version: "0.3.0"
+version: "0.4.0"
 boundary_type: cli
 members:
   - install:CTR-001
@@ -144,12 +148,17 @@ notes: |
   minor bump. The host-CLI argv templates (CTR-002) are part of
   this Surface — operators script around them.
 
-  0.3.0 adds the host-CLI binary resolution rule (PATHEXT-aware on
+  0.3.0 added the host-CLI binary resolution rule (PATHEXT-aware on
   Windows) and the `cmd.exe /d /s /c` wrapper-launch form for
   resolved `.cmd`/`.bat` host CLIs (npm shim shape on Windows).
   Operators get a usable Windows install flow without an explicit
   `CLAUDE_BIN`/`CODEX_BIN` override; the argv templates over the
   wire are unchanged.
+
+  0.4.0 extends `--for` with the `hermes` value, registering Veche
+  inside Hermes Agent (`~/.hermes/config.yaml` via `hermes mcp add`).
+  Default `--for=both` semantics stay `{claude-code, codex}` for
+  backwards compatibility; Hermes must be opted into explicitly.
 ---
 ```
 
@@ -205,7 +214,8 @@ when: caller invokes `runInstall(cmd, deps)`
 then: |
   1. validate flags per CTR-001 (mutually-exclusive --skills-only
      /--mcp-only; --mcp-name regex; --server-bin absolute and
-     existing; --for in {claude-code, codex, both} default both).
+     existing; --for in {claude-code, codex, hermes, both} default
+     both).
   2. resolve canonical sources:
      - skill: <package-root>/skills/<mcp-name>/SKILL.md (exit 2
        on miss)
@@ -219,7 +229,9 @@ then: |
   3. run config bootstrap (BEH-002) — host-agnostic; runs once
      per invocation.
   4. expand `--for` into a HostTarget list (declaration order:
-     claude-code first, codex second on `both`).
+     claude-code first, codex second on `both`; `hermes` is only
+     selected when explicitly passed — it is NOT a member of
+     `both` in v0.4).
   5. for each target, in declaration order, do BEH-003 (skill
      write) followed by BEH-004 (MCP register), each individually
      skippable via `--mcp-only` / `--skills-only`. Log
@@ -269,6 +281,7 @@ test_obligation:
     - default --for=both happy path
     - --for=claude-code only
     - --for=codex only
+    - --for=hermes only
     - --skills-only
     - --mcp-only
     - --dry-run
@@ -381,8 +394,9 @@ given: |
 when: install runs the skill-write step for one HostTarget
 then: |
   1. compute path = `<skillsRoot>/<mcp-name>/SKILL.md` where
-     skillsRoot is `${HOME}/.claude/skills` for claude-code or
-     `${HOME}/.codex/skills` for codex.
+     skillsRoot is `${HOME}/.claude/skills` for claude-code,
+     `${HOME}/.codex/skills` for codex, or `${HOME}/.hermes/skills`
+     for hermes.
   2. compute optional metadata path =
      `<skillsRoot>/<mcp-name>/agents/openai.yaml` when the package
      contains the canonical metadata source.
@@ -445,7 +459,7 @@ lifecycle:
     change_request: update old behavior
     scope: first-time-approval
 partition_id: install
-title: "MCP register: claude-code probes-then-removes-then-adds; codex single-add (overwrites)"
+title: "MCP register: claude-code probes-then-removes-then-adds; codex and hermes single-add (overwrite)"
 given: |
   - target host is selected
   - --skills-only is absent
@@ -471,6 +485,19 @@ then: |
        Codex `mcp add` overwrites natively, so no probe is needed.
        Non-zero exit -> exit 2.
     2. log lines as above.
+  Hermes path:
+    1. spawn
+       `<hermes> mcp add <mcp-name> --command node --args <server-bin>`.
+       Hermes `mcp add` rewrites the `mcp_servers.<mcp-name>`
+       entry in `~/.hermes/config.yaml` natively, so no probe
+       is needed. Non-zero exit -> exit 2.
+    2. The `VECHE_LOG_LEVEL=info` env hint is NOT forwarded on
+       this path: Hermes' `mcp add` argv does not have a
+       documented env flag, and the install partition's
+       inviolable rule is to delegate to the host CLI rather than
+       editing `~/.hermes/config.yaml` directly. Operators that
+       need a non-default log level edit the YAML manually.
+    3. log lines as above (`[hermes] …`).
   Probe step (BEFORE step 1 of either path):
     - resolve the host CLI per CTR-002 `binary_resolution` (env
       override or PATH; PATHEXT honoured on win32).
@@ -508,22 +535,24 @@ test_obligation:
   predicate: |
     install.test.ts exercises (a) the probe-list-remove-add
     sequence on Claude Code with an existing entry, (b) the
-    single-add path on Codex, (c) the missing-CLI path with and
-    without --force, (d) the non-zero-exit path on each host CLI.
-    Captured argv match the documented templates; no user input
-    leaks into the spawned argv unquoted.
+    single-add path on Codex, (c) the single-add path on Hermes,
+    (d) the missing-CLI path with and without --force, (e) the
+    non-zero-exit path on each host CLI. Captured argv match the
+    documented templates; no user input leaks into the spawned
+    argv unquoted.
   test_template: integration
   boundary_classes:
     - claude-code with no prior entry
     - claude-code with prior entry (probe -> remove -> add)
     - codex single-add
+    - hermes single-add
     - --dry-run (probe + register skipped)
     - host CLI missing without --force
     - host CLI missing with --force
     - non-zero exit on remove (not "not found")
   failure_scenarios:
     - argv shape drift unbumped
-    - direct edit of ~/.claude.json or ~/.codex/config.toml
+    - direct edit of ~/.claude.json, ~/.codex/config.toml, or ~/.hermes/config.yaml
     - mcp-name interpolated unquoted into argv
 ---
 ```
@@ -551,7 +580,7 @@ schema:
     semantics.
   argv: |
     veche install
-      [--for claude-code|codex|both]            (default both)
+      [--for claude-code|codex|hermes|both]     (default both; `both`=claude+codex, hermes opt-in only)
       [--mcp-name <name>]                       (default 'veche'; ^[a-zA-Z][a-zA-Z0-9_-]{0,63}$)
       [--server-bin <abs-path>]                 (default <package-root>/dist/bin/veche-server.js)
       [--skills-only]                           (mutually exclusive with --mcp-only)
@@ -572,6 +601,7 @@ external_identifiers:
   - "command name: install"
   - flag names listed in argv
   - "default values: both, veche, VECHE_LOG_LEVEL=info"
+  - "--for enum: claude-code, codex, hermes, both"
   - "exit code integers: 0, 1, 2, 64"
 compatibility_rules:
   - renaming a flag                                => major bump on SUR-001
@@ -599,6 +629,7 @@ test_obligation:
     - default flags
     - --for=claude-code
     - --for=codex
+    - --for=hermes
     - --skills-only
     - --mcp-only
     - --dry-run
@@ -623,7 +654,7 @@ lifecycle:
     change_request: update old behavior
     scope: first-time-approval
 partition_id: install
-title: host-CLI argv templates (`claude mcp …`, `codex mcp …`)
+title: host-CLI argv templates (`claude mcp …`, `codex mcp …`, `hermes mcp …`)
 surface_ref: install:SUR-001
 schema:
   description: |
@@ -638,9 +669,13 @@ schema:
   codex: |
     probe   : codex --version
     add     : codex mcp add <mcp-name> --env VECHE_LOG_LEVEL=info -- node <server-bin>
+  hermes: |
+    probe   : hermes --version
+    add     : hermes mcp add <mcp-name> --command node --args <server-bin>
   binary_resolution: |
     claude binary: env CLAUDE_BIN || PATH('claude')
     codex  binary: env CODEX_BIN  || PATH('codex')
+    hermes binary: env HERMES_BIN || PATH('hermes')
     On Windows (process.platform === 'win32') the resolver MUST
     honour PATHEXT (e.g. .CMD, .BAT, .EXE) when the env override
     is a bare command name; it MUST also accept an absolute path
@@ -660,9 +695,9 @@ schema:
     platforms; only the launch primitive differs.
   forbidden: |
     install MUST NOT spawn any binary outside { <claude>, <codex>,
-    <opener> for show --open path which is owned by the meeting
-    partition }. install never spawns an opener. The single
-    permitted use of `cmd.exe` is the wrapper-launch form
+    <hermes>, <opener> for show --open path which is owned by the
+    meeting partition }. install never spawns an opener. The
+    single permitted use of `cmd.exe` is the wrapper-launch form
     described in `windows_wrapper_launch`; `cmd.exe /c <free-form>`
     or any shell-prefixed string is forbidden.
   argv_construction_rules: |
@@ -677,14 +712,15 @@ schema:
       + per-argument-quoted args); no free-form shell string is
       ever constructed.
 external_identifiers:
-  - "argv literals: mcp, list, add, remove, --scope, user, -e, --env, --, node"
+  - "argv literals: mcp, list, add, remove, --scope, user, -e, --env, --command, --args, --, node"
   - "env literal: VECHE_LOG_LEVEL=info"
-  - "host-binary discovery env vars: CLAUDE_BIN, CODEX_BIN"
+  - "host-binary discovery env vars: CLAUDE_BIN, CODEX_BIN, HERMES_BIN"
 compatibility_rules:
   - renaming a literal in the argv (e.g. dropping `--`)         => major bump on SUR-001
   - changing the env-pass form (-e vs --env across hosts)       => major bump
-  - widening allowed binaries beyond { claude, codex }          => major bump (security regression)
-  - changing VECHE_LOG_LEVEL default                            => major bump (operator scripts may grep logs)
+  - widening allowed binaries beyond { claude, codex, hermes }  => major bump (security regression)
+  - changing VECHE_LOG_LEVEL default                            => major bump (operator scripts grep logs)
+  - adding a new host with its own argv template                => minor bump (this is how 0.4.0 introduced hermes)
 applicability:
   invariant_to_all_axes: true
 concurrency_model:
@@ -706,6 +742,7 @@ test_obligation:
   boundary_classes:
     - claude-code happy
     - codex happy
+    - hermes happy
     - probe argv
   failure_scenarios:
     - shell interpolation introduced
@@ -865,18 +902,18 @@ lifecycle:
 partition_id: install
 title: only allow-listed binaries are spawned with fixed argv shapes
 always: |
-  install spawns ONLY `<claude>` and `<codex>` (resolved via
-  CLAUDE_BIN / CODEX_BIN env or PATH; PATHEXT honoured on
-  win32). The single permitted use of `cmd.exe` is the
-  Windows wrapper-launch form `cmd.exe /d /s /c <resolved-bin>
-  <args...>` defined in CTR-002 (`windows_wrapper_launch`),
-  used only when the resolved host CLI is a `.cmd`/`.bat`
-  wrapper on win32. install NEVER spawns `bash`, `sh`, `npm`,
-  `node` (other than as the `node <server-bin>` argv tail
-  forwarded to a host CLI), or any other binary. Argv is
-  constructed in code as a string array; no user input is
-  interpolated unquoted; no free-form shell string is ever
-  passed to a shell.
+  install spawns ONLY `<claude>`, `<codex>`, and `<hermes>`
+  (resolved via CLAUDE_BIN / CODEX_BIN / HERMES_BIN env or PATH;
+  PATHEXT honoured on win32). The single permitted use of
+  `cmd.exe` is the Windows wrapper-launch form `cmd.exe /d /s /c
+  <resolved-bin> <args...>` defined in CTR-002
+  (`windows_wrapper_launch`), used only when the resolved host
+  CLI is a `.cmd`/`.bat` wrapper on win32. install NEVER spawns
+  `bash`, `sh`, `npm`, `node` (other than as the `node
+  <server-bin>` argv tail forwarded to a Claude/Codex host CLI),
+  or any other binary. Argv is constructed in code as a string
+  array; no user input is interpolated unquoted; no free-form
+  shell string is ever passed to a shell.
 scope: install (entire partition)
 evidence: public_api
 stability: contractual
@@ -894,10 +931,10 @@ out_of_scope:
 test_obligation:
   predicate: |
     install.test.ts captures every spawn invocation and asserts
-    argv[0] is in the documented set { '<claude>', '<codex>' }
-    OR is the Windows wrapper-launch form `cmd.exe /d /s /c
-    <resolved-bin>` where `<resolved-bin>` ends with `.cmd` or
-    `.bat`. A regex probe over install.ts rejects
+    argv[0] is in the documented set { '<claude>', '<codex>',
+    '<hermes>' } OR is the Windows wrapper-launch form
+    `cmd.exe /d /s /c <resolved-bin>` where `<resolved-bin>` ends
+    with `.cmd` or `.bat`. A regex probe over install.ts rejects
     `child_process.exec(`, `bash -c`, `sh -c`. A separate test
     (fake win32 platform + fake which resolving to
     `C:\\fake\\codex.cmd`) asserts the wrapper-launch form is
@@ -906,6 +943,7 @@ test_obligation:
   boundary_classes:
     - claude-code path (probe + list + remove + add)
     - codex path (probe + add)
+    - hermes path (probe + add)
     - --dry-run (no spawn)
     - win32 wrapper-launch (.cmd resolved bin)
   failure_scenarios:
@@ -932,13 +970,16 @@ title: filesystem writes are bounded to two paths and atomic
 always: |
   install writes ONLY to:
     - `<host-skills-root>/<mcp-name>/SKILL.md` per requested host
+      (where `<host-skills-root>` ∈ { `${HOME}/.claude/skills`,
+      `${HOME}/.codex/skills`, `${HOME}/.hermes/skills` })
     - `<host-skills-root>/<mcp-name>/agents/openai.yaml` per
       requested host when the package contains optional metadata
     - `${VECHE_HOME}/config.json` (only when absent or --force)
   Every write uses `<path>.tmp-<pid>-<ts>` mode 0o600 followed
   by `rename`; on rename failure the .tmp file is best-effort
   removed. Host config files (`~/.claude.json`,
-  `~/.codex/config.toml`) are NEVER edited directly.
+  `~/.codex/config.toml`, `~/.hermes/config.yaml`) are NEVER
+  edited directly.
 scope: install (entire partition)
 evidence: public_api
 stability: contractual
@@ -952,8 +993,9 @@ concurrency_model:
   time_source: external
   reason: tmp suffix uses Clock-supplied timestamp for determinism in tests
 negative_cases:
-  - install writes to ~/.claude.json directly       => contract violation
-  - install writes to a path outside the allow-listed targets => contract violation
+  - install writes to ~/.claude.json directly                  => contract violation
+  - install writes to ~/.hermes/config.yaml directly           => contract violation
+  - install writes to a path outside the allow-listed targets  => contract violation
 out_of_scope:
   - host CLI's own writes (the host's `mcp add` writes its own
     config; install delegates and never reads or asserts on it)
@@ -998,6 +1040,9 @@ always: |
       pointing at the current `<server-bin>`.
     - Codex MCP entry: `mcp add` overwrites natively; the latest
       `<server-bin>` wins.
+    - Hermes MCP entry: `mcp add` rewrites
+      `mcp_servers.<mcp-name>` in `~/.hermes/config.yaml`
+      natively; the latest `<server-bin>` wins.
     - `${VECHE_HOME}/config.json`: written exactly once on the
       first run; preserved on every subsequent run unless `--force`.
   The server-bin path picked up on the second run reflects the
@@ -1067,12 +1112,12 @@ predicate: |
     canonical config template, server-bin existence check, and
     target-existence checks for the bootstrap config. Reading
     `${VECHE_HOME}/meetings/` is FORBIDDEN per INV-001.
-  - Subprocesses ONLY: `<claude>` (Claude Code path) and
-    `<codex>` (Codex path), with the documented argv from
-    CTR-002. No other binary.
+  - Subprocesses ONLY: `<claude>` (Claude Code path), `<codex>`
+    (Codex path), and `<hermes>` (Hermes Agent path), with the
+    documented argv from CTR-002. No other binary.
   - Logs to stderr ONLY. Stdout is unused in v1.
   - Env: reads VECHE_HOME, HOME (default derivation), CLAUDE_BIN,
-    CODEX_BIN, NO_COLOR. MUST NOT read CODEX_API_KEY.
+    CODEX_BIN, HERMES_BIN, NO_COLOR. MUST NOT read CODEX_API_KEY.
 negative_test_obligations:
   - >-
     throwing mock store: every install path completes without
@@ -1138,6 +1183,7 @@ test_obligation:
   boundary_classes:
     - claude-code argv
     - codex argv
+    - hermes argv
     - probe argv
   failure_scenarios:
     - shell interpolation introduced
@@ -1324,12 +1370,13 @@ lifecycle:
     scope: first-time-approval
 partition_id: install
 assumption: |
-  The host CLIs (`claude`, `codex`) honour the documented
-  `mcp add` / `mcp list` / `mcp remove` argv shapes across minor
-  version bumps. Drift surfaces in install.test.ts (which uses a
-  FakeSubprocessRunner) only after the test fixtures are
-  refreshed; an end-to-end smoke test against a real `claude` /
-  `codex` is run on a dev machine before release cuts.
+  The host CLIs (`claude`, `codex`, `hermes`) honour the
+  documented `mcp add` / `mcp list` / `mcp remove` argv shapes
+  across minor version bumps. Drift surfaces in install.test.ts
+  (which uses a FakeSubprocessRunner) only after the test
+  fixtures are refreshed; an end-to-end smoke test against a
+  real `claude` / `codex` / `hermes` is run on a dev machine
+  before release cuts.
 source_open_q: install:OQ-002
 blocking: no
 review_by: 2026-09-01
@@ -1373,7 +1420,8 @@ gate and contract surface:
 
 - Uninstall flow (OQ-001).
 - Updating an existing config.json (operators edit by hand).
-- Installing into hosts other than Claude Code and Codex.
+- Installing into hosts other than Claude Code, Codex, and
+  Hermes Agent.
 - Cross-machine provisioning (the resolved server-bin must be
   reachable from the host CLI's process).
 - Migrating an existing skill file from a previous version

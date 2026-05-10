@@ -6,7 +6,7 @@ import { findPackageRoot } from "../lib/packageRoot.js";
 
 export { realSpawner };
 
-export type InstallTarget = "claude-code" | "codex";
+export type InstallTarget = "claude-code" | "codex" | "hermes";
 export type InstallTargetSelection = InstallTarget | "both";
 
 export interface InstallCommand {
@@ -80,6 +80,18 @@ const buildHostPlan = (
 				"node",
 				serverBin,
 			],
+		};
+	}
+	if (target === "hermes") {
+		const cli = deps.env.HERMES_BIN ?? "hermes";
+		return {
+			target,
+			cli,
+			skillsRoot: path.join(home, ".hermes", "skills"),
+			probeArgs: ["--version"],
+			listArgs: null,
+			removeArgs: null,
+			mcpAddArgs: ["mcp", "add", mcpName, "--command", "node", "--args", serverBin],
 		};
 	}
 	const cli = deps.env.CODEX_BIN ?? "codex";

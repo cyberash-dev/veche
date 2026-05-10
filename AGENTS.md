@@ -190,31 +190,33 @@ different process from `veche-server`. The CLI invariants above apply in full. P
 
 The `install` subcommand is the canonical setup path for a fresh machine: it places
 `skills/veche/SKILL.md` and optional skill UI metadata under
-`~/.claude/skills/veche/` and/or `~/.codex/skills/veche/`, then delegates to
-`claude mcp add` / `codex mcp add` to register the stdio MCP server. Keep these
-invariants intact:
+`~/.claude/skills/veche/`, `~/.codex/skills/veche/`, and/or `~/.hermes/skills/veche/`,
+then delegates to `claude mcp add` / `codex mcp add` / `hermes mcp add` to register
+the stdio MCP server. The default `--for=both` targets Claude Code and Codex; Hermes
+Agent is opted into explicitly via `--for=hermes`. Keep these invariants intact:
 
 - **Bounded write surface.** The only paths the install command writes to are
   `<host-skills-root>/<mcp-name>/SKILL.md` and optional
   `<host-skills-root>/<mcp-name>/agents/openai.yaml`. Atomic write
   (`<path>.tmp-<pid>-<ts>` → `rename`, mode `0o600`) is mandatory. The host config files
-  (`~/.claude.json`, `~/.codex/config.toml`) are NEVER edited directly — go through the
-  host CLI.
-- **Bounded subprocess surface.** The install command spawns ONLY `claude` and `codex`
-  (resolved via `CLAUDE_BIN` / `CODEX_BIN` env vars or PATH), and only with the argv
-  shapes documented in [`spec/partitions/install.md`](spec/partitions/install.md) (Behaviours / Contracts).
+  (`~/.claude.json`, `~/.codex/config.toml`, `~/.hermes/config.yaml`) are NEVER edited
+  directly — go through the host CLI.
+- **Bounded subprocess surface.** The install command spawns ONLY `claude`, `codex`,
+  and `hermes` (resolved via `CLAUDE_BIN` / `CODEX_BIN` / `HERMES_BIN` env vars or PATH),
+  and only with the argv shapes documented in
+  [`spec/partitions/install.md`](spec/partitions/install.md) (Behaviours / Contracts).
   Reviewers must reject a PR that introduces any other binary spawn from this command.
 - **Idempotent.** Re-running with the same flags reaches the same end state. Claude Code's
   `mcp add` is not idempotent — the install command probes via `mcp list`, removes the
-  existing entry if present, then adds. Codex's `mcp add` overwrites natively, so a single
-  call suffices.
+  existing entry if present, then adds. Codex's and Hermes' `mcp add` overwrite
+  natively, so a single call suffices.
 - **`--dry-run` is a contract.** Never spawn a subprocess and never touch the filesystem
   in dry-run; only print the plan.
 - **No new npm deps.** Node built-ins only.
 - **Skill artefacts are single-source-of-truth.** The byte content of
   `skills/veche/SKILL.md` and optional `skills/veche/agents/openai.yaml` is authoritative;
-  both hosts get byte-identical copies. If Claude Code and Codex ever need divergent skill
-  content, that requires a spec change.
+  every host receives byte-identical copies. Divergent per-host skill content requires a
+  spec change.
 
 ## Recursion guard (Claude Code adapter)
 

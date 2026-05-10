@@ -47,7 +47,7 @@ commands:
     --no-color
 
   install                      install the veche skill + register MCP server
-    --for=claude-code|codex|both  (default: both)
+    --for=claude-code|codex|hermes|both  (default: both — hermes is opt-in only)
     --mcp-name=NAME            MCP server + skill directory name (default: veche)
     --server-bin=<abs path>    override path to veche-server.js
     --skills-only              only copy SKILL.md, skip MCP register
@@ -273,7 +273,12 @@ export const runCli = async (deps: CliDeps): Promise<number> => {
 				return EXIT_USAGE;
 			}
 			const target = readStringFlag(parsed.flags, "for", "both");
-			if (target !== "claude-code" && target !== "codex" && target !== "both") {
+			if (
+				target !== "claude-code" &&
+				target !== "codex" &&
+				target !== "hermes" &&
+				target !== "both"
+			) {
 				stderr(`invalid --for: ${target}\n`);
 				return EXIT_USAGE;
 			}

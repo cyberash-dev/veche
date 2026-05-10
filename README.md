@@ -42,10 +42,13 @@ npm install -g veche
 veche install        # writes SKILL.md to ~/.claude/skills/veche/ and ~/.codex/skills/veche/
                      # plus optional skill UI metadata under agents/openai.yaml
                      # plus claude mcp add / codex mcp add for the stdio MCP server
+
+veche install --for=hermes   # opt-in install into Hermes Agent (~/.hermes/skills/veche/
+                             # plus `hermes mcp add veche --command node --args …`)
 ```
 
-Restart your Claude Code / Codex session after installing. The skill is invoked as
-`/veche <question>`.
+Restart your Claude Code / Codex / Hermes Agent session after installing. The skill is
+invoked as `/veche <question>`.
 
 If you cloned the repo:
 
@@ -88,9 +91,10 @@ grouped by member with a synthesis paragraph. `--rounds N`, `--human`, `--no-hum
 
 ### As a generic MCP server
 
-`veche install` registers the server under both Claude Code and Codex. To wire it into a
-different MCP host, use whichever invocation that host supports — the binary is just
-stdio. A representative `mcp.json` snippet:
+`veche install` registers the server under Claude Code and Codex by default, and under
+Hermes Agent when invoked with `--for=hermes`. To wire it into a different MCP host, use
+whichever invocation that host supports — the binary is just stdio. A representative
+`mcp.json` snippet:
 
 ```json
 {

@@ -342,6 +342,126 @@ describe("runInstall", () => {
 		}
 	});
 
+	describe("hermes target", () => {
+		it("writes SKILL.md and runs single-add on hermes mcp add", async () => {
+			const code = await runInstall({ ...baseCommand(), target: "hermes" }, depsHandle.deps);
+			expect(code).toBe(0);
+
+			const hermesSkill = path.join(
+				depsHandle.home,
+				".hermes",
+				"skills",
+				"veche",
+				"SKILL.md",
+			);
+			const hermesMetadata = path.join(
+				depsHandle.home,
+				".hermes",
+				"skills",
+				"veche",
+				"agents",
+				"openai.yaml",
+			);
+			expect(await fs.readFile(hermesSkill, "utf8")).toContain("name: veche");
+			expect(await fs.readFile(hermesMetadata, "utf8")).toContain('display_name: "Veche"');
+
+			const hermesAdd = spawn.calls.find(
+				(c) => c.command === "hermes" && c.args[0] === "mcp" && c.args[1] === "add",
+			);
+			expect(hermesAdd).toBeDefined();
+			expect(hermesAdd?.args).toEqual([
+				"mcp",
+				"add",
+				"veche",
+				"--command",
+				"node",
+				"--args",
+				path.join(depsHandle.root, "dist", "bin", "veche-server.js"),
+			]);
+
+			const listCall = spawn.calls.find(
+				(c) => c.command === "hermes" && c.args[0] === "mcp" && c.args[1] === "list",
+			);
+			expect(listCall).toBeUndefined();
+			const removeCall = spawn.calls.find(
+				(c) => c.command === "hermes" && c.args[0] === "mcp" && c.args[1] === "remove",
+			);
+			expect(removeCall).toBeUndefined();
+		});
+
+		it("does not include hermes when --for=both", async () => {
+			const code = await runInstall(baseCommand(), depsHandle.deps);
+			expect(code).toBe(0);
+			const hermesCall = spawn.calls.find((c) => c.command === "hermes");
+			expect(hermesCall).toBeUndefined();
+			const hermesSkill = path.join(
+				depsHandle.home,
+				".hermes",
+				"skills",
+				"veche",
+				"SKILL.md",
+			);
+			await expect(fs.access(hermesSkill)).rejects.toBeTruthy();
+		});
+
+		it("returns 2 when hermes is missing without --force", async () => {
+			spawn.respond((c) => c.command === "hermes" && c.args[0] === "--version", {
+				missing: true,
+				code: -1,
+			});
+			const code = await runInstall({ ...baseCommand(), target: "hermes" }, depsHandle.deps);
+			expect(code).toBe(2);
+			expect(depsHandle.stderr()).toContain("not found on PATH");
+		});
+
+		it("skips hermes with --force when binary is missing", async () => {
+			spawn.respond((c) => c.command === "hermes" && c.args[0] === "--version", {
+				missing: true,
+				code: -1,
+			});
+			const code = await runInstall(
+				{ ...baseCommand(), target: "hermes", force: true },
+				depsHandle.deps,
+			);
+			expect(code).toBe(0);
+			expect(depsHandle.stderr()).toContain("[hermes] skipped");
+		});
+
+		it("returns 2 when hermes mcp add fails", async () => {
+			spawn.respond(
+				(c) => c.command === "hermes" && c.args[0] === "mcp" && c.args[1] === "add",
+				{ code: 1, stderr: "hermes-boom\n" },
+			);
+			const code = await runInstall({ ...baseCommand(), target: "hermes" }, depsHandle.deps);
+			expect(code).toBe(2);
+			expect(depsHandle.stderr()).toContain("hermes-boom");
+		});
+
+		it("respects HERMES_BIN env override", async () => {
+			const handle = await buildDeps({
+				spawner: spawn.spawner,
+				env: { HERMES_BIN: "/custom/hermes" },
+			});
+			tmpDirs.push(handle.root, handle.home);
+			const code = await runInstall({ ...baseCommand(), target: "hermes" }, handle.deps);
+			expect(code).toBe(0);
+			const hermesCall = spawn.calls.find((c) => c.command === "/custom/hermes");
+			expect(hermesCall).toBeDefined();
+		});
+
+		it("--dry-run prints the planned hermes argv without spawning", async () => {
+			const code = await runInstall(
+				{ ...baseCommand(), target: "hermes", dryRun: true },
+				depsHandle.deps,
+			);
+			expect(code).toBe(0);
+			expect(spawn.calls).toHaveLength(0);
+			expect(depsHandle.stderr()).toContain(
+				"[hermes] (dry-run) mcp register: hermes mcp add veche --command node --args",
+			);
+		});
+	});
+
 	describe("config bootstrap", () => {
 		it("writes $VECHE_HOME/config.json byte-identical with the template", async () => {
 			const code = await runInstall({ ...baseCommand(), skipConfig: false }, depsHandle.deps);
