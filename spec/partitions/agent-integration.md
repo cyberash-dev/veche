@@ -94,9 +94,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 discovery_scope:
   - src/features/agent-integration
@@ -134,9 +134,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 name: veche/agent-adapter-port
 version: "0.2.0"
@@ -170,9 +170,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 name: veche/profile-config-format
 version: "0.2.0"
@@ -200,9 +200,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: capabilities returns the static adapter capability record
 given: |
@@ -252,9 +252,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: openSession constructs a Session and never spawns a subprocess
 given: |
@@ -324,9 +324,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: sendTurn dispatches one subprocess per attempt and parses one outcome
 given: |
@@ -411,9 +411,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: closeSession transitions Session to closed and terminates in-flight subprocess
 given: |
@@ -476,9 +476,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: ProfileResolver merges Profile + Member overrides into ResolvedParticipantConfig
 given: |
@@ -552,9 +552,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: codex-cli emits Turn-1 vs resume argv shapes per CTR-001
 given: |
@@ -617,7 +617,13 @@ test_obligation:
 id: agent-integration:BEH-007
 type: Behavior
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: claude-code-cli emits --session-id on the first spawn and --resume on every later spawn (incl. retries) per CTR-002
 given: |
@@ -701,9 +707,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: codex-cli captures provider thread_id on Turn 1 from the JSONL stream
 given: |
@@ -758,9 +764,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: codex-cli subprocess argv and exit-code contract
 surface_ref: agent-integration:SUR-001
@@ -873,7 +879,13 @@ test_obligation:
 id: agent-integration:CTR-002
 type: Contract
 lifecycle:
-  status: proposed
+  status: approved
+  approval_record:
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: claude-code-cli subprocess argv and exit-code contract
 surface_ref: agent-integration:SUR-001
@@ -999,9 +1011,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: AgentAdapterPort method shapes and error taxonomy
 surface_ref: agent-integration:SUR-001
@@ -1111,9 +1123,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: UserConfigFile JSON schema (${VECHE_HOME}/config.json)
 surface_ref: agent-integration:SUR-002
@@ -1213,9 +1225,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: every Adapter is a port-conformant black box
 always: |
@@ -1263,9 +1275,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: Recursion Guard is present on every claude-code-cli spawn
 always: |
@@ -1315,9 +1327,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: forbidden env keys are filtered from every spawned subprocess
 always: |
@@ -1370,9 +1382,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: extraFlags are validated against per-adapter allow-lists
 always: |
@@ -1419,9 +1431,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: sendTurn never performs internal retries
 always: |
@@ -1473,9 +1485,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 provider: Codex CLI (`codex` binary)
 provider_surface: "codex@>=0.21"
@@ -1533,9 +1545,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 provider: Claude Code CLI (`claude` binary)
 provider_surface: "claude-code@>=1.0"
@@ -1599,9 +1611,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: agent-integration spawns only allow-listed binaries with bounded env
 policy_kind: io_scope
@@ -1648,9 +1660,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 title: claude-code-cli enforces the Recursion Guard on every spawn
 policy_kind: security_boundary
@@ -1697,9 +1709,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 constraint: |
   v1 supports exactly two adapters: `codex-cli` and
@@ -1734,9 +1746,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 constraint: |
   Adapter implementations MUST use only Node built-ins (`node:child_process`,
@@ -1773,9 +1785,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 target_ids:
   - agent-integration:BEH-001
@@ -1834,9 +1846,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 question: |
   Should the adapter expose a probe method that pre-validates
@@ -1873,9 +1885,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 question: |
   Should the adapter's `MAX_ATTEMPTS_PER_TURN` and backoff schedule
@@ -1912,9 +1924,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 assumption: |
   The `codex` and `claude` CLI binaries continue to honour the argv
@@ -1940,9 +1952,9 @@ lifecycle:
   approval_record:
     owner_role: tech-lead
     approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
 partition_id: agent-integration
 assumption: |
   Auth credentials for both providers are managed out-of-band by

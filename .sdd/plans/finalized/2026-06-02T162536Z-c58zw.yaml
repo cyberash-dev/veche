@@ -1,0 +1,10 @@
+plan_id: 2026-06-02T162536Z-c58zw
+created_at: 2026-06-02T16:25:37.847Z
+pending_attestations:
+  - id: agent-integration:*
+    owner_role: tech-lead
+    approver_identity: cyberash
+    timestamp: 2026-06-02T16:25:37.846Z
+    change_request: https://github.com/cyberash-dev/veche/releases/tag/v0.4.1
+    scope: fix-claude-resume-on-retry
+    target_status: approved
