@@ -120,6 +120,26 @@ VECHE_E2E=1 npx vitest run src/e2e/committee.e2e.test.ts   # opt-in real CLI run
 
 Before declaring a change done: `npm run typecheck && npm test && npm run lint` must all pass.
 
+## Releasing
+
+Publishing to npm is automated via **OIDC Trusted Publishers** — there is no
+npm token and no manual `npm publish`. `.github/workflows/publish.yml` runs on
+`release: published` and, after `typecheck`/`lint`/`build`/`test`, publishes with
+`npm publish --provenance`.
+
+So cutting a release is: bump the version + update `CHANGELOG.md`, commit, tag
+`vX.Y.Z`, push, then **create a GitHub release** for that tag — that is the only
+step that publishes. Do NOT run `npm publish` locally (it would fail without a
+token and bypass provenance). Creating the GitHub release IS the publish trigger;
+treat it as the irreversible, outward-facing step.
+
+```bash
+npm version patch --no-git-tag-version   # bump package.json + lock (no tag/commit)
+# update CHANGELOG.md, then:
+git commit -am "X.Y.Z" && git tag vX.Y.Z && git push origin main vX.Y.Z
+gh release create vX.Y.Z --title vX.Y.Z --notes-file <notes>   # <-- triggers npm publish
+```
+
 ## CLI invariants (`src/adapters/inbound/cli/`)
 
 The `veche` CLI is a second inbound adapter (alongside MCP) that reads the event log via
