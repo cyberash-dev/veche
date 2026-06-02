@@ -11,7 +11,7 @@ Stands up a short committee meeting via the `veche` MCP server:
 - **Facilitator:** `facilitator` (this session — you are the orchestrator).
 - **Members:** every Profile declared in `~/.veche/config.json` (or the subset selected via `--profiles`). All members are independent agents of equal standing — the skill does not assign coder/reviewer roles. Optionally a Human Participant joins as an extra member with id `human`.
 - **Rounds:** inherited from the server default unless the caller passes `--rounds N`. The server enforces the upper bound (`VECHE_MAX_ROUNDS_CAP`).
-- **Per-turn timeout:** 120 seconds.
+- **Per-turn timeout:** 300 seconds.
 
 Drives the discussion to termination, persists a synthesis, reports the transcript grouped by member, and closes the meeting. Does NOT write files or run other commands — this is a reasoning tool.
 
@@ -122,7 +122,7 @@ Call `mcp__veche__send_message` with:
 {
   "meetingId": "<meetingId>",
   "text": "<question>",
-  "turnTimeoutMs": 120000
+  "turnTimeoutMs": 300000
 }
 ```
 
@@ -151,7 +151,7 @@ After each response:
 - Stop when `status` is `completed`, `failed`, or `cancelled`.
 - After stop, drain: call `get_response` once with `waitMs: 0`; if `messages[].length > 0` append them and repeat until empty.
 
-**Budget:** do not poll for more than 10 minutes wall-clock (excluding time the user is answering a human-turn prompt). If model rounds drag, call `mcp__veche__cancel_job` with `reason: "skill-budget-exceeded"` and report a partial result.
+**Budget:** do not poll for more than 15 minutes wall-clock (excluding time the user is answering a human-turn prompt). If model rounds drag, call `mcp__veche__cancel_job` with `reason: "skill-budget-exceeded"` and report a partial result.
 
 #### Human turn sub-flow
 
