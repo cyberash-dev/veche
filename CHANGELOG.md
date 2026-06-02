@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] — 2026-06-02
+
+### Fixed
+
+- **`claude-code-cli` members no longer drop with "Session ID … is already
+  in use" after a transient first turn.** The adapter switched to
+  `--resume` only after a turn had *succeeded*, but `claude --session-id`
+  registers the session on disk the moment it starts. So any retryable
+  failure on the first turn (timeout, transient runtime/API error) left
+  `DispatchTurnUseCase` retrying with `--session-id` against an
+  already-created session — a guaranteed `claude-exit-1` and a dropped
+  participant. The adapter now flips to `--resume` as soon as a subprocess
+  returns (any exit code, tracked via a new `sessionCreated` flag), so
+  retries resume the conversation instead of colliding; the system prompt
+  still re-sends until a turn succeeds. `codex-cli` was unaffected — it
+  resumes on a server-generated `thread_id` captured even on failed turns.
+  Spec: `agent-integration:BEH-007` + `CTR-002`.
+
+## [0.4.0] — 2026-05-10
+
+### Added
+
+- **Hermes Agent install target** — `veche install --for=hermes` adds
+  Hermes Agent to the supported hosts for skill + MCP-server registration,
+  alongside the existing Claude Code and Codex targets.
+
 ## [0.3.1] — 2026-05-09
 
 ### Changed
