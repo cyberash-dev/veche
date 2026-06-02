@@ -617,25 +617,20 @@ test_obligation:
 id: agent-integration:BEH-007
 type: Behavior
 lifecycle:
-  status: approved
-  approval_record:
-    owner_role: tech-lead
-    approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+  status: proposed
 partition_id: agent-integration
-title: claude-code-cli emits --session-id on Turn 1 and --resume thereafter per CTR-002
+title: claude-code-cli emits --session-id on the first spawn and --resume on every later spawn (incl. retries) per CTR-002
 given: |
   - claude-code-cli adapter Session
-  - sendTurn invoked; the adapter tracks `hasStartedConversation`
+  - sendTurn invoked; the adapter tracks `sessionCreated`
     per Session, initialised false at openSession
 when: the adapter builds argv for the subprocess
 then: |
-  - Turn 1 (`hasStartedConversation === false`): argv contains
+  - First spawn (`sessionCreated === false`): argv contains
     `--session-id <providerRef>` (creates a new conversation).
-  - Turn N>=2 (`hasStartedConversation === true`): argv contains
-    `--resume <providerRef>` (continues the existing conversation).
+  - Every spawn after the first (`sessionCreated === true`): argv
+    contains `--resume <providerRef>` (continues the existing
+    conversation).
   Every Turn unconditionally emits the Recursion Guard pair
   (`--strict-mcp-config --mcp-config '{"mcpServers":{}}'`),
   `-p`, `--output-format json`, `--input-format text`,
@@ -645,12 +640,22 @@ then: |
   `--allowedTools` or `--disallowedTools`, the adapter omits its
   default. `--bare` is opt-in only via `extraFlags` and requires
   the operator to provide ANTHROPIC_API_KEY or apiKeyHelper.
-  After exit 0, if the parsed `session_id` matches the supplied
-  `providerRef`, the adapter flips `hasStartedConversation = true`;
-  on mismatch returns AdapterParseError with code
-  `claude-session-mismatch`.
+  The adapter flips `sessionCreated = true` as soon as a subprocess
+  returns an outcome (any exit code, including timeout), NOT only on
+  success: `claude --session-id` registers the session on disk at
+  startup, so a retry of a failed first Turn
+  (committee-protocol MAX_ATTEMPTS_PER_TURN) MUST resume rather than
+  re-create the session — re-using `--session-id` would fail with
+  "Session ID … is already in use". `sessionCreated` is NOT flipped
+  on a spawn failure (EPERM/EACCES) because no session was created.
+  The system prompt is sent via `--append-system-prompt` until a Turn
+  succeeds (separate `systemPromptPending` flag), so a resumed retry
+  still carries the role + PASS instructions. After exit 0, if the
+  parsed `session_id` does not match the supplied `providerRef`,
+  returns AdapterParseError with code `claude-session-mismatch`.
 negative_cases:
-  - Turn 2+ uses --session-id (would fail "Session ID … is already in use")
+  - a retry of a failed first Turn uses --session-id (would fail "Session ID … is already in use")
+  - any spawn after the first uses --session-id
   - missing Recursion Guard
 out_of_scope:
   - --continue (interactive-only; never used)
@@ -667,19 +672,22 @@ policy_refs:
   - agent-integration:POL-002
 test_obligation:
   predicate: |
-    For Turn 1 the spawned argv contains `--session-id <uuid>`; for
-    Turn 2 it contains `--resume <uuid>`. Recursion Guard pair is
+    For the first spawn the argv contains `--session-id <uuid>`; for
+    every later spawn it contains `--resume <uuid>`, including when
+    the first Turn failed and is retried. Recursion Guard pair is
     present on every spawn. Default disallowed-tools list is emitted
     iff the operator did not override allow/disallow lists.
   test_template: integration
   boundary_classes:
-    - Turn 1 with default tool policy
-    - Turn 2 (resume)
+    - first spawn with default tool policy
+    - second spawn (resume)
+    - retry after a failed first Turn resumes instead of re-creating
     - operator override of disallowedTools suppresses default
     - opt-in --bare requires ANTHROPIC_API_KEY (config-time check)
   failure_scenarios:
     - Recursion Guard absent on any Turn
-    - --session-id reused on Turn 2
+    - --session-id reused on any spawn after the first
+    - --session-id reused when retrying a failed first Turn
     - default disallowed list leaked despite operator override
 ---
 ```
@@ -865,13 +873,7 @@ test_obligation:
 id: agent-integration:CTR-002
 type: Contract
 lifecycle:
-  status: approved
-  approval_record:
-    owner_role: tech-lead
-    approver_identity: cyberash
-    timestamp: 2026-05-08T22:39:47.924Z
-    change_request: update old behavior
-    scope: first-time-approval
+  status: proposed
 partition_id: agent-integration
 title: claude-code-cli subprocess argv and exit-code contract
 surface_ref: agent-integration:SUR-001
@@ -937,7 +939,8 @@ preconditions:
   - --disallowedTools uses the `=<csv>` argv-form (the CLI's variadic
     parser otherwise consumes the prompt)
 postconditions:
-  - first successful Turn flips hasStartedConversation = true
+  - the first spawned subprocess flips sessionCreated = true (claude registers the session id on disk at startup), so every later spawn — including a retry of a failed first Turn — uses --resume
+  - systemPromptPending is cleared on the first successful Turn
 external_identifiers:
   - "argv strings: -p, --output-format, json, --input-format, text, --strict-mcp-config, --mcp-config, --mcp-config-payload-empty-mcpServers-object, --permission-mode, default, --disallowedTools=<csv>, --session-id, --resume, --model, --append-system-prompt, --add-dir"
   - "default disallowedTools list members: Bash, Edit, Write, NotebookEdit"
@@ -963,14 +966,16 @@ policy_refs:
   - agent-integration:POL-002
 test_obligation:
   predicate: |
-    Captured argv on Turn 1 contains --session-id; on Turn 2
-    contains --resume. Recursion Guard pair appears on every spawn.
+    Captured argv on the first spawn contains --session-id; on every
+    later spawn (including a retry of a failed first Turn) it contains
+    --resume. Recursion Guard pair appears on every spawn.
     --disallowedTools always uses the `=` form. JSON envelope parse
     failures map to the documented error codes.
   test_template: contract
   boundary_classes:
-    - Turn 1 with full options
-    - Turn 2 resume
+    - first spawn with full options
+    - second spawn resume
+    - retry after a failed first Turn resumes
     - operator override suppresses default disallowedTools
     - exit 0 with subtype=success
     - exit 0 with subtype=error_during_execution -> claude-runtime

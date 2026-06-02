@@ -21,7 +21,7 @@ interface RegistryEntry {
 	model: string | null;
 	extraFlags: readonly string[];
 	env: Readonly<Record<string, string>>;
-	hasStartedConversation: boolean;
+	sessionCreated: boolean;
 }
 
 export interface ClaudeCodeCliAdapterOptions {
@@ -78,7 +78,7 @@ export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {
 			model: input.model,
 			extraFlags: input.extraFlags,
 			env: input.env,
-			hasStartedConversation: false,
+			sessionCreated: false,
 		});
 		return session;
 	}
@@ -92,16 +92,17 @@ export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {
 			);
 		}
 		const providerRef = entry.session.providerRef ?? entry.session.id;
-		// Turn 1 creates the conversation via --session-id; subsequent turns resume it via
-		// --resume <id>. Re-using --session-id on a turn after the first causes
-		// "Session ID ... is already in use".
-		const isFirstTurn = !entry.hasStartedConversation;
+		// The first spawn creates the conversation via --session-id; every later spawn
+		// resumes it via --resume <id>. `claude --session-id` registers the session on
+		// disk the moment it starts, so once a subprocess has run we must resume — even
+		// when retrying a failed first turn (DispatchTurnUseCase). Re-using --session-id
+		// after the session exists causes "Session ID ... is already in use".
 		const args: string[] = [];
 		args.push("-p");
-		if (isFirstTurn) {
-			args.push("--session-id", providerRef);
-		} else {
+		if (entry.sessionCreated) {
 			args.push("--resume", providerRef);
+		} else {
+			args.push("--session-id", providerRef);
 		}
 		args.push("--output-format", "json");
 		args.push("--input-format", "text");
@@ -158,6 +159,10 @@ export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {
 			}
 			throw err;
 		}
+
+		// The subprocess ran, so `claude --session-id` has registered the session on
+		// disk; from here on every (re)attempt must resume it, not re-create it.
+		entry.sessionCreated = true;
 
 		if (outcome.cancelled) {
 			return this.failure(
@@ -231,7 +236,6 @@ export class ClaudeCodeCliAgentAdapter implements AgentAdapterPort {
 				);
 			}
 			entry.systemPromptPending = false;
-			entry.hasStartedConversation = true;
 			const classified = classifyResponse(parsed.result);
 			if (classified.kind === "pass") {
 				return {
